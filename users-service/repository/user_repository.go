@@ -32,3 +32,18 @@ func CreateUser(user models.User) error {
 	_, err := db.UsersCollection.InsertOne(ctx, user)
 	return err
 }
+
+func FindUserByEmail(email string) (*models.User, error) {
+	var user models.User
+	err := db.UsersCollection.FindOne(
+		context.Background(),
+		bson.M{"email": email},
+	).Decode(&user)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &user, nil
+}
+

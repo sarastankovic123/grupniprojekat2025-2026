@@ -23,5 +23,7 @@ func main() {
 	fmt.Println("Users service running on port 8001")
 	r.POST("/api/auth/register", handlers.Register)
 	r.GET("/api/auth/confirm", handlers.ConfirmEmail)
+	r.POST("/api/auth/login", handlers.Login)
+    r.POST("/api/auth/verify-otp", handlers.VerifyOTP)
 	r.Run(":8001")
 }
