@@ -24,3 +24,17 @@ func GetArtists(c *gin.Context) {
 
 	c.JSON(http.StatusOK, artists)
 }
+
+func GetArtistByID(c *gin.Context) {
+	id := c.Param("id")
+
+	artist, err := repository.GetArtistByID(id)
+	if err != nil {
+		c.JSON(http.StatusNotFound, gin.H{
+			"error": "Artist not found",
+		})
+		return
+	}
+
+	c.JSON(http.StatusOK, artist)
+}

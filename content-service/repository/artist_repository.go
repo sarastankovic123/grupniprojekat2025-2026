@@ -6,6 +6,7 @@ import (
 	"content-service/db"
 	"content-service/models"
 	"go.mongodb.org/mongo-driver/bson"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 func GetAllArtists() ([]models.Artist, error) {
@@ -21,4 +22,23 @@ func GetAllArtists() ([]models.Artist, error) {
 	}
 
 	return artists, nil
+}
+
+func GetArtistByID(id string) (*models.Artist, error) {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return nil, err
+	}
+
+	var artist models.Artist
+	err = db.ArtistsCollection.FindOne(
+		context.Background(),
+		bson.M{"_id": objID},
+	).Decode(&artist)
+
+	if err != nil {
+		return nil, err
+	}
+
+	return &artist, nil
 }

@@ -11,6 +11,7 @@ import (
 
 var Client *mongo.Client
 var ArtistsCollection *mongo.Collection
+var AlbumsCollection *mongo.Collection
 
 func ConnectMongo() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
@@ -26,7 +27,10 @@ func ConnectMongo() {
 	}
 
 	Client = client
-	ArtistsCollection = client.Database("music_db").Collection("artists")
+
+	db := client.Database("music_db")
+	ArtistsCollection = db.Collection("artists")
+	AlbumsCollection = db.Collection("albums")
 
 	fmt.Println("Connected to MongoDB (content-service)")
 }
