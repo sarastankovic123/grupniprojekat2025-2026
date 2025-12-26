@@ -71,7 +71,7 @@ func Register(c *gin.Context) {
 	}
 
 
-	if err := repository.CreateUser(user); err != nil {
+	if err := repository.CreateUser(&user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
@@ -97,11 +97,15 @@ func Register(c *gin.Context) {
 	}
 
 
-	confirmationLink := "http://localhost:8001/api/auth/confirm?token=" + tokenValue
+	confirmationLink := "http://localhost:5173/confirm?token=" + tokenValue
+
+
 	fmt.Println("CONFIRM LINK:", confirmationLink)
 
 
 	c.JSON(http.StatusCreated, gin.H{
-		"message": "Registration successful. Please confirm your email.",
-	})
+      "message": "Registration successful. Please confirm your email.",
+      "token": tokenValue,
+    })
+
 }
