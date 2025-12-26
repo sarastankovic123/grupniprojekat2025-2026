@@ -31,6 +31,8 @@ func main() {
 			artists.GET("", handlers.GetArtists)
 			artists.GET("/:id", handlers.GetArtistByID)
 			artists.GET("/:id/albums", handlers.GetAlbumsByArtist)
+			artists.POST("", handlers.CreateArtist)
+
 		}
 	}
 

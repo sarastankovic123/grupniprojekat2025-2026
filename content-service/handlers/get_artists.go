@@ -36,5 +36,7 @@ func GetArtistByID(c *gin.Context) {
 		return
 	}
 
+
+
 	c.JSON(http.StatusOK, artist)
 }

@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"time"
 
@@ -29,8 +30,10 @@ func ConfirmEmail(c *gin.Context) {
 		return
 	}
 
+	ctx := context.Background()
+
 	_, err = db.UsersCollection.UpdateOne(
-		c,
+		ctx,
 		bson.M{"_id": emailToken.UserID},
 		bson.M{"$set": bson.M{"isConfirmed": true}},
 	)
