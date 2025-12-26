@@ -1,6 +1,8 @@
 package handlers
 
+
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -10,6 +12,7 @@ import (
 	"users-service/repository"
 	"users-service/utils"
 )
+
 
 type LoginRequest struct {
 	Email    string `json:"email"`
@@ -41,6 +44,8 @@ func Login(c *gin.Context) {
 	}
 
 	otp := utils.GenerateOTP()
+	fmt.Println("OTP:", otp)
+
 
 	tokenDoc := models.EmailConfirmationToken{
 		UserID:    user.ID,

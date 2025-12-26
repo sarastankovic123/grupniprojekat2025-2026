@@ -7,9 +7,10 @@ import (
 )
 
 type EmailConfirmationToken struct {
-	ID        primitive.ObjectID `bson:"_id,omitempty"`
-	UserID    primitive.ObjectID `bson:"userId"`
-	Token     string             `bson:"token"`
-	ExpiresAt time.Time          `bson:"expiresAt"`
-	CreatedAt time.Time          `bson:"createdAt"`
+  ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
+  UserID    primitive.ObjectID `bson:"userId" json:"userId"`
+  Token     string             `bson:"token" json:"token"`
+  ExpiresAt time.Time          `bson:"expiresAt" json:"expiresAt"`
+  CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
 }
+

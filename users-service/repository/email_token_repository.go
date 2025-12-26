@@ -19,19 +19,14 @@ func SaveEmailToken(token models.EmailConfirmationToken) error {
 }
 
 func FindEmailToken(token string) (*models.EmailConfirmationToken, error) {
-	var result models.EmailConfirmationToken
-
-	err := db.EmailTokensCollection.FindOne(
-		context.Background(),
-		bson.M{"token": token},
-	).Decode(&result)
-
-	if err != nil {
-		return nil, err
-	}
-
-	return &result, nil
+  var t models.EmailConfirmationToken
+  err := db.EmailTokensCollection.FindOne(context.Background(), bson.M{"token": token}).Decode(&t)
+  if err != nil {
+    return nil, err
+  }
+  return &t, nil
 }
+
 
 func DeleteEmailToken(token string) error {
 	_, err := db.EmailTokensCollection.DeleteOne(
