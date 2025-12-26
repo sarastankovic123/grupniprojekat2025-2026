@@ -47,7 +47,7 @@ func VerifyOTP(c *gin.Context) {
 
 	_ = repository.DeleteEmailToken(req.OTP)
 
-	accessToken, err := utils.GenerateToken()
+	accessToken, err := utils.GenerateJWT(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate token"})
 		return
