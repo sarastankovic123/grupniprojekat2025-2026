@@ -2,73 +2,39 @@ package handlers
 
 import (
 	"net/http"
-
-	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
+	"strings"
 
 	"content-service/models"
 	"content-service/repository"
+
+	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
+
+
 type CreateSongRequest struct {
-	Name     string `json:"name" binding:"required"`
-	Duration int    `json:"duration" binding:"required"`
-	Genre    string `json:"genre" binding:"required"`
-	AlbumID  string `json:"albumId" binding:"required"`
+	Title    string   `json:"title"`
+	Duration int      `json:"duration"`
+	Genres   []string `json:"genres"`
+	AlbumID  string   `json:"albumId"`
 }
 
 type UpdateSongRequest struct {
-	Name     string `json:"name" binding:"required"`
-	Duration int    `json:"duration" binding:"required"`
-	Genre    string `json:"genre" binding:"required"`
-	AlbumID  string `json:"albumId" binding:"required"`
+	Title    string   `json:"title"`
+	Duration int      `json:"duration"`
+	Genres   []string `json:"genres"`
+	AlbumID  string   `json:"albumId"`
 }
 
-func CreateSong(c *gin.Context) {
-	var req CreateSongRequest
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
-		return
-	}
 
-	albumObjID, err := primitive.ObjectIDFromHex(req.AlbumID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid album ID"})
-		return
-	}
 
-	if req.Duration <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Duration must be positive"})
-		return
-	}
-
-	song := models.Song{
-		Name:     req.Name,
-		Duration: req.Duration,
-		Genre:    req.Genre,
-		AlbumID:  albumObjID,
-	}
-
-	createdSong, err := repository.CreateSong(song)
-	if err != nil {
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create song"})
-		return
-	}
-
-	c.JSON(http.StatusCreated, createdSong)
-}
-
-func GetAllSongs(c *gin.Context) {
+func GetSongs(c *gin.Context) {
 	songs, err := repository.GetAllSongs()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch songs"})
 		return
 	}
-
-	if songs == nil {
-		songs = []models.Song{}
-	}
-
 	c.JSON(http.StatusOK, songs)
 }
 
@@ -84,60 +50,112 @@ func GetSongByID(c *gin.Context) {
 	c.JSON(http.StatusOK, song)
 }
 
-func UpdateSong(c *gin.Context) {
-	id := c.Param("id")
 
-	var req UpdateSongRequest
+func CreateSong(c *gin.Context) {
+	var req CreateSongRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	req.AlbumID = strings.TrimSpace(req.AlbumID)
+
+	if req.Title == "" || req.AlbumID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields: title, albumId"})
 		return
 	}
 
 	albumObjID, err := primitive.ObjectIDFromHex(req.AlbumID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid album ID"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid albumId"})
 		return
 	}
 
-	if req.Duration <= 0 {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Duration must be positive"})
+	exists, err := repository.AlbumExistsByID(albumObjID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate album"})
+		return
+	}
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Album does not exist"})
 		return
 	}
 
 	song := models.Song{
-		Name:     req.Name,
+		Title:    req.Title,
 		Duration: req.Duration,
-		Genre:    req.Genre,
+		Genres:   req.Genres,
 		AlbumID:  albumObjID,
 	}
 
-	err = repository.UpdateSong(id, song)
+	created, err := repository.CreateSong(song)
 	if err != nil {
-		if err.Error() == "song not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Song not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to update song"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create song"})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Song updated successfully"})
+	c.JSON(http.StatusCreated, created)
+}
+
+func UpdateSong(c *gin.Context) {
+	id := strings.TrimSpace(c.Param("id"))
+
+	var req UpdateSongRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	req.AlbumID = strings.TrimSpace(req.AlbumID)
+
+	if req.Title == "" || req.AlbumID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields: title, albumId"})
+		return
+	}
+
+	albumObjID, err := primitive.ObjectIDFromHex(req.AlbumID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid albumId"})
+		return
+	}
+
+	// Optional but good: album must exist even for update
+	exists, err := repository.AlbumExistsByID(albumObjID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate album"})
+		return
+	}
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Album does not exist"})
+		return
+	}
+
+	song := models.Song{
+		Title:    req.Title,
+		Duration: req.Duration,
+		Genres:   req.Genres,
+		AlbumID:  albumObjID,
+	}
+
+	if err := repository.UpdateSong(id, song); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Song updated"})
 }
 
 func DeleteSong(c *gin.Context) {
 	id := c.Param("id")
 
-	err := repository.DeleteSong(id)
-	if err != nil {
-		if err.Error() == "song not found" {
-			c.JSON(http.StatusNotFound, gin.H{"error": "Song not found"})
-			return
-		}
-		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete song"})
+	if err := repository.DeleteSong(id); err != nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
 
-	c.JSON(http.StatusOK, gin.H{"message": "Song deleted successfully"})
+	c.JSON(http.StatusOK, gin.H{"message": "Song deleted"})
 }
 
 func GetSongsByAlbum(c *gin.Context) {
@@ -145,12 +163,8 @@ func GetSongsByAlbum(c *gin.Context) {
 
 	songs, err := repository.GetSongsByAlbumID(albumID)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Failed to fetch songs for album"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid album id"})
 		return
-	}
-
-	if songs == nil {
-		songs = []models.Song{}
 	}
 
 	c.JSON(http.StatusOK, songs)
