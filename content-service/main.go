@@ -11,7 +11,6 @@ import (
 )
 
 func main() {
-
 	db.ConnectMongo()
 
 	r := gin.Default()
@@ -34,6 +33,10 @@ func main() {
 
 		albums := api.Group("/albums")
 		{
+			
+			albums.GET("/:id", handlers.GetAlbumByID)
+
+			
 			albums.GET("/:id/songs", middleware.AuthMiddleware(), handlers.GetSongsByAlbum)
 			albums.POST("", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateAlbum)
 		}

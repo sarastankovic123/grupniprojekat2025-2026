@@ -11,7 +11,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-
 func GetAlbumsByArtistID(artistID string) ([]models.Album, error) {
 	objID, err := primitive.ObjectIDFromHex(artistID)
 	if err != nil {
@@ -38,6 +37,25 @@ func GetAlbumsByArtistID(artistID string) ([]models.Album, error) {
 
 	return albums, nil
 }
+
+func GetAlbumByID(albumID string) (*models.Album, error) {
+	objID, err := primitive.ObjectIDFromHex(albumID)
+	if err != nil {
+		return nil, err
+	}
+
+	var album models.Album
+	err = db.AlbumsCollection.FindOne(
+		context.Background(),
+		bson.M{"_id": objID},
+	).Decode(&album)
+	if err != nil {
+		return nil, err
+	}
+
+	return &album, nil
+}
+
 func ArtistExistsByID(id primitive.ObjectID) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -48,6 +66,7 @@ func ArtistExistsByID(id primitive.ObjectID) (bool, error) {
 	}
 	return count > 0, nil
 }
+
 func CreateAlbum(album models.Album) (models.Album, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -59,3 +78,4 @@ func CreateAlbum(album models.Album) (models.Album, error) {
 	_, err := db.AlbumsCollection.InsertOne(ctx, album)
 	return album, err
 }
+

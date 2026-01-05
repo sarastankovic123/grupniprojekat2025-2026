@@ -1,33 +1,39 @@
-import React, { useState } from "react";
+import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
-export default function Login() {
+export default function VerifyOtp() {
   const nav = useNavigate();
   const loc = useLocation();
-  const { login } = useAuth();
+  const { verifyOtp } = useAuth();
 
-  const initialEmail = loc.state?.email || "";
+  const loginState = loc.state || {};
+  const emailFromState = loginState.email || "";
+  const sessionIdFromState = loginState.sessionId || loginState.sessionID || loginState.sid || "";
 
-  const [form, setForm] = useState({
-    email: initialEmail,
-    password: "",
-  });
-
+  const [otp, setOtp] = useState("");
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+
+  const payloadHint = useMemo(() => {
+
+    return sessionIdFromState ? "Using sessionId + otp" : "Using email + otp";
+  }, [sessionIdFromState]);
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
     setLoading(true);
     try {
-      const data = await login(form);
+      const payload = sessionIdFromState
+        ? { sessionId: sessionIdFromState, otp }
+        : { email: emailFromState, otp };
 
+      await verifyOtp(payload);
 
-      nav("/verify-otp", { state: { ...data, email: form.email } });
+      nav("/artists", { replace: true });
     } catch (e) {
-      setErr(e.message || "Login failed");
+      setErr(e.message || "OTP verification failed");
     } finally {
       setLoading(false);
     }
@@ -36,26 +42,18 @@ export default function Login() {
   return (
     <div style={styles.page}>
       <div style={styles.card}>
-        <h2>Login (OTP)</h2>
+        <h2>Verify OTP</h2>
+        <div style={styles.meta}>
+          <div><b>Email:</b> {emailFromState || "(missing - go back to login)"}</div>
+          <div><b>Mode:</b> {payloadHint}</div>
+        </div>
 
         <form onSubmit={onSubmit} style={styles.form}>
           <label style={styles.label}>
-            Email
+            OTP code
             <input
-              value={form.email}
-              onChange={(e) => setForm((p) => ({ ...p, email: e.target.value }))}
-              type="email"
-              required
-              style={styles.input}
-            />
-          </label>
-
-          <label style={styles.label}>
-            Password
-            <input
-              value={form.password}
-              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
-              type="password"
+              value={otp}
+              onChange={(e) => setOtp(e.target.value)}
               required
               style={styles.input}
             />
@@ -64,23 +62,15 @@ export default function Login() {
           {err ? <div style={styles.error}>{err}</div> : null}
 
           <button disabled={loading} style={styles.btn}>
-            {loading ? "Sending OTP..." : "Login (send OTP)"}
+            {loading ? "Verifying..." : "Verify"}
           </button>
 
           <button
             type="button"
-            onClick={() => nav("/register")}
+            onClick={() => nav("/login", { state: { email: emailFromState } })}
             style={{ ...styles.btn, ...styles.btnSecondary }}
           >
-            Create account
-          </button>
-
-          <button
-            type="button"
-            onClick={() => nav("/confirm")}
-            style={{ ...styles.btn, ...styles.btnSecondary }}
-          >
-            Confirm account
+            Back to Login
           </button>
         </form>
       </div>
@@ -90,7 +80,8 @@ export default function Login() {
 
 const styles = {
   page: { padding: 24, display: "flex", justifyContent: "center" },
-  card: { width: 420, border: "1px solid #ddd", borderRadius: 12, padding: 16 },
+  card: { width: 460, border: "1px solid #ddd", borderRadius: 12, padding: 16 },
+  meta: { fontSize: 13, opacity: 0.85, marginBottom: 12, display: "grid", gap: 6 },
   form: { display: "flex", flexDirection: "column", gap: 12 },
   label: { display: "flex", flexDirection: "column", gap: 6 },
   input: { padding: 10, borderRadius: 10, border: "1px solid #ccc" },

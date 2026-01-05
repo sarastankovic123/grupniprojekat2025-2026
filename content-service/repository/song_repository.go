@@ -7,8 +7,10 @@ import (
 
 	"content-service/db"
 	"content-service/models"
+
 	"go.mongodb.org/mongo-driver/bson"
 	"go.mongodb.org/mongo-driver/bson/primitive"
+	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
 func CreateSong(song models.Song) (*models.Song, error) {
@@ -57,7 +59,6 @@ func GetSongByID(id string) (*models.Song, error) {
 		context.Background(),
 		bson.M{"_id": objID},
 	).Decode(&song)
-
 	if err != nil {
 		return nil, err
 	}
@@ -80,6 +81,7 @@ func UpdateSong(id string, song models.Song) error {
 			"duration": song.Duration,
 			"genres":   song.Genres,
 			"albumId":  song.AlbumID,
+			"trackNo":  song.TrackNo,
 		},
 	}
 
@@ -99,7 +101,6 @@ func UpdateSong(id string, song models.Song) error {
 	return nil
 }
 
-
 func DeleteSong(id string) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
@@ -113,7 +114,6 @@ func DeleteSong(id string) error {
 		ctx,
 		bson.M{"_id": objID},
 	)
-
 	if err != nil {
 		return err
 	}
@@ -131,9 +131,13 @@ func GetSongsByAlbumID(albumID string) ([]models.Song, error) {
 		return nil, err
 	}
 
+	// Sort po trackNo rastuce (frontend očekuje redosled pesama)
+	opts := options.Find().SetSort(bson.M{"trackNo": 1})
+
 	cursor, err := db.SongsCollection.Find(
 		context.Background(),
 		bson.M{"albumId": objID},
+		opts,
 	)
 	if err != nil {
 		return nil, err
@@ -151,6 +155,7 @@ func GetSongsByAlbumID(albumID string) ([]models.Song, error) {
 
 	return songs, nil
 }
+
 func AlbumExistsByID(id primitive.ObjectID) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
