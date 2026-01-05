@@ -1,111 +1,72 @@
-import { useEffect, useState } from "react";
+import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
-import { getArtists, createArtist } from "../api/artists";
+import { apiFetch } from "../api/apiFetch";
+import { useAuth } from "../auth/AuthContext";
 
 export default function Artists() {
+  const { logout } = useAuth();
+
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-
-  const [name, setName] = useState("");
-  const [biography, setBiography] = useState("");
-  const [genres, setGenres] = useState("");
-
-  const load = () => {
-    setLoading(true);
-    setError(null);
-
-    getArtists()
-      .then((data) => setArtists(Array.isArray(data) ? data : []))
-      .catch((err) => setError(err.message))
-      .finally(() => setLoading(false));
-  };
+  const [err, setErr] = useState("");
 
   useEffect(() => {
+    let alive = true;
+
+    async function load() {
+      setErr("");
+      setLoading(true);
+      try {
+        const data = await apiFetch("/api/content/artists");
+        if (!alive) return;
+
+        const list = Array.isArray(data) ? data : data?.items || [];
+        setArtists(list);
+      } catch (e) {
+        if (!alive) return;
+        setErr(e.message || "Failed to load artists");
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    }
+
     load();
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  const onSubmit = async (e) => {
-    e.preventDefault();
-    setError(null);
-
-    try {
-      await createArtist({
-        name,
-        biography,
-        genres: genres
-          .split(",")
-          .map((g) => g.trim())
-          .filter(Boolean),
-      });
-
-      setName("");
-      setBiography("");
-      setGenres("");
-      load();
-    } catch (err) {
-      setError(err.message);
-    }
-  };
-
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Artists</h1>
+    <div style={styles.page}>
+      <div style={styles.topbar}>
+        <h2 style={{ margin: 0 }}>Artists</h2>
+        <button onClick={logout} style={styles.btn}>Logout</button>
+      </div>
 
-      <h2>Add artist</h2>
-      <form onSubmit={onSubmit} style={{ marginBottom: 24 }}>
-        <div style={{ marginBottom: 8 }}>
-          <input
-            value={name}
-            onChange={(e) => setName(e.target.value)}
-            placeholder="Name"
-            required
-          />
-        </div>
+      {loading ? <div>Loading...</div> : null}
+      {err ? <div style={styles.error}>{err}</div> : null}
 
-        <div style={{ marginBottom: 8 }}>
-          <textarea
-            value={biography}
-            onChange={(e) => setBiography(e.target.value)}
-            placeholder="Biography"
-            rows={3}
-          />
-        </div>
-
-        <div style={{ marginBottom: 8 }}>
-          <input
-            value={genres}
-            onChange={(e) => setGenres(e.target.value)}
-            placeholder='Genres (comma separated, e.g. "House, Electronic")'
-          />
-        </div>
-
-        <button type="submit">Create</button>
-      </form>
-
-      {loading && <p>Loading artists...</p>}
-      {error && <p>Error: {error}</p>}
-
-      {!loading && artists.length === 0 ? (
-        <p>No artists found.</p>
-      ) : (
-        <ul>
-          {artists.map((a) => (
-            <li key={a.id ?? a._id} style={{ marginBottom: 16 }}>
-              <div>
-                <b>
-                  <Link to={`/artists/${a.id ?? a._id}`}>{a.name}</Link>
-                </b>
-              </div>
-
-              {a.biography && <div>{a.biography}</div>}
-              {a.genres?.length > 0 && (
-                <div>Genres: {a.genres.join(", ")}</div>
-              )}
-            </li>
-          ))}
-        </ul>
-      )}
+      <div style={styles.grid}>
+        {artists.map((a) => (
+          <Link key={a.id || a._id || a.artistId || a.name} to={`/artists/${a.id || a._id || a.artistId}`} style={styles.card}>
+            <div style={styles.title}>{a.name || a.artistName || "Unnamed artist"}</div>
+            {a.genre ? <div style={styles.meta}>{a.genre}</div> : null}
+            {a.country ? <div style={styles.meta}>{a.country}</div> : null}
+          </Link>
+        ))}
+      </div>
     </div>
   );
 }
+
+const styles = {
+  page: { padding: 24 },
+  topbar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 },
+  card: { border: "1px solid #ddd", borderRadius: 12, padding: 12, textDecoration: "none", color: "inherit" },
+  title: { fontWeight: 700 },
+  meta: { fontSize: 13, opacity: 0.8, marginTop: 6 },
+  btn: { padding: "8px 10px", borderRadius: 10, border: "1px solid #111", cursor: "pointer" },
+  error: { color: "crimson", marginBottom: 12 },
+};

@@ -1,32 +1,36 @@
 import { useEffect, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { confirmEmail } from "../api/auth";
+import { useSearchParams, useNavigate } from "react-router-dom";
+import { apiFetch } from "../api/apiFetch";
 
 export default function Confirm() {
   const [params] = useSearchParams();
+  const navigate = useNavigate();
   const token = params.get("token");
 
-  const [msg, setMsg] = useState("Confirming...");
-  const [error, setError] = useState(null);
+  const [status, setStatus] = useState("confirming");
 
   useEffect(() => {
     if (!token) {
-      setError("Missing token");
-      setMsg(null);
+      setStatus("invalid");
       return;
     }
 
-    confirmEmail(token)
-      .then(() => setMsg("Email confirmed! You can login now."))
-      .catch((e) => { setError(e.message); setMsg(null); });
+    apiFetch(`/api/auth/confirm?token=${token}`)
+      .then(() => setStatus("success"))
+      .catch(() => setStatus("error"));
   }, [token]);
 
   return (
-    <div style={{ padding: 24 }}>
-      <h1>Confirm email</h1>
-      {msg && <p>{msg}</p>}
-      {error && <p>Error: {error}</p>}
-      <Link to="/login">Go to login</Link>
+    <div style={{ padding: 40 }}>
+      {status === "confirming" && <p>Confirming account...</p>}
+      {status === "success" && (
+        <>
+          <h2>Account confirmed ✅</h2>
+          <button onClick={() => navigate("/login")}>Go to login</button>
+        </>
+      )}
+      {status === "error" && <p>Confirmation failed ❌</p>}
+      {status === "invalid" && <p>Invalid confirmation link ❌</p>}
     </div>
   );
 }

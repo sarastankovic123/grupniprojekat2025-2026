@@ -35,3 +35,21 @@ func GetAlbumsByArtistID(artistID string) ([]models.Album, error) {
 
 	return albums, nil
 }
+
+func GetAlbumByID(albumID string) (*models.Album, error) {
+	objID, err := primitive.ObjectIDFromHex(albumID)
+	if err != nil {
+		return nil, err
+	}
+
+	var album models.Album
+	err = db.AlbumsCollection.FindOne(
+		context.Background(),
+		bson.M{"_id": objID},
+	).Decode(&album)
+	if err != nil {
+		return nil, err
+	}
+
+	return &album, nil
+}

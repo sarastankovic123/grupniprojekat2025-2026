@@ -3,9 +3,8 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/gin-gonic/gin"
-
 	"content-service/repository"
+	"github.com/gin-gonic/gin"
 )
 
 func GetAlbumsByArtist(c *gin.Context) {

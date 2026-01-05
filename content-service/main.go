@@ -25,17 +25,26 @@ func main() {
 
 
 	api := r.Group("/api/content")
-	{
-		artists := api.Group("/artists")
-		{
-			artists.GET("", handlers.GetArtists)
-			artists.GET("/:id", handlers.GetArtistByID)
-			artists.GET("/:id/albums", handlers.GetAlbumsByArtist)
-			artists.POST("", handlers.CreateArtist)
+    {
+    	artists := api.Group("/artists")
+    	{
+    		artists.GET("", handlers.GetArtists)
+    		artists.GET("/:id", handlers.GetArtistByID)
+    		artists.GET("/:id/albums", handlers.GetAlbumsByArtist)
+    		artists.POST("", handlers.CreateArtist)
+    	}
 
-		}
-	}
+    	albums := api.Group("/albums")
+        {
+            albums.GET("/:id", handlers.GetAlbumByID)
+            albums.GET("/:id/songs", handlers.GetSongsByAlbum)
+        }
+
+
+
+
 
 	fmt.Println("Content service running on port 8002")
 	r.Run(":8002")
+}
 }
