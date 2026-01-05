@@ -14,7 +14,6 @@ var ArtistsCollection *mongo.Collection
 var AlbumsCollection *mongo.Collection
 var SongsCollection *mongo.Collection
 
-
 func ConnectMongo() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -34,8 +33,6 @@ func ConnectMongo() {
 	ArtistsCollection = db.Collection("artists")
 	AlbumsCollection = db.Collection("albums")
 	SongsCollection = db.Collection("songs")
-
-
 
 	fmt.Println("Connected to MongoDB (content-service)")
 }
