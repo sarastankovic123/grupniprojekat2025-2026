@@ -26,4 +26,7 @@ func main() {
 	r.POST("/api/auth/login", handlers.Login)
     r.POST("/api/auth/verify-otp", handlers.VerifyOTP)
 	r.Run(":8001")
+	r.POST("/api/auth/magic-link/request", handlers.RequestMagicLink)
+    r.GET("/api/auth/magic-link/consume", handlers.ConsumeMagicLink)
+
 }
