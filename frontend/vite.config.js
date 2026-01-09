@@ -7,6 +7,7 @@ export default defineConfig({
     proxy: {
       "/api/auth": "http://localhost:8001",
       "/api/content": "http://localhost:8002",
+      "/api/notifications": "http://localhost:8003",
     },
   },
 });

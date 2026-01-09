@@ -1,8 +1,24 @@
 import React, { createContext, useContext, useEffect, useMemo, useState } from "react";
+import { jwtDecode } from "jwt-decode";
 import { STORAGE_TOKEN_KEY, TOKEN_RESPONSE_FIELD } from "../config";
 import { apiFetch } from "../api/apiFetch";
 
 const AuthContext = createContext(null);
+
+function decodeToken(token) {
+  try {
+    const decoded = jwtDecode(token);
+    return {
+      userId: decoded.user_id,
+      email: decoded.email,
+      username: decoded.username,
+      role: decoded.role,
+    };
+  } catch (err) {
+    console.error("Failed to decode token:", err);
+    return null;
+  }
+}
 
 export function AuthProvider({ children }) {
   const [accessToken, setAccessToken] = useState(() => localStorage.getItem(STORAGE_TOKEN_KEY));
@@ -10,8 +26,14 @@ export function AuthProvider({ children }) {
   const [bootstrapped, setBootstrapped] = useState(false);
 
   useEffect(() => {
-    if (accessToken) localStorage.setItem(STORAGE_TOKEN_KEY, accessToken);
-    else localStorage.removeItem(STORAGE_TOKEN_KEY);
+    if (accessToken) {
+      localStorage.setItem(STORAGE_TOKEN_KEY, accessToken);
+      const userData = decodeToken(accessToken);
+      setUser(userData);
+    } else {
+      localStorage.removeItem(STORAGE_TOKEN_KEY);
+      setUser(null);
+    }
   }, [accessToken]);
 
   useEffect(() => {
