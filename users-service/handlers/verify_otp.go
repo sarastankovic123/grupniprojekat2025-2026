@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"time"
 
@@ -56,4 +59,13 @@ func VerifyOTP(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{
 		"accessToken": accessToken,
 	})
+
+	// Send login success notification (async, non-blocking)
+	go func() {
+		notifBody, _ := json.Marshal(map[string]string{
+			"userId":  user.ID.Hex(),
+			"message": fmt.Sprintf("Login successful at %s", time.Now().Format("2006-01-02 15:04:05")),
+		})
+		http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+	}()
 }

@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/AuthContext";
+import NotificationBell from "../components/NotificationBell";
 
 export default function Artists() {
   const { logout } = useAuth();
@@ -41,7 +42,10 @@ export default function Artists() {
     <div style={styles.page}>
       <div style={styles.topbar}>
         <h2 style={{ margin: 0 }}>Artists</h2>
-        <button onClick={logout} style={styles.btn}>Logout</button>
+        <div style={styles.topbarRight}>
+          <NotificationBell />
+          <button onClick={logout} style={styles.btn}>Logout</button>
+        </div>
       </div>
 
       {loading ? <div>Loading...</div> : null}
@@ -63,6 +67,7 @@ export default function Artists() {
 const styles = {
   page: { padding: 24 },
   topbar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  topbarRight: { display: "flex", alignItems: "center", gap: 12 },
   grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 },
   card: { border: "1px solid #ddd", borderRadius: 12, padding: 12, textDecoration: "none", color: "inherit" },
   title: { fontWeight: 700 },

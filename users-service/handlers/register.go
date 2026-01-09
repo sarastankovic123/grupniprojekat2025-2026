@@ -1,6 +1,8 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"time"
@@ -12,16 +14,13 @@ import (
 	"users-service/utils"
 )
 
-
 func Register(c *gin.Context) {
 	var req RegisterRequest
-
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
 		return
 	}
-
 
 	if req.Username == "" || req.Email == "" || req.Password == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields"})
@@ -43,20 +42,17 @@ func Register(c *gin.Context) {
 		return
 	}
 
-
 	_, err := repository.FindUserByUsername(req.Username)
 	if err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
 		return
 	}
 
-
 	hash, err := utils.HashPassword(req.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Password hashing failed"})
 		return
 	}
-
 
 	user := models.User{
 		Username:          req.Username,
@@ -70,13 +66,10 @@ func Register(c *gin.Context) {
 		CreatedAt:         time.Now(),
 	}
 
-
 	if err := repository.CreateUser(&user); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
-
-
 
 	tokenValue, err := utils.GenerateToken()
 	if err != nil {
@@ -96,16 +89,22 @@ func Register(c *gin.Context) {
 		return
 	}
 
-
 	confirmationLink := "http://localhost:5173/confirm?token=" + tokenValue
-
 
 	fmt.Println("CONFIRM LINK:", confirmationLink)
 
-
 	c.JSON(http.StatusCreated, gin.H{
-      "message": "Registration successful. Please confirm your email.",
-      "token": tokenValue,
-    })
+		"message": "Registration successful. Please confirm your email.",
+		"token":   tokenValue,
+	})
+
+	// Send welcome notification (async, non-blocking)
+	go func() {
+		notifBody, _ := json.Marshal(map[string]string{
+			"userId":  user.ID.Hex(),
+			"message": "Welcome! Your account has been created. Please confirm your email.",
+		})
+		http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+	}()
 
 }

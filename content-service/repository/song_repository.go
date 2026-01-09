@@ -79,7 +79,6 @@ func UpdateSong(id string, song models.Song) error {
 		"$set": bson.M{
 			"title":    song.Title,
 			"duration": song.Duration,
-			"genres":   song.Genres,
 			"albumId":  song.AlbumID,
 			"trackNo":  song.TrackNo,
 		},

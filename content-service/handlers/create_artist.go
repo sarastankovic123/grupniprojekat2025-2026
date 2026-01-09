@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"content-service/models"
@@ -35,4 +38,16 @@ func CreateArtist(c *gin.Context) {
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Artist created",
 	})
+
+	// Notify admin about new artist (async, non-blocking)
+	go func() {
+		userID, exists := c.Get("userID")
+		if exists {
+			notifBody, _ := json.Marshal(map[string]string{
+				"userId":  userID.(string),
+				"message": fmt.Sprintf("New artist created: %s", req.Name),
+			})
+			http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+		}
+	}()
 }

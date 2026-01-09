@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -11,23 +14,17 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-
-
 type CreateSongRequest struct {
-	Title    string   `json:"title"`
-	Duration int      `json:"duration"`
-	Genres   []string `json:"genres"`
-	AlbumID  string   `json:"albumId"`
+	Title    string `json:"title"`
+	Duration int    `json:"duration"`
+	AlbumID  string `json:"albumId"`
 }
 
 type UpdateSongRequest struct {
-	Title    string   `json:"title"`
-	Duration int      `json:"duration"`
-	Genres   []string `json:"genres"`
-	AlbumID  string   `json:"albumId"`
+	Title    string `json:"title"`
+	Duration int    `json:"duration"`
+	AlbumID  string `json:"albumId"`
 }
-
-
 
 func GetSongs(c *gin.Context) {
 	songs, err := repository.GetAllSongs()
@@ -49,7 +46,6 @@ func GetSongByID(c *gin.Context) {
 
 	c.JSON(http.StatusOK, song)
 }
-
 
 func CreateSong(c *gin.Context) {
 	var req CreateSongRequest
@@ -84,8 +80,7 @@ func CreateSong(c *gin.Context) {
 
 	song := models.Song{
 		Title:    req.Title,
-		Duration: req.Duration,
-		Genres:   req.Genres,
+		Duration: fmt.Sprintf("%d", req.Duration),
 		AlbumID:  albumObjID,
 	}
 
@@ -96,6 +91,18 @@ func CreateSong(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, created)
+
+	// Notify admin about new song (async, non-blocking)
+	go func() {
+		userID, exists := c.Get("userID")
+		if exists {
+			notifBody, _ := json.Marshal(map[string]string{
+				"userId":  userID.(string),
+				"message": fmt.Sprintf("New song created: %s", created.Title),
+			})
+			http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+		}
+	}()
 }
 
 func UpdateSong(c *gin.Context) {
@@ -134,8 +141,7 @@ func UpdateSong(c *gin.Context) {
 
 	song := models.Song{
 		Title:    req.Title,
-		Duration: req.Duration,
-		Genres:   req.Genres,
+		Duration: fmt.Sprintf("%d", req.Duration),
 		AlbumID:  albumObjID,
 	}
 
@@ -156,16 +162,4 @@ func DeleteSong(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusOK, gin.H{"message": "Song deleted"})
-}
-
-func GetSongsByAlbum(c *gin.Context) {
-	albumID := c.Param("id")
-
-	songs, err := repository.GetSongsByAlbumID(albumID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid album id"})
-		return
-	}
-
-	c.JSON(http.StatusOK, songs)
 }

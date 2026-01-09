@@ -1,6 +1,9 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/gin-gonic/gin"
@@ -49,4 +52,16 @@ func CreateAlbum(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, created)
+
+	// Notify admin about new album (async, non-blocking)
+	go func() {
+		userID, exists := c.Get("userID")
+		if exists {
+			notifBody, _ := json.Marshal(map[string]string{
+				"userId":  userID.(string),
+				"message": fmt.Sprintf("New album created: %s", req.Title),
+			})
+			http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+		}
+	}()
 }
