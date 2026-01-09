@@ -51,3 +51,15 @@ func FindUserByEmail(email string) (*models.User, error) {
 	}
 	return &user, nil
 }
+
+func FindUserByID(id primitive.ObjectID) (*models.User, error) {
+	var user models.User
+	err := db.UsersCollection.
+		FindOne(context.Background(), bson.M{"_id": id}).
+		Decode(&user)
+
+	if err != nil {
+		return nil, err
+	}
+	return &user, nil
+}

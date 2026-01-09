@@ -8,7 +8,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
-
+var MagicLinkTokensCollection *mongo.Collection
 var Client *mongo.Client
 var UsersCollection *mongo.Collection
 var EmailTokensCollection *mongo.Collection
@@ -32,6 +32,7 @@ func ConnectMongo() {
 	db := client.Database("users_db")
 	UsersCollection = db.Collection("users")
 	EmailTokensCollection = db.Collection("email_tokens")
+	MagicLinkTokensCollection = db.Collection("magic_link_tokens")
 
 	fmt.Println("Connected to MongoDB")
 }
