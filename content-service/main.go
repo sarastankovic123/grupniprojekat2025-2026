@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"log"
 
 	"content-service/config"
 	"content-service/db"
@@ -9,6 +10,10 @@ import (
 	"content-service/middleware"
 
 	"github.com/gin-gonic/gin"
+	"github.com/gin-gonic/gin/binding"
+	"github.com/go-playground/validator/v10"
+
+	"shared-utils/validation"
 )
 
 func main() {
@@ -16,6 +21,14 @@ func main() {
 	config.LoadConfig()
 
 	db.ConnectMongo()
+
+	// Register custom validators
+	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
+		if err := validation.RegisterCustomValidators(v); err != nil {
+			log.Fatalf("Failed to register custom validators: %v", err)
+		}
+		fmt.Println("Custom validators registered successfully")
+	}
 
 	r := gin.Default()
 

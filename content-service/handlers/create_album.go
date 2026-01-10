@@ -12,13 +12,14 @@ import (
 	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
+	"shared-utils/validation"
 )
 
 type CreateAlbumRequest struct {
-	Title       string   `json:"title"`
-	ReleaseDate string   `json:"releaseDate"`
-	Genres      []string `json:"genres"`
-	ArtistID    string   `json:"artistId"`
+	Title       string   `json:"title" binding:"required,min=1,max=200"`
+	ReleaseDate string   `json:"releaseDate" binding:"omitempty,dateformat"`
+	Genres      []string `json:"genres" binding:"max=10,dive,min=1,max=50"`
+	ArtistID    string   `json:"artistId" binding:"required,len=24,hexadecimal"`
 }
 
 func CreateAlbum(c *gin.Context) {
@@ -58,9 +59,11 @@ func CreateAlbum(c *gin.Context) {
 	go func() {
 		userID, exists := c.Get("userID")
 		if exists {
+			// SECURITY FIX: HTML escape title to prevent XSS
+			sanitizedTitle := validation.SanitizeForHTML(req.Title)
 			notifBody, _ := json.Marshal(map[string]string{
 				"userId":  userID.(string),
-				"message": fmt.Sprintf("New album created: %s", req.Title),
+				"message": fmt.Sprintf("New album created: %s", sanitizedTitle),
 			})
 			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
 			req.Header.Set("Content-Type", "application/json")

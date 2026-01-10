@@ -9,13 +9,15 @@ import (
 	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
+	"shared-utils/validation"
+
 	"github.com/gin-gonic/gin"
 )
 
 type CreateArtistRequest struct {
-	Name      string   `json:"name"`
-	Biography string   `json:"biography"`
-	Genres    []string `json:"genres"`
+	Name      string   `json:"name" binding:"required,min=1,max=200"`
+	Biography string   `json:"biography" binding:"max=5000"`
+	Genres    []string `json:"genres" binding:"max=10,dive,min=1,max=50"`
 }
 
 func CreateArtist(c *gin.Context) {
@@ -44,9 +46,11 @@ func CreateArtist(c *gin.Context) {
 	go func() {
 		userID, exists := c.Get("userID")
 		if exists {
+			// SECURITY FIX: HTML escape name to prevent XSS
+			sanitizedName := validation.SanitizeForHTML(req.Name)
 			notifBody, _ := json.Marshal(map[string]string{
 				"userId":  userID.(string),
-				"message": fmt.Sprintf("New artist created: %s", req.Name),
+				"message": fmt.Sprintf("New artist created: %s", sanitizedName),
 			})
 			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
 			req.Header.Set("Content-Type", "application/json")

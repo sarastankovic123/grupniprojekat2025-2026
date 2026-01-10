@@ -10,19 +10,20 @@ import (
 	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
+	"shared-utils/validation"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CreateSongRequest struct {
-	Title    string `json:"title"`
-	Duration int    `json:"duration"`
-	AlbumID  string `json:"albumId"`
+	Title    string `json:"title" binding:"required,min=1,max=200"`
+	Duration int    `json:"duration" binding:"required,min=1,max=7200"`
+	AlbumID  string `json:"albumId" binding:"required,len=24,hexadecimal"`
 }
 
 type UpdateSongRequest struct {
-	Title    string `json:"title"`
+	Title    string `json:"title" binding:"required,min=1,max=200"`
 	Duration int    `json:"duration"`
 	AlbumID  string `json:"albumId"`
 }
@@ -97,9 +98,11 @@ func CreateSong(c *gin.Context) {
 	go func() {
 		userID, exists := c.Get("userID")
 		if exists {
+			// SECURITY FIX: HTML escape title to prevent XSS
+			sanitizedTitle := validation.SanitizeForHTML(created.Title)
 			notifBody, _ := json.Marshal(map[string]string{
 				"userId":  userID.(string),
-				"message": fmt.Sprintf("New song created: %s", created.Title),
+				"message": fmt.Sprintf("New song created: %s", sanitizedTitle),
 			})
 			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
 			req.Header.Set("Content-Type", "application/json")

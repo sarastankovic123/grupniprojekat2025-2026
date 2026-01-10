@@ -1,28 +1,37 @@
 package handlers
 
-
 import (
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"shared-utils/validation"
 	"users-service/models"
 	"users-service/repository"
 	"users-service/utils"
 )
 
-
 type LoginRequest struct {
-	Email    string `json:"email"`
-	Password string `json:"password"`
+	Email    string `json:"email" binding:"required,email,min=5,max=255"`
+	Password string `json:"password" binding:"required,min=8,max=128"`
 }
 
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": validation.FormatValidationError(err)})
+		return
+	}
+
+	// Trim email input
+	req.Email = strings.TrimSpace(req.Email)
+
+	// Additional email validation before database query
+	if !utils.IsValidEmail(req.Email) {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
@@ -37,7 +46,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-
 	if !user.IsConfirmed {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Email is not confirmed"})
 		return
@@ -45,7 +53,6 @@ func Login(c *gin.Context) {
 
 	otp := utils.GenerateOTP()
 	fmt.Println("OTP:", otp)
-
 
 	tokenDoc := models.EmailConfirmationToken{
 		UserID:    user.ID,

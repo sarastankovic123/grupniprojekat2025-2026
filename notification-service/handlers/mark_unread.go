@@ -2,14 +2,23 @@ package handlers
 
 import (
 	"net/http"
+	"strings"
 
 	"notification-service/repository"
+	"shared-utils/validation"
 
 	"github.com/gin-gonic/gin"
 )
 
 func MarkAsUnread(c *gin.Context) {
-	id := c.Param("id")
+	// Trim and validate ID parameter
+	id := strings.TrimSpace(c.Param("id"))
+
+	// Validate ObjectID format
+	if err := validation.ValidateObjectIDFormat(id, "notification ID"); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
 
 	userID, exists := c.Get("userID")
 	if !exists {

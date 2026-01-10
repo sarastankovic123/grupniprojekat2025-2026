@@ -5,10 +5,12 @@ import (
 	"encoding/json"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"shared-utils/validation"
 	"users-service/config"
 	"users-service/models"
 	"users-service/repository"
@@ -18,31 +20,35 @@ import (
 func Register(c *gin.Context) {
 	var req RegisterRequest
 
+	// Validate request using struct tags
 	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": validation.FormatValidationError(err)})
 		return
 	}
 
-	if req.Username == "" || req.Email == "" || req.Password == "" {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields"})
-		return
-	}
+	// Trim all string inputs
+	req.Username = strings.TrimSpace(req.Username)
+	req.Email = strings.TrimSpace(req.Email)
+	req.FirstName = strings.TrimSpace(req.FirstName)
+	req.LastName = strings.TrimSpace(req.LastName)
 
+	// Strip control characters from names
+	req.FirstName = validation.StripControlCharacters(req.FirstName)
+	req.LastName = validation.StripControlCharacters(req.LastName)
+
+	// Additional email validation (redundant with struct tags but keeping for extra safety)
 	if !utils.IsValidEmail(req.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
-	if req.Password != req.ConfirmPassword {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Passwords do not match"})
-		return
-	}
-
+	// Password strength validation (struct tags handle min length and match)
 	if !utils.IsStrongPassword(req.Password) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is not strong enough"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must contain uppercase, lowercase, number, and special character"})
 		return
 	}
 
+	// Check username uniqueness
 	_, err := repository.FindUserByUsername(req.Username)
 	if err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
