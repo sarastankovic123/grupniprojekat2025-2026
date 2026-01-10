@@ -1,0 +1,56 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: mongo
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo_data:/data/db
+
+  users-service:
+    build: ./users-service
+    container_name: users-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+    depends_on:
+      - mongo
+    ports:
+      - "8001:8001"
+
+  content-service:
+    build: ./content-service
+    container_name: content-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+    depends_on:
+      - mongo
+    ports:
+      - "8002:8002"
+
+  notification-service:
+    build: ./notification-service
+    container_name: notification-service
+    environment:
+      - MONGO_URI=mongodb://mongo:27017
+    depends_on:
+      - mongo
+    ports:
+      - "8003:8003"
+
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    environment:
+      - PORT=3000
+      - USERS_SERVICE_URL=http://users-service:8001
+      - CONTENT_SERVICE_URL=http://content-service:8002
+      - NOTIFICATIONS_SERVICE_URL=http://notification-service:8003
+    depends_on:
+      - users-service
+      - content-service
+      - notification-service
+    ports:
+      - "3000:3000"
+
+volumes:
+  mongo_data:

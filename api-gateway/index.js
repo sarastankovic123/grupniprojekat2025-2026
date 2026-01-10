@@ -3,13 +3,13 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
 const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
 app.use(express.json());
 
-const usersServiceUrl = 'http://localhost:8001';
-const contentServiceUrl = 'http://localhost:8002';
-const notificationsServiceUrl = 'http://localhost:8003';
+const usersServiceUrl = process.env.USERS_SERVICE_URL || 'http://localhost:8001';
+const contentServiceUrl = process.env.CONTENT_SERVICE_URL || 'http://localhost:8002';
+const notificationsServiceUrl = process.env.NOTIFICATIONS_SERVICE_URL || 'http://localhost:8003';
 
 function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
