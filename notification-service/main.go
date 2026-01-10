@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"notification-service/config"
 	"notification-service/db"
 	"notification-service/handlers"
 	"notification-service/middleware"
@@ -11,9 +12,16 @@ import (
 )
 
 func main() {
+	// Load configuration
+	config.LoadConfig()
+
 	db.ConnectMongo()
 
 	r := gin.Default()
+
+	// Global rate limiting (100 requests per minute)
+	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
+	r.Use(apiLimiter.RateLimitByUser())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -28,10 +36,10 @@ func main() {
 		api.PUT("/:id/read", middleware.AuthMiddleware(), handlers.MarkAsRead)
 		api.PUT("/:id/unread", middleware.AuthMiddleware(), handlers.MarkAsUnread)
 
-		// Internal endpoint (could add admin/service auth later)
-		api.POST("", handlers.CreateNotification)
+		// Internal endpoint (requires service API key)
+		api.POST("", middleware.ServiceAuthMiddleware(), handlers.CreateNotification)
 	}
 
-	fmt.Println("Notification service running on port 8003")
-	r.Run(":8003")
+	fmt.Printf("Notification service running on port %s\n", config.Port)
+	r.Run(":" + config.Port)
 }

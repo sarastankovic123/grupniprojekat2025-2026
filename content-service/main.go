@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 
+	"content-service/config"
 	"content-service/db"
 	"content-service/handlers"
 	"content-service/middleware"
@@ -11,9 +12,16 @@ import (
 )
 
 func main() {
+	// Load configuration
+	config.LoadConfig()
+
 	db.ConnectMongo()
 
 	r := gin.Default()
+
+	// Global rate limiting (100 requests per minute)
+	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
+	r.Use(apiLimiter.RateLimitByUser())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{
@@ -28,15 +36,14 @@ func main() {
 			artists.GET("", handlers.GetArtists)
 			artists.GET("/:id", handlers.GetArtistByID)
 			artists.GET("/:id/albums", handlers.GetAlbumsByArtist)
-			artists.POST("", handlers.CreateArtist)
+			artists.POST("", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateArtist)
 		}
 
 		albums := api.Group("/albums")
 		{
-			
+
 			albums.GET("/:id", handlers.GetAlbumByID)
 
-			
 			albums.GET("/:id/songs", middleware.AuthMiddleware(), handlers.GetSongsByAlbum)
 			albums.POST("", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateAlbum)
 		}
@@ -69,6 +76,6 @@ func main() {
 		}
 	}
 
-	fmt.Println("Content service running on port 8002")
-	r.Run(":8002")
+	fmt.Printf("Content service running on port %s\n", config.Port)
+	r.Run(":" + config.Port)
 }

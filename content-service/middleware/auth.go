@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"content-service/config"
 	"fmt"
 	"net/http"
 	"strings"
@@ -17,14 +18,12 @@ type JWTClaims struct {
 	jwt.RegisteredClaims
 }
 
-var jwtSecret = []byte("your-secret-key-change-in-production-min-32-chars")
-
 func ValidateJWT(tokenString string) (*JWTClaims, error) {
 	token, err := jwt.ParseWithClaims(tokenString, &JWTClaims{}, func(token *jwt.Token) (interface{}, error) {
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method")
 		}
-		return jwtSecret, nil
+		return config.JWTSecret, nil
 	})
 
 	if err != nil {
@@ -40,21 +39,31 @@ func ValidateJWT(tokenString string) (*JWTClaims, error) {
 
 func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		authHeader := c.GetHeader("Authorization")
-		if authHeader == "" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization header required"})
-			c.Abort()
-			return
+		var tokenString string
+
+		// Try to get token from cookie first
+		token, err := c.Cookie("access_token")
+		if err == nil && token != "" {
+			tokenString = token
+		} else {
+			// Fall back to Authorization header for backward compatibility
+			authHeader := c.GetHeader("Authorization")
+			if authHeader == "" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required (cookie or header)"})
+				c.Abort()
+				return
+			}
+
+			parts := strings.Split(authHeader, " ")
+			if len(parts) != 2 || parts[0] != "Bearer" {
+				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
+				c.Abort()
+				return
+			}
+			tokenString = parts[1]
 		}
 
-		parts := strings.Split(authHeader, " ")
-		if len(parts) != 2 || parts[0] != "Bearer" {
-			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
-			c.Abort()
-			return
-		}
-
-		claims, err := ValidateJWT(parts[1])
+		claims, err := ValidateJWT(tokenString)
 		if err != nil {
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()

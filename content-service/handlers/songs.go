@@ -7,6 +7,7 @@ import (
 	"net/http"
 	"strings"
 
+	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
 
@@ -100,7 +101,10 @@ func CreateSong(c *gin.Context) {
 				"userId":  userID.(string),
 				"message": fmt.Sprintf("New song created: %s", created.Title),
 			})
-			http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
+			http.DefaultClient.Do(req)
 		}
 	}()
 }

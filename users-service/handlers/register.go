@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"users-service/config"
 	"users-service/models"
 	"users-service/repository"
 	"users-service/utils"
@@ -104,7 +105,10 @@ func Register(c *gin.Context) {
 			"userId":  user.ID.Hex(),
 			"message": "Welcome! Your account has been created. Please confirm your email.",
 		})
-		http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+		req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+		req.Header.Set("Content-Type", "application/json")
+		req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
+		http.DefaultClient.Do(req)
 	}()
 
 }

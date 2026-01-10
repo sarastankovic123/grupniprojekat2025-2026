@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
+	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
 )
@@ -61,7 +62,10 @@ func CreateAlbum(c *gin.Context) {
 				"userId":  userID.(string),
 				"message": fmt.Sprintf("New album created: %s", req.Title),
 			})
-			http.Post("http://localhost:8003/api/notifications", "application/json", bytes.NewBuffer(notifBody))
+			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
+			http.DefaultClient.Do(req)
 		}
 	}()
 }
