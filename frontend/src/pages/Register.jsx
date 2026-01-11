@@ -7,6 +7,11 @@ export default function Register() {
 
   const [email, setEmail] = useState("");
   const [username, setUsername] = useState("");
+
+  // ✅ DODATO
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
 
@@ -17,10 +22,12 @@ export default function Register() {
     return {
       email: email.trim(),
       username: username.trim(),
-      password: password, // ne trimujem da ne menjam user input, ali možeš i .trim()
+      firstName: firstName.trim(),
+      lastName: lastName.trim(),
+      password: password,
       confirmPassword: confirmPassword,
     };
-  }, [email, username, password, confirmPassword]);
+  }, [email, username, firstName, lastName, password, confirmPassword]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -28,9 +35,10 @@ export default function Register() {
 
     setError("");
 
-    const { email, username, password, confirmPassword } = normalized;
+    const { email, username, firstName, lastName, password, confirmPassword } =
+      normalized;
 
-    if (!email || !username || !password || !confirmPassword) {
+    if (!email || !username || !firstName || !lastName || !password || !confirmPassword) {
       setError("All fields are required.");
       return;
     }
@@ -47,12 +55,17 @@ export default function Register() {
         body: JSON.stringify({
           email,
           username,
+          firstName, // ✅ DODATO
+          lastName,  // ✅ DODATO
           password,
-          confirmPassword, // ✅ OVO FALI BACKENDU
+          confirmPassword,
         }),
       });
 
-      navigate("/confirm"); // ili "/login" ako nema confirm page kod tebe
+      // Ako imate confirm email flow:
+      navigate("/confirm");
+      // ili ako želite direktno:
+      // navigate("/login");
     } catch (err) {
       setError(err?.message || "Registration failed.");
     } finally {
@@ -74,6 +87,28 @@ export default function Register() {
             placeholder="email@gmail.com"
             style={styles.input}
             autoComplete="email"
+          />
+
+          {/* ✅ DODATO */}
+          <label>First name</label>
+          <input
+            type="text"
+            value={firstName}
+            onChange={(e) => setFirstName(e.target.value)}
+            placeholder="Marko"
+            style={styles.input}
+            autoComplete="given-name"
+          />
+
+          {/* ✅ DODATO */}
+          <label>Last name</label>
+          <input
+            type="text"
+            value={lastName}
+            onChange={(e) => setLastName(e.target.value)}
+            placeholder="Marković"
+            style={styles.input}
+            autoComplete="family-name"
           />
 
           <label>Username</label>

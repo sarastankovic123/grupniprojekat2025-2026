@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 
 export default function Login() {
@@ -23,8 +23,6 @@ export default function Login() {
     setLoading(true);
     try {
       const data = await login(form);
-
-
       nav("/verify-otp", { state: { ...data, email: form.email } });
     } catch (e) {
       setErr(e.message || "Login failed");
@@ -82,6 +80,16 @@ export default function Login() {
           >
             Confirm account
           </button>
+
+          {/* LINKOVI - moraju biti unutar return-a */}
+          <div style={styles.links}>
+            <Link to="/forgot-password" style={styles.link}>
+              Zaboravljena lozinka?
+            </Link>
+            <Link to="/recover" style={styles.link}>
+              Prijava preko magic linka
+            </Link>
+          </div>
         </form>
       </div>
     </div>
@@ -97,4 +105,7 @@ const styles = {
   btn: { padding: 10, borderRadius: 10, border: "1px solid #111", cursor: "pointer" },
   btnSecondary: { background: "#fff" },
   error: { color: "crimson" },
+
+  links: { display: "flex", flexDirection: "column", gap: 6, marginTop: 8 },
+  link: { textDecoration: "none" },
 };

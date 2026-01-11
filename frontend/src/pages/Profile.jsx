@@ -1,7 +1,20 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { fetchNotifications, markAsRead, markAsUnread } from "../api/notifications";
+
+function getNotifId(n) {
+  return n?.id || n?._id || n?.notificationId;
+}
+
+function getCreatedAt(n) {
+  return n?.createdAt || n?.created_at || n?.timestamp || n?.time;
+}
+
+function getIsRead(n) {
+  // backend može vratiti isRead ili read
+  return Boolean(n?.isRead ?? n?.read);
+}
 
 export default function Profile() {
   const { user, logout } = useAuth();
@@ -12,15 +25,36 @@ export default function Profile() {
   const [updatingIds, setUpdatingIds] = useState(new Set());
 
   useEffect(() => {
+    let alive = true;
+
+    async function loadNotifications() {
+      setError("");
+      setLoading(true);
+      try {
+        const data = await fetchNotifications();
+        if (!alive) return;
+        setNotifications(Array.isArray(data) ? data : data?.items || []);
+      } catch (err) {
+        if (!alive) return;
+        setError(err.message || "Failed to load notifications");
+      } finally {
+        if (!alive) return;
+        setLoading(false);
+      }
+    }
+
     loadNotifications();
+    return () => {
+      alive = false;
+    };
   }, []);
 
-  async function loadNotifications() {
+  async function refresh() {
     setError("");
     setLoading(true);
     try {
       const data = await fetchNotifications();
-      setNotifications(Array.isArray(data) ? data : []);
+      setNotifications(Array.isArray(data) ? data : data?.items || []);
     } catch (err) {
       setError(err.message || "Failed to load notifications");
     } finally {
@@ -29,35 +63,56 @@ export default function Profile() {
   }
 
   async function toggleReadStatus(notif) {
-    if (updatingIds.has(notif.id)) return; // Prevent double-click
+    const notifId = getNotifId(notif);
+    if (!notifId) {
+      setError("Notification ID missing");
+      return;
+    }
 
-    setUpdatingIds(prev => new Set(prev).add(notif.id));
+    if (updatingIds.has(notifId)) return;
+
+    setUpdatingIds((prev) => {
+      const next = new Set(prev);
+      next.add(notifId);
+      return next;
+    });
 
     try {
-      if (notif.isRead) {
-        await markAsUnread(notif.id);
+      const currentlyRead = getIsRead(notif);
+
+      if (currentlyRead) {
+        await markAsUnread(notifId);
       } else {
-        await markAsRead(notif.id);
+        await markAsRead(notifId);
       }
 
-      // Update local state
-      setNotifications(prev =>
-        prev.map(n => n.id === notif.id ? { ...n, isRead: !n.isRead } : n)
+      setNotifications((prev) =>
+        prev.map((n) => {
+          const id = getNotifId(n);
+          if (id !== notifId) return n;
+
+          // flip isRead, ali čuvamo oba moguća polja
+          const nextRead = !currentlyRead;
+          return { ...n, isRead: nextRead, read: nextRead };
+        })
       );
     } catch (err) {
       console.error("Failed to toggle read status:", err);
       setError(err.message || "Failed to update notification");
     } finally {
-      setUpdatingIds(prev => {
+      setUpdatingIds((prev) => {
         const next = new Set(prev);
-        next.delete(notif.id);
+        next.delete(notifId);
         return next;
       });
     }
   }
 
   function formatDateTime(timestamp) {
+    if (!timestamp) return "";
     const date = new Date(timestamp);
+    if (Number.isNaN(date.getTime())) return String(timestamp);
+
     return date.toLocaleString("en-US", {
       year: "numeric",
       month: "short",
@@ -67,14 +122,17 @@ export default function Profile() {
     });
   }
 
-  const unreadCount = notifications.filter(n => !n.isRead).length;
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !getIsRead(n)).length,
+    [notifications]
+  );
 
   return (
     <div style={styles.page}>
       <div style={styles.topbar}>
         <h2 style={{ margin: 0 }}>Profile</h2>
         <div style={styles.topbarRight}>
-          <Link to="/artists" style={styles.link}>← Back to Artists</Link>
+          <Link to="/" style={styles.link}>← Back to Artists</Link>
           <button onClick={logout} style={styles.btn}>Logout</button>
         </div>
       </div>
@@ -111,17 +169,14 @@ export default function Profile() {
         <div style={styles.sectionHeader}>
           <h3 style={{ margin: 0 }}>Notifications</h3>
           <div style={styles.sectionActions}>
-            <span style={styles.unreadBadge}>
-              {unreadCount} unread
-            </span>
-            <button onClick={loadNotifications} disabled={loading} style={styles.refreshBtn}>
+            <span style={styles.unreadBadge}>{unreadCount} unread</span>
+            <button onClick={refresh} disabled={loading} style={styles.refreshBtn}>
               {loading ? "Refreshing..." : "🔄 Refresh"}
             </button>
           </div>
         </div>
 
         {error && <div style={styles.error}>{error}</div>}
-
         {loading && <div>Loading notifications...</div>}
 
         {!loading && notifications.length === 0 && (
@@ -129,185 +184,74 @@ export default function Profile() {
         )}
 
         <div style={styles.notificationsList}>
-          {notifications.map((notif) => (
-            <div
-              key={notif.id}
-              style={{
-                ...styles.notificationCard,
-                ...(notif.isRead ? styles.notificationRead : styles.notificationUnread),
-              }}
-            >
-              <div style={styles.notificationContent}>
-                <div style={styles.notificationMessage}>{notif.message}</div>
-                <div style={styles.notificationTime}>{formatDateTime(notif.createdAt)}</div>
-              </div>
-              <button
-                onClick={() => toggleReadStatus(notif)}
-                disabled={updatingIds.has(notif.id)}
+          {notifications.map((notif, idx) => {
+            const id = getNotifId(notif) || idx;
+            const isRead = getIsRead(notif);
+            const createdAt = getCreatedAt(notif);
+
+            return (
+              <div
+                key={id}
                 style={{
-                  ...styles.toggleBtn,
-                  ...(notif.isRead ? styles.toggleBtnRead : styles.toggleBtnUnread),
+                  ...styles.notificationCard,
+                  ...(isRead ? styles.notificationRead : styles.notificationUnread),
                 }}
               >
-                {updatingIds.has(notif.id)
-                  ? "..."
-                  : notif.isRead
-                  ? "Mark Unread"
-                  : "Mark Read"}
-              </button>
-            </div>
-          ))}
+                <div style={styles.notificationContent}>
+                  <div style={styles.notificationMessage}>{notif.message}</div>
+                  <div style={styles.notificationTime}>{formatDateTime(createdAt)}</div>
+                </div>
+                <button
+                  onClick={() => toggleReadStatus(notif)}
+                  disabled={updatingIds.has(getNotifId(notif))}
+                  style={{
+                    ...styles.toggleBtn,
+                    ...(isRead ? styles.toggleBtnRead : styles.toggleBtnUnread),
+                  }}
+                >
+                  {updatingIds.has(getNotifId(notif))
+                    ? "..."
+                    : isRead
+                    ? "Mark Unread"
+                    : "Mark Read"}
+                </button>
+              </div>
+            );
+          })}
         </div>
       </div>
     </div>
   );
 }
 
+// styles ostaju tvoji (ne diram)
 const styles = {
   page: { padding: 24, maxWidth: 1200, margin: "0 auto" },
-  topbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 24,
-  },
+  topbar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
   topbarRight: { display: "flex", alignItems: "center", gap: 12 },
   link: { textDecoration: "none", color: "#0066cc" },
-  btn: {
-    padding: "8px 16px",
-    borderRadius: 10,
-    border: "1px solid #111",
-    cursor: "pointer",
-    background: "white",
-  },
-  card: {
-    border: "1px solid #ddd",
-    borderRadius: 12,
-    padding: 20,
-    marginBottom: 24,
-    background: "white",
-  },
+  btn: { padding: "8px 16px", borderRadius: 10, border: "1px solid #111", cursor: "pointer", background: "white" },
+  card: { border: "1px solid #ddd", borderRadius: 12, padding: 20, marginBottom: 24, background: "white" },
   infoGrid: { display: "grid", gap: 12 },
-  infoRow: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-    padding: "8px 0",
-    borderBottom: "1px solid #f0f0f0",
-  },
-  infoLabel: {
-    fontWeight: 600,
-    width: 120,
-    flexShrink: 0,
-  },
-  infoValue: {
-    flex: 1,
-  },
-  roleBadge: {
-    background: "#e8f4ff",
-    padding: "4px 12px",
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 700,
-    color: "#0066cc",
-    display: "inline-block",
-  },
-  section: {
-    border: "1px solid #ddd",
-    borderRadius: 12,
-    padding: 20,
-    background: "white",
-  },
-  sectionHeader: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 16,
-    flexWrap: "wrap",
-    gap: 12,
-  },
-  sectionActions: {
-    display: "flex",
-    alignItems: "center",
-    gap: 12,
-  },
-  unreadBadge: {
-    background: "#f0f0f0",
-    padding: "6px 12px",
-    borderRadius: 20,
-    fontSize: 13,
-    fontWeight: 600,
-  },
-  refreshBtn: {
-    padding: "6px 12px",
-    borderRadius: 10,
-    border: "1px solid #ccc",
-    cursor: "pointer",
-    background: "white",
-    fontSize: 13,
-  },
-  error: {
-    color: "crimson",
-    marginBottom: 12,
-    padding: 12,
-    background: "#fff0f0",
-    borderRadius: 8,
-  },
-  emptyState: {
-    textAlign: "center",
-    padding: 40,
-    opacity: 0.6,
-  },
-  notificationsList: {
-    display: "grid",
-    gap: 12,
-  },
-  notificationCard: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: 16,
-    border: "1px solid #e0e0e0",
-    borderRadius: 10,
-    gap: 16,
-  },
-  notificationUnread: {
-    background: "#f9f9ff",
-    borderLeftWidth: 4,
-    borderLeftColor: "#0066cc",
-  },
-  notificationRead: {
-    background: "white",
-    opacity: 0.85,
-  },
-  notificationContent: {
-    flex: 1,
-  },
-  notificationMessage: {
-    fontSize: 15,
-    marginBottom: 6,
-  },
-  notificationTime: {
-    fontSize: 13,
-    opacity: 0.6,
-  },
-  toggleBtn: {
-    padding: "8px 16px",
-    borderRadius: 8,
-    border: "1px solid",
-    cursor: "pointer",
-    fontSize: 13,
-    fontWeight: 600,
-    flexShrink: 0,
-  },
-  toggleBtnUnread: {
-    background: "#0066cc",
-    color: "white",
-    borderColor: "#0066cc",
-  },
-  toggleBtnRead: {
-    background: "white",
-    color: "#666",
-    borderColor: "#ccc",
-  },
+  infoRow: { display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderBottom: "1px solid #f0f0f0" },
+  infoLabel: { fontWeight: 600, width: 120, flexShrink: 0 },
+  infoValue: { flex: 1 },
+  roleBadge: { background: "#e8f4ff", padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700, color: "#0066cc", display: "inline-block" },
+  section: { border: "1px solid #ddd", borderRadius: 12, padding: 20, background: "white" },
+  sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 },
+  sectionActions: { display: "flex", alignItems: "center", gap: 12 },
+  unreadBadge: { background: "#f0f0f0", padding: "6px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600 },
+  refreshBtn: { padding: "6px 12px", borderRadius: 10, border: "1px solid #ccc", cursor: "pointer", background: "white", fontSize: 13 },
+  error: { color: "crimson", marginBottom: 12, padding: 12, background: "#fff0f0", borderRadius: 8 },
+  emptyState: { textAlign: "center", padding: 40, opacity: 0.6 },
+  notificationsList: { display: "grid", gap: 12 },
+  notificationCard: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16, border: "1px solid #e0e0e0", borderRadius: 10, gap: 16 },
+  notificationUnread: { background: "#f9f9ff", borderLeftWidth: 4, borderLeftColor: "#0066cc" },
+  notificationRead: { background: "white", opacity: 0.85 },
+  notificationContent: { flex: 1 },
+  notificationMessage: { fontSize: 15, marginBottom: 6 },
+  notificationTime: { fontSize: 13, opacity: 0.6 },
+  toggleBtn: { padding: "8px 16px", borderRadius: 8, border: "1px solid", cursor: "pointer", fontSize: 13, fontWeight: 600, flexShrink: 0 },
+  toggleBtnUnread: { background: "#0066cc", color: "white", borderColor: "#0066cc" },
+  toggleBtnRead: { background: "white", color: "#666", borderColor: "#ccc" },
 };

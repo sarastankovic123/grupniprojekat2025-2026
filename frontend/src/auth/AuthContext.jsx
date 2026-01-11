@@ -28,8 +28,7 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (accessToken) {
       localStorage.setItem(STORAGE_TOKEN_KEY, accessToken);
-      const userData = decodeToken(accessToken);
-      setUser(userData);
+      setUser(decodeToken(accessToken));
     } else {
       localStorage.removeItem(STORAGE_TOKEN_KEY);
       setUser(null);
@@ -47,15 +46,15 @@ export function AuthProvider({ children }) {
     });
   }
 
-  async function confirm(payload) {
-    return apiFetch("/api/auth/confirm", {
-      method: "POST",
-      body: JSON.stringify(payload),
+
+  async function confirmEmail(token) {
+    return apiFetch(`/api/auth/confirm?token=${encodeURIComponent(token)}`, {
+      method: "GET",
     });
   }
 
-  async function login(payload) {
 
+  async function login(payload) {
     return apiFetch("/api/auth/login", {
       method: "POST",
       body: JSON.stringify(payload),
@@ -77,6 +76,54 @@ export function AuthProvider({ children }) {
     return data;
   }
 
+  async function changePassword(payload) {
+    return apiFetch("/api/auth/change-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+
+  async function requestPasswordReset(payload) {
+    return apiFetch("/api/auth/forgot-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+  async function resetPassword(payload) {
+    return apiFetch("/api/auth/reset-password", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+
+  async function requestMagicLink(payload) {
+    return apiFetch("/api/auth/magic-link/request", {
+      method: "POST",
+      body: JSON.stringify(payload),
+    });
+  }
+
+
+
+
+
+  async function consumeMagicLink(token) {
+    const data = await apiFetch(
+      `/api/auth/magic-link/consume?token=${encodeURIComponent(token)}`,
+      { method: "GET" }
+    );
+
+    const jwt = data?.[TOKEN_RESPONSE_FIELD];
+    if (!jwt) throw new Error("Missing accessToken in magic-link response");
+
+    setAccessToken(jwt);
+    return data;
+  }
+
+
   function logout() {
     setAccessToken(null);
     setUser(null);
@@ -90,9 +137,17 @@ export function AuthProvider({ children }) {
       bootstrapped,
 
       register,
-      confirm,
+      confirmEmail,
       login,
       verifyOtp,
+      changePassword,
+
+
+      requestPasswordReset,
+      resetPassword,
+      requestMagicLink,
+      consumeMagicLink,
+
       logout,
     }),
     [accessToken, user, bootstrapped]

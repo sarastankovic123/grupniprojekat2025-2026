@@ -5,7 +5,8 @@ import { useAuth } from "../auth/AuthContext";
 import NotificationBell from "../components/NotificationBell";
 
 export default function Artists() {
-  const { logout } = useAuth();
+  const { logout, isAuthenticated, user } = useAuth();
+  const isAdmin = user?.role === "A";
 
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -42,9 +43,32 @@ export default function Artists() {
     <div style={styles.page}>
       <div style={styles.topbar}>
         <h2 style={{ margin: 0 }}>Artists</h2>
+
         <div style={styles.topbarRight}>
-          <NotificationBell />
-          <button onClick={logout} style={styles.btn}>Logout</button>
+          {isAuthenticated ? (
+            <>
+              <NotificationBell />
+
+              {isAdmin ? (
+                <Link to="/admin/artists/new" style={styles.linkBtn}>
+                  + Add artist
+                </Link>
+              ) : null}
+
+              <button onClick={logout} style={styles.btn}>
+                Logout
+              </button>
+            </>
+          ) : (
+            <>
+              <Link to="/login" style={styles.linkBtn}>
+                Login
+              </Link>
+              <Link to="/register" style={styles.linkBtn}>
+                Register
+              </Link>
+            </>
+          )}
         </div>
       </div>
 
@@ -52,13 +76,20 @@ export default function Artists() {
       {err ? <div style={styles.error}>{err}</div> : null}
 
       <div style={styles.grid}>
-        {artists.map((a) => (
-          <Link key={a.id || a._id || a.artistId || a.name} to={`/artists/${a.id || a._id || a.artistId}`} style={styles.card}>
-            <div style={styles.title}>{a.name || a.artistName || "Unnamed artist"}</div>
-            {a.genre ? <div style={styles.meta}>{a.genre}</div> : null}
-            {a.country ? <div style={styles.meta}>{a.country}</div> : null}
-          </Link>
-        ))}
+        {artists.map((a) => {
+          const id = a.id || a._id || a.artistId;
+          return (
+            <Link
+              key={id || a.name}
+              to={`/artists/${id}`}
+              style={styles.card}
+            >
+              <div style={styles.title}>{a.name || a.artistName || "Unnamed artist"}</div>
+              {a.genre ? <div style={styles.meta}>{a.genre}</div> : null}
+              {a.country ? <div style={styles.meta}>{a.country}</div> : null}
+            </Link>
+          );
+        })}
       </div>
     </div>
   );
@@ -66,12 +97,42 @@ export default function Artists() {
 
 const styles = {
   page: { padding: 24 },
-  topbar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16 },
+  topbar: {
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: 16,
+  },
   topbarRight: { display: "flex", alignItems: "center", gap: 12 },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 },
-  card: { border: "1px solid #ddd", borderRadius: 12, padding: 12, textDecoration: "none", color: "inherit" },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+    gap: 12,
+  },
+  card: {
+    border: "1px solid #ddd",
+    borderRadius: 12,
+    padding: 12,
+    textDecoration: "none",
+    color: "inherit",
+  },
   title: { fontWeight: 700 },
   meta: { fontSize: 13, opacity: 0.8, marginTop: 6 },
-  btn: { padding: "8px 10px", borderRadius: 10, border: "1px solid #111", cursor: "pointer" },
+  btn: {
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid #111",
+    cursor: "pointer",
+    background: "white",
+  },
+  linkBtn: {
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid #111",
+    textDecoration: "none",
+    color: "inherit",
+    background: "white",
+    display: "inline-block",
+  },
   error: { color: "crimson", marginBottom: 12 },
 };

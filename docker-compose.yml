@@ -8,36 +8,49 @@ services:
       - mongo_data:/data/db
 
   users-service:
-    build: ./users-service
+    build:
+      context: .
+      dockerfile: users-service/Dockerfile
+
     container_name: users-service
     env_file:
       - .env
     environment:
-      - PORT=${USERS_SERVICE_PORT}
+      JWT_SECRET: "dev-secret-min-32-chars-0123456789ABCDEF"
+      REFRESH_SECRET: "dev-refresh-min-32-chars-0123456789ABCDEF"
+
     depends_on:
       - mongo
     ports:
       - "${USERS_SERVICE_PORT}:${USERS_SERVICE_PORT}"
 
   content-service:
-    build: ./content-service
+    build:
+      context: .
+      dockerfile: content-service/Dockerfile
+
     container_name: content-service
     env_file:
       - .env
     environment:
-      - PORT=${CONTENT_SERVICE_PORT}
+      JWT_SECRET: "dev-secret-min-32-chars-0123456789ABCDEF"
+
     depends_on:
       - mongo
     ports:
       - "${CONTENT_SERVICE_PORT}:${CONTENT_SERVICE_PORT}"
 
   notification-service:
-    build: ./notification-service
+    build:
+      context: .
+      dockerfile: notification-service/Dockerfile
+
     container_name: notification-service
     env_file:
       - .env
     environment:
-      - PORT=${NOTIFICATION_SERVICE_PORT}
+      JWT_SECRET: "dev-secret-min-32-chars-0123456789ABCDEF"
+
     depends_on:
       - mongo
     ports:
@@ -49,7 +62,8 @@ services:
     env_file:
       - .env
     environment:
-      - PORT=${API_GATEWAY_PORT}
+      JWT_SECRET: "dev-secret-min-32-chars-0123456789ABCDEF"
+
     depends_on:
       - users-service
       - content-service

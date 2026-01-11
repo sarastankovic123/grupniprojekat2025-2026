@@ -2,6 +2,16 @@ import React, { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { fetchNotifications, markAsRead } from "../api/notifications";
 
+function getNotifId(n) {
+  return n?.id || n?._id || n?.notificationId;
+}
+function getIsRead(n) {
+  return Boolean(n?.isRead ?? n?.read);
+}
+function getCreatedAt(n) {
+  return n?.createdAt || n?.created_at || n?.timestamp || n?.time;
+}
+
 export default function NotificationBell() {
   const [notifications, setNotifications] = useState([]);
   const [unreadCount, setUnreadCount] = useState(0);
@@ -11,12 +21,11 @@ export default function NotificationBell() {
 
   const dropdownRef = useRef(null);
 
-  // Load notifications on mount
   useEffect(() => {
     loadNotifications();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  // Close dropdown when clicking outside
   useEffect(() => {
     if (!isOpen) return;
 
@@ -37,47 +46,61 @@ export default function NotificationBell() {
     setLoading(true);
     try {
       const data = await fetchNotifications();
-      const notifs = Array.isArray(data) ? data : [];
+      const notifs = Array.isArray(data) ? data : data?.items || [];
       setNotifications(notifs);
-      setUnreadCount(notifs.filter(n => !n.isRead).length);
+      setUnreadCount(notifs.filter((n) => !getIsRead(n)).length);
     } catch (err) {
-      setError(err.message || "Failed to load notifications");
+      const msg = err?.message || "Failed to load notifications";
+
+      // Ako nije ulogovan, gateway vrati 401 — ne smaraj korisnika errorom
+      if (msg.toLowerCase().includes("authorization") || msg.includes("401")) {
+        setNotifications([]);
+        setUnreadCount(0);
+        setError("");
+      } else {
+        setError(msg);
+      }
     } finally {
       setLoading(false);
     }
   }
 
   async function handleNotificationClick(notif) {
-    if (notif.isRead) return; // Already read, no action needed
+    const id = getNotifId(notif);
+    if (!id) return;
+
+    if (getIsRead(notif)) return;
 
     try {
-      await markAsRead(notif.id);
-      // Update local state
-      setNotifications(prev =>
-        prev.map(n => n.id === notif.id ? { ...n, isRead: true } : n)
+      await markAsRead(id);
+      setNotifications((prev) =>
+        prev.map((n) => {
+          const nid = getNotifId(n);
+          if (nid !== id) return n;
+          return { ...n, isRead: true, read: true };
+        })
       );
-      setUnreadCount(prev => Math.max(0, prev - 1));
+      setUnreadCount((prev) => Math.max(0, prev - 1));
     } catch (err) {
       console.error("Failed to mark as read:", err);
     }
   }
 
   function toggleDropdown() {
-    setIsOpen(prev => !prev);
+    setIsOpen((prev) => !prev);
     if (!isOpen) {
-      loadNotifications(); // Refresh on open
+      loadNotifications();
     }
   }
 
-  // Show only recent 5 notifications in dropdown
   const recentNotifications = notifications.slice(0, 5);
 
   return (
     <div style={styles.container} ref={dropdownRef}>
-      <button onClick={toggleDropdown} style={styles.bellButton}>
+      <button onClick={toggleDropdown} style={styles.bellButton} aria-label="Notifications">
         <span style={styles.bellIcon}>🔔</span>
         {unreadCount > 0 && (
-          <span style={styles.badge}>{unreadCount > 9 ? '9+' : unreadCount}</span>
+          <span style={styles.badge}>{unreadCount > 9 ? "9+" : unreadCount}</span>
         )}
       </button>
 
@@ -85,7 +108,9 @@ export default function NotificationBell() {
         <div style={styles.dropdown}>
           <div style={styles.header}>
             <h4 style={styles.title}>Notifications</h4>
-            <button onClick={() => setIsOpen(false)} style={styles.closeButton}>×</button>
+            <button onClick={() => setIsOpen(false)} style={styles.closeButton} aria-label="Close">
+              ×
+            </button>
           </div>
 
           {loading && <div style={styles.message}>Loading...</div>}
@@ -96,28 +121,30 @@ export default function NotificationBell() {
           )}
 
           <div style={styles.notificationList}>
-            {recentNotifications.map(notif => (
-              <div
-                key={notif.id}
-                onClick={() => handleNotificationClick(notif)}
-                style={{
-                  ...styles.notificationItem,
-                  ...(notif.isRead ? styles.notificationRead : styles.notificationUnread),
-                }}
-              >
-                <div style={styles.notificationMessage}>{notif.message}</div>
-                <div style={styles.notificationTime}>
-                  {formatTime(notif.createdAt)}
+            {recentNotifications.map((notif, idx) => {
+              const id = getNotifId(notif) || idx;
+              const isRead = getIsRead(notif);
+              const createdAt = getCreatedAt(notif);
+
+              return (
+                <div
+                  key={id}
+                  onClick={() => handleNotificationClick(notif)}
+                  style={{
+                    ...styles.notificationItem,
+                    ...(isRead ? styles.notificationRead : styles.notificationUnread),
+                  }}
+                >
+                  <div style={styles.notificationMessage}>{notif.message}</div>
+                  <div style={styles.notificationTime}>{formatTime(createdAt)}</div>
                 </div>
-              </div>
-            ))}
+              );
+            })}
           </div>
 
-          {notifications.length > 5 && (
-            <Link to="/profile" style={styles.viewAllLink} onClick={() => setIsOpen(false)}>
-              View all notifications →
-            </Link>
-          )}
+          <Link to="/profile" style={styles.viewAllLink} onClick={() => setIsOpen(false)}>
+            View all notifications →
+          </Link>
         </div>
       )}
     </div>
@@ -125,7 +152,10 @@ export default function NotificationBell() {
 }
 
 function formatTime(timestamp) {
+  if (!timestamp) return "";
   const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return String(timestamp);
+
   const now = new Date();
   const diffMs = now - date;
   const diffMins = Math.floor(diffMs / 60000);
@@ -143,9 +173,7 @@ function formatTime(timestamp) {
 }
 
 const styles = {
-  container: {
-    position: "relative",
-  },
+  container: { position: "relative" },
   bellButton: {
     position: "relative",
     background: "transparent",
@@ -154,9 +182,7 @@ const styles = {
     fontSize: 20,
     padding: 8,
   },
-  bellIcon: {
-    display: "inline-block",
-  },
+  bellIcon: { display: "inline-block" },
   badge: {
     position: "absolute",
     top: 4,
@@ -193,11 +219,7 @@ const styles = {
     padding: "12px 16px",
     borderBottom: "1px solid #eee",
   },
-  title: {
-    margin: 0,
-    fontSize: 16,
-    fontWeight: 700,
-  },
+  title: { margin: 0, fontSize: 16, fontWeight: 700 },
   closeButton: {
     background: "transparent",
     border: "none",
@@ -206,41 +228,19 @@ const styles = {
     padding: 0,
     lineHeight: 1,
   },
-  notificationList: {
-    overflowY: "auto",
-    maxHeight: 360,
-  },
+  notificationList: { overflowY: "auto", maxHeight: 360 },
   notificationItem: {
     padding: 12,
     borderBottom: "1px solid #f0f0f0",
     cursor: "pointer",
     transition: "background 0.2s",
   },
-  notificationUnread: {
-    background: "#f9f9ff",
-  },
-  notificationRead: {
-    background: "white",
-    opacity: 0.8,
-  },
-  notificationMessage: {
-    fontSize: 14,
-    marginBottom: 4,
-  },
-  notificationTime: {
-    fontSize: 12,
-    opacity: 0.6,
-  },
-  message: {
-    padding: 16,
-    textAlign: "center",
-    opacity: 0.7,
-  },
-  error: {
-    padding: 16,
-    color: "crimson",
-    fontSize: 14,
-  },
+  notificationUnread: { background: "#f9f9ff" },
+  notificationRead: { background: "white", opacity: 0.8 },
+  notificationMessage: { fontSize: 14, marginBottom: 4 },
+  notificationTime: { fontSize: 12, opacity: 0.6 },
+  message: { padding: 16, textAlign: "center", opacity: 0.7 },
+  error: { padding: 16, color: "crimson", fontSize: 14 },
   viewAllLink: {
     display: "block",
     padding: 12,
