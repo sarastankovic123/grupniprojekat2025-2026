@@ -10,47 +10,52 @@ services:
   users-service:
     build: ./users-service
     container_name: users-service
+    env_file:
+      - .env
     environment:
-      - MONGO_URI=mongodb://mongo:27017
+      - PORT=${USERS_SERVICE_PORT}
     depends_on:
       - mongo
     ports:
-      - "8001:8001"
+      - "${USERS_SERVICE_PORT}:${USERS_SERVICE_PORT}"
 
   content-service:
     build: ./content-service
     container_name: content-service
+    env_file:
+      - .env
     environment:
-      - MONGO_URI=mongodb://mongo:27017
+      - PORT=${CONTENT_SERVICE_PORT}
     depends_on:
       - mongo
     ports:
-      - "8002:8002"
+      - "${CONTENT_SERVICE_PORT}:${CONTENT_SERVICE_PORT}"
 
   notification-service:
     build: ./notification-service
     container_name: notification-service
+    env_file:
+      - .env
     environment:
-      - MONGO_URI=mongodb://mongo:27017
+      - PORT=${NOTIFICATION_SERVICE_PORT}
     depends_on:
       - mongo
     ports:
-      - "8003:8003"
+      - "${NOTIFICATION_SERVICE_PORT}:${NOTIFICATION_SERVICE_PORT}"
 
   api-gateway:
     build: ./api-gateway
     container_name: api-gateway
+    env_file:
+      - .env
     environment:
-      - PORT=3000
-      - USERS_SERVICE_URL=http://users-service:8001
-      - CONTENT_SERVICE_URL=http://content-service:8002
-      - NOTIFICATIONS_SERVICE_URL=http://notification-service:8003
+      - PORT=${API_GATEWAY_PORT}
     depends_on:
       - users-service
       - content-service
       - notification-service
     ports:
-      - "3000:3000"
+      - "${API_GATEWAY_PORT}:${API_GATEWAY_PORT}"
 
 volumes:
   mongo_data:

@@ -3,13 +3,28 @@ const axios = require('axios');
 const jwt = require('jsonwebtoken');
 
 const app = express();
+
+// =========================
+// Configuration (from env)
+// =========================
 const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
+const USERS_SERVICE_URL =
+    process.env.USERS_SERVICE_URL || 'http://localhost:8001';
 
-const usersServiceUrl = process.env.USERS_SERVICE_URL || 'http://localhost:8001';
-const contentServiceUrl = process.env.CONTENT_SERVICE_URL || 'http://localhost:8002';
-const notificationsServiceUrl = process.env.NOTIFICATIONS_SERVICE_URL || 'http://localhost:8003';
+const CONTENT_SERVICE_URL =
+    process.env.CONTENT_SERVICE_URL || 'http://localhost:8002';
+
+const NOTIFICATIONS_SERVICE_URL =
+    process.env.NOTIFICATIONS_SERVICE_URL || 'http://localhost:8003';
+
+const JWT_SECRET =
+    process.env.JWT_SECRET || 'dev-secret-min-32-chars';
+
+// =========================
+// Middleware
+// =========================
+app.use(express.json());
 
 function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
@@ -25,7 +40,7 @@ function authMiddleware(req, res, next) {
 
     const token = parts[1];
 
-    jwt.verify(token, 'your-secret-key-change-in-production-min-32-chars', (err, decoded) => {
+    jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
             return res.status(401).json({ message: 'Invalid token' });
         }
@@ -35,8 +50,14 @@ function authMiddleware(req, res, next) {
     });
 }
 
+// =========================
+// Routes
+// =========================
+
+// Users / Auth
 app.use('/api/auth', async (req, res) => {
-    const url = `${usersServiceUrl}${req.originalUrl}`;
+    const url = `${USERS_SERVICE_URL}${req.originalUrl}`;
+
     try {
         const response = await axios({
             method: req.method,
@@ -44,14 +65,19 @@ app.use('/api/auth', async (req, res) => {
             headers: req.headers,
             data: req.body
         });
+
         res.status(response.status).json(response.data);
     } catch (error) {
-        res.status(error.response?.status || 500).json(error.response?.data || { message: 'Error' });
+        res
+            .status(error.response?.status || 500)
+            .json(error.response?.data || { message: 'Error' });
     }
 });
 
+// Public content (artists)
 app.use('/api/content/artists', async (req, res) => {
-    const url = `${contentServiceUrl}${req.originalUrl}`;
+    const url = `${CONTENT_SERVICE_URL}${req.originalUrl}`;
+
     try {
         const response = await axios({
             method: req.method,
@@ -59,14 +85,19 @@ app.use('/api/content/artists', async (req, res) => {
             headers: req.headers,
             data: req.body
         });
+
         res.status(response.status).json(response.data);
     } catch (error) {
-        res.status(error.response?.status || 500).json(error.response?.data || { message: 'Error' });
+        res
+            .status(error.response?.status || 500)
+            .json(error.response?.data || { message: 'Error' });
     }
 });
 
+// Protected content
 app.use('/api/content', authMiddleware, async (req, res) => {
-    const url = `${contentServiceUrl}${req.originalUrl}`;
+    const url = `${CONTENT_SERVICE_URL}${req.originalUrl}`;
+
     try {
         const response = await axios({
             method: req.method,
@@ -74,14 +105,19 @@ app.use('/api/content', authMiddleware, async (req, res) => {
             headers: req.headers,
             data: req.body
         });
+
         res.status(response.status).json(response.data);
     } catch (error) {
-        res.status(error.response?.status || 500).json(error.response?.data || { message: 'Error' });
+        res
+            .status(error.response?.status || 500)
+            .json(error.response?.data || { message: 'Error' });
     }
 });
 
+// Notifications
 app.use('/api/notifications', authMiddleware, async (req, res) => {
-    const url = `${notificationsServiceUrl}${req.originalUrl}`;
+    const url = `${NOTIFICATIONS_SERVICE_URL}${req.originalUrl}`;
+
     try {
         const response = await axios({
             method: req.method,
@@ -89,12 +125,18 @@ app.use('/api/notifications', authMiddleware, async (req, res) => {
             headers: req.headers,
             data: req.body
         });
+
         res.status(response.status).json(response.data);
     } catch (error) {
-        res.status(error.response?.status || 500).json(error.response?.data || { message: 'Error' });
+        res
+            .status(error.response?.status || 500)
+            .json(error.response?.data || { message: 'Error' });
     }
 });
 
+// =========================
+// Start server
+// =========================
 app.listen(PORT, () => {
     console.log(`API Gateway running on port ${PORT}`);
 });
