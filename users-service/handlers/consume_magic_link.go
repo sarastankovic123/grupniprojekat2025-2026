@@ -7,18 +7,24 @@ import (
 	"time"
 
 	"github.com/gin-gonic/gin"
+
 	"users-service/repository"
 	"users-service/utils"
 )
 
 func ConsumeMagicLink(c *gin.Context) {
-	token := c.Query("token")
-	if token == "" {
+	var req struct {
+		Token string `json:"token" binding:"required"`
+	}
+
+	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{
-			"error": "Invalid token",
+			"error": "Token is required",
 		})
 		return
 	}
+
+	token := req.Token
 
 	hash := sha256.Sum256([]byte(token))
 	hashedToken := hex.EncodeToString(hash[:])

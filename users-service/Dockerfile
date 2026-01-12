@@ -1,25 +1,26 @@
-FROM golang:1.25-alpine AS builder
+FROM golang:1.24-alpine AS builder
 WORKDIR /app
 
-# kopiramo go.mod/go.sum za oba modula da bi go mod download radio
-COPY users-service/go.mod users-service/go.sum ./users-service/
-COPY shared-utils/go.mod shared-utils/go.sum ./shared-utils/
+# Kopiramo shared-utils
+COPY shared-utils /shared-utils
 
-# go mod download mora da se izvrši iz users-service modula
-WORKDIR /app/users-service
+# Kopiramo go mod fajlove
+COPY users-service/go.mod users-service/go.sum ./
+
+# Replace za shared-utils
+RUN go mod edit -replace shared-utils=/shared-utils
+
 RUN go mod download
 
-# sad kopiramo ceo kod
-WORKDIR /app
-COPY users-service ./users-service
-COPY shared-utils ./shared-utils
+# Kopiramo ostatak users-service koda
+COPY users-service/. .
 
-WORKDIR /app/users-service
-RUN go build -o /out/users-service .
+RUN CGO_ENABLED=0 GOOS=linux go build -o users-service
 
 FROM alpine:3.20
 WORKDIR /app
 RUN apk add --no-cache ca-certificates
-COPY --from=builder /out/users-service /app/users-service
+
+COPY --from=builder /app/users-service .
 EXPOSE 8001
-CMD ["/app/users-service"]
+CMD ["./users-service"]

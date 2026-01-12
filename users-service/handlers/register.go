@@ -20,35 +20,35 @@ import (
 func Register(c *gin.Context) {
 	var req RegisterRequest
 
-	// Validate request using struct tags
+
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validation.FormatValidationError(err)})
 		return
 	}
 
-	// Trim all string inputs
+
 	req.Username = strings.TrimSpace(req.Username)
 	req.Email = strings.TrimSpace(req.Email)
 	req.FirstName = strings.TrimSpace(req.FirstName)
 	req.LastName = strings.TrimSpace(req.LastName)
 
-	// Strip control characters from names
+
 	req.FirstName = validation.StripControlCharacters(req.FirstName)
 	req.LastName = validation.StripControlCharacters(req.LastName)
 
-	// Additional email validation (redundant with struct tags but keeping for extra safety)
+
 	if !utils.IsValidEmail(req.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
-	// Password strength validation (struct tags handle min length and match)
+
 	if !utils.IsStrongPassword(req.Password) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must contain uppercase, lowercase, number, and special character"})
 		return
 	}
 
-	// Check username uniqueness
+
 	_, err := repository.FindUserByUsername(req.Username)
 	if err == nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
@@ -96,25 +96,29 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	confirmationLink := "http://localhost:5173/confirm?token=" + tokenValue
 
-	fmt.Println("CONFIRM LINK:", confirmationLink)
+	fmt.Println("CONFIRM TOKEN (DEV ONLY):", tokenValue)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Registration successful. Please confirm your email.",
-		"token":   tokenValue,
 	})
 
-	// Send welcome notification (async, non-blocking)
+
 	go func() {
 		notifBody, _ := json.Marshal(map[string]string{
 			"userId":  user.ID.Hex(),
 			"message": "Welcome! Your account has been created. Please confirm your email.",
 		})
-		req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+
+		req, _ := http.NewRequest(
+			"POST",
+			"http://notification-service:8003/api/notifications",
+			bytes.NewBuffer(notifBody),
+		)
+
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
+
 		http.DefaultClient.Do(req)
 	}()
-
 }
