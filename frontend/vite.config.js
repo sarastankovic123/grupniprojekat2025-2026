@@ -5,23 +5,20 @@ export default defineConfig({
   plugins: [react()],
   server: {
     proxy: {
-      // content preko gateway-a
-      "/api/content": {
-        target: "http://127.0.0.1:3000",
-        changeOrigin: true,
-        secure: false,
-      },
-
-      // auth direktno na users-service (magic link, login, register...)
       "/api/auth": {
-        target: "http://127.0.0.1:8001",
+        target: "https://localhost",
         changeOrigin: true,
         secure: false,
       },
 
-      // notifications direktno na notification-service (ako koristiš)
+      "/api/content": {
+        target: "https://localhost",
+        changeOrigin: true,
+        secure: false,
+      },
+
       "/api/notifications": {
-        target: "http://127.0.0.1:8003",
+        target: "https://localhost",
         changeOrigin: true,
         secure: false,
       },

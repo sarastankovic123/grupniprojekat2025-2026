@@ -23,7 +23,7 @@ export default function NotificationBell() {
 
   useEffect(() => {
     loadNotifications();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+
   }, []);
 
   useEffect(() => {
@@ -52,7 +52,7 @@ export default function NotificationBell() {
     } catch (err) {
       const msg = err?.message || "Failed to load notifications";
 
-      // Ako nije ulogovan, gateway vrati 401 — ne smaraj korisnika errorom
+
       if (msg.toLowerCase().includes("authorization") || msg.includes("401")) {
         setNotifications([]);
         setUnreadCount(0);

@@ -15,7 +15,10 @@ export default function Confirm() {
       return;
     }
 
-    apiFetch(`/api/auth/confirm?token=${token}`)
+    apiFetch("/api/auth/confirm", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    })
       .then(() => setStatus("success"))
       .catch(() => setStatus("error"));
   }, [token]);
