@@ -4,6 +4,7 @@ import (
 	"crypto/rand"
 	"crypto/sha256"
 	"encoding/hex"
+	"fmt"
 	"net/http"
 	"os"
 	"time"
@@ -49,6 +50,8 @@ func RequestMagicLink(c *gin.Context) {
 
 		link := os.Getenv("FRONTEND_URL") + "/magic-login?token=" + token
 		_ = utils.SendMagicLinkEmail(user.Email, link)
+
+		fmt.Println("MAGIC LINK:", link) // debug
 	}
 
 	c.JSON(http.StatusOK, gin.H{

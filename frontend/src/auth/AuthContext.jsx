@@ -21,7 +21,9 @@ function decodeToken(token) {
 }
 
 export function AuthProvider({ children }) {
-  const [accessToken, setAccessToken] = useState(() => localStorage.getItem(STORAGE_TOKEN_KEY));
+  const [accessToken, setAccessToken] = useState(() =>
+    localStorage.getItem(STORAGE_TOKEN_KEY)
+  );
   const [user, setUser] = useState(null);
   const [bootstrapped, setBootstrapped] = useState(false);
 
@@ -46,13 +48,11 @@ export function AuthProvider({ children }) {
     });
   }
 
-
   async function confirmEmail(token) {
     return apiFetch(`/api/auth/confirm?token=${encodeURIComponent(token)}`, {
       method: "GET",
     });
   }
-
 
   async function login(payload) {
     return apiFetch("/api/auth/login", {
@@ -67,7 +67,7 @@ export function AuthProvider({ children }) {
       body: JSON.stringify(payload),
     });
 
-    const token = data?.[TOKEN_RESPONSE_FIELD];
+    const token = data?.[TOKEN_RESPONSE_FIELD] || data?.access_token;
     if (!token) {
       throw new Error("Missing accessToken in verify-otp response");
     }
@@ -83,7 +83,6 @@ export function AuthProvider({ children }) {
     });
   }
 
-
   async function requestPasswordReset(payload) {
     return apiFetch("/api/auth/forgot-password", {
       method: "POST",
@@ -98,7 +97,6 @@ export function AuthProvider({ children }) {
     });
   }
 
-
   async function requestMagicLink(payload) {
     return apiFetch("/api/auth/magic-link/request", {
       method: "POST",
@@ -106,23 +104,19 @@ export function AuthProvider({ children }) {
     });
   }
 
-
-
-
-
+  // ✅ ISPRAVLJENO: POST + token u body
   async function consumeMagicLink(token) {
-    const data = await apiFetch(
-      `/api/auth/magic-link/consume?token=${encodeURIComponent(token)}`,
-      { method: "GET" }
-    );
+    const data = await apiFetch("/api/auth/magic-link/consume", {
+      method: "POST",
+      body: JSON.stringify({ token }),
+    });
 
-    const jwt = data?.[TOKEN_RESPONSE_FIELD];
+    const jwt = data?.[TOKEN_RESPONSE_FIELD] || data?.access_token;
     if (!jwt) throw new Error("Missing accessToken in magic-link response");
 
     setAccessToken(jwt);
     return data;
   }
-
 
   function logout() {
     setAccessToken(null);
@@ -141,7 +135,6 @@ export function AuthProvider({ children }) {
       login,
       verifyOtp,
       changePassword,
-
 
       requestPasswordReset,
       resetPassword,

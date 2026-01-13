@@ -16,6 +16,7 @@ var (
 	RateLimitAPIWindow time.Duration
 	MongoURI           string
 	Port               string
+	ContentDBName      string
 )
 
 func LoadConfig() {
@@ -50,6 +51,7 @@ func LoadConfig() {
 
 	// MongoDB
 	MongoURI = getEnv("MONGO_URI", "mongodb://localhost:27017")
+	ContentDBName = getEnv("CONTENT_DB_NAME", "content_db")
 
 	// Server
 	Port = getEnv("PORT", "8002")

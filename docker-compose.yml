@@ -2,10 +2,11 @@ services:
   mongo:
     image: mongo:7
     container_name: mongo
+    restart: unless-stopped
     volumes:
       - mongo_data:/data/db
-    expose:
-      - "27017"
+    ports:
+      - "27017:27017"
     networks:
       - app-network
 
@@ -14,6 +15,7 @@ services:
       context: .
       dockerfile: users-service/Dockerfile
     container_name: users-service
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -30,6 +32,7 @@ services:
       context: .
       dockerfile: content-service/Dockerfile
     container_name: content-service
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -46,6 +49,7 @@ services:
       context: .
       dockerfile: notification-service/Dockerfile
     container_name: notification-service
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -62,6 +66,7 @@ services:
       context: ./api-gateway
       dockerfile: Dockerfile
     container_name: api-gateway
+    restart: unless-stopped
     env_file:
       - .env
     environment:
@@ -78,6 +83,7 @@ services:
   nginx:
     image: nginx:alpine
     container_name: gateway-nginx
+    restart: unless-stopped
     depends_on:
       - api-gateway
     ports:

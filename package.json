@@ -1,0 +1,24 @@
+{
+  "name": "project",
+  "version": "1.0.0",
+  "description": "",
+  "main": "create-refresh-indexes.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/sarastankovic123/grupniprojekat2025-2026.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/sarastankovic123/grupniprojekat2025-2026/issues"
+  },
+  "homepage": "https://github.com/sarastankovic123/grupniprojekat2025-2026#readme",
+  "dependencies": {
+    "mongodb": "^7.0.0",
+    "node-fetch": "^3.3.2"
+  }
+}
