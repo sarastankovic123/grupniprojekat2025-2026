@@ -6,21 +6,16 @@ export default defineConfig({
   server: {
     proxy: {
       "/api/auth": {
-        target: "https://localhost",
+        target: "http://localhost:8080",
         changeOrigin: true,
-        secure: false,
       },
-
       "/api/content": {
-        target: "https://localhost",
+        target: "http://localhost:8080",
         changeOrigin: true,
-        secure: false,
       },
-
       "/api/notifications": {
-        target: "https://localhost",
+        target: "http://localhost:8080",
         changeOrigin: true,
-        secure: false,
       },
     },
   },
