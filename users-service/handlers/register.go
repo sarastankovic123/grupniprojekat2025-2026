@@ -20,34 +20,28 @@ import (
 func Register(c *gin.Context) {
 	var req RegisterRequest
 
-
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": validation.FormatValidationError(err)})
 		return
 	}
-
 
 	req.Username = strings.TrimSpace(req.Username)
 	req.Email = strings.TrimSpace(req.Email)
 	req.FirstName = strings.TrimSpace(req.FirstName)
 	req.LastName = strings.TrimSpace(req.LastName)
 
-
 	req.FirstName = validation.StripControlCharacters(req.FirstName)
 	req.LastName = validation.StripControlCharacters(req.LastName)
-
 
 	if !utils.IsValidEmail(req.Email) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
-
 	if !utils.IsStrongPassword(req.Password) {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must contain uppercase, lowercase, number, and special character"})
 		return
 	}
-
 
 	_, err := repository.FindUserByUsername(req.Username)
 	if err == nil {
@@ -96,18 +90,24 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	// 👇 CONFIRMATION LINK
+	confirmURL := fmt.Sprintf(
+    	"http://localhost:5173/confirm?token=%s",
+    	tokenValue,
+    )
 
+	// DEV ONLY LOGS
 	fmt.Println("CONFIRM TOKEN (DEV ONLY):", tokenValue)
+	fmt.Println("CONFIRM LINK  (DEV ONLY):", confirmURL)
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Registration successful. Please confirm your email.",
 	})
 
-
 	go func() {
 		notifBody, _ := json.Marshal(map[string]string{
 			"userId":  user.ID.Hex(),
-			"message": "Welcome! Your account has been created. Please confirm your email.",
+			"message": "Welcome! Please confirm your email: " + confirmURL,
 		})
 
 		req, _ := http.NewRequest(
