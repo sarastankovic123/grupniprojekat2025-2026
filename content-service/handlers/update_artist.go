@@ -8,7 +8,6 @@ import (
 	"content-service/repository"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type UpdateArtistRequest struct {

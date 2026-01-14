@@ -41,10 +41,10 @@ func CreateAlbum(c *gin.Context) {
 	}
 
 	album := models.Album{
-		Title:    req.Title,
-		Release:  req.ReleaseDate,
-		Genres:   req.Genres,
-		ArtistID: artistObjID,
+		Title:       req.Title,
+		ReleaseDate: req.ReleaseDate,
+		Genres:      req.Genres,
+		ArtistID:    artistObjID,
 	}
 
 	created, err := repository.CreateAlbum(album)
