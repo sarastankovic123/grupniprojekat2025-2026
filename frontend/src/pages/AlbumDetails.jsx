@@ -1,11 +1,13 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link, useLocation, useParams } from "react-router-dom";
+import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
+import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
 
 export default function AlbumDetails() {
   const { id } = useParams();
   const loc = useLocation();
+  const navigate = useNavigate();
 
   const { user, isAuthenticated } = useAuth();
   const isAdmin = isAuthenticated && user?.role === "A";
@@ -64,6 +66,34 @@ export default function AlbumDetails() {
     };
   }, [id]);
 
+  async function handleDeleteAlbum() {
+    if (!window.confirm(`Delete album "${album?.title || 'this album'}"? This will fail if songs exist.`)) {
+      return;
+    }
+
+    try {
+      await contentApi.deleteAlbum(id);
+      navigate(backLink, { replace: true });
+    } catch (err) {
+      alert(err.message || "Failed to delete album");
+    }
+  }
+
+  async function handleDeleteSong(songId, songTitle) {
+    if (!window.confirm(`Delete song "${songTitle}"?`)) {
+      return;
+    }
+
+    try {
+      await contentApi.deleteSong(songId);
+      // Reload songs list
+      const updatedSongs = await apiFetch(`/api/content/albums/${id}/songs`);
+      setSongs(Array.isArray(updatedSongs) ? updatedSongs : []);
+    } catch (err) {
+      alert(err.message || "Failed to delete song");
+    }
+  }
+
   if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
 
   if (err) {
@@ -96,6 +126,12 @@ export default function AlbumDetails() {
 
         {isAdmin ? (
           <div style={styles.actions}>
+            <Link to={`/admin/albums/${id}/edit`} style={styles.actionBtn}>
+              Edit album
+            </Link>
+            <button onClick={handleDeleteAlbum} style={styles.deleteBtn}>
+              Delete album
+            </button>
             <Link to={`/admin/albums/${id}/songs/new`} style={styles.actionBtn}>
               + Add song
             </Link>
@@ -106,15 +142,31 @@ export default function AlbumDetails() {
       <h3>Songs</h3>
 
       <div style={styles.songList}>
-        {songs.map((s, idx) => (
-          <div key={s.id || s._id || s.songId || idx} style={styles.songRow}>
-            <div style={{ fontWeight: 600 }}>{s.title || s.name || `Track ${idx + 1}`}</div>
-            <div style={styles.songMeta}>
-              {s.duration ? <span>Duration: {s.duration}</span> : null}
-              {s.trackNo ? <span>Track: {s.trackNo}</span> : null}
+        {songs.map((s, idx) => {
+          const songId = s.id || s._id || s.songId;
+          return (
+            <div key={songId || idx} style={styles.songRow}>
+              <div>
+                <div style={{ fontWeight: 600 }}>{s.title || s.name || `Track ${idx + 1}`}</div>
+                <div style={styles.songMeta}>
+                  {s.duration ? <span>Duration: {s.duration}</span> : null}
+                  {s.trackNo ? <span>Track: {s.trackNo}</span> : null}
+                </div>
+              </div>
+
+              {isAdmin && (
+                <div style={{ display: "flex", gap: 8 }}>
+                  <Link to={`/admin/songs/${songId}/edit`} style={styles.editBtnSmall}>
+                    Edit
+                  </Link>
+                  <button onClick={() => handleDeleteSong(songId, s.title)} style={styles.deleteBtnSmall}>
+                    Delete
+                  </button>
+                </div>
+              )}
             </div>
-          </div>
-        ))}
+          );
+        })}
 
         {songs.length === 0 ? <div style={{ opacity: 0.8 }}>No songs.</div> : null}
       </div>
@@ -143,6 +195,39 @@ const styles = {
   },
   meta: { display: "flex", gap: 12, fontSize: 13, opacity: 0.85, marginTop: 6, flexWrap: "wrap" },
   songList: { display: "grid", gap: 10 },
-  songRow: { border: "1px solid #ddd", borderRadius: 12, padding: 12 },
+  songRow: {
+    border: "1px solid #ddd",
+    borderRadius: 12,
+    padding: 12,
+    display: "flex",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
   songMeta: { display: "flex", gap: 12, fontSize: 13, opacity: 0.85, marginTop: 6, flexWrap: "wrap" },
+  deleteBtn: {
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid crimson",
+    background: "white",
+    color: "crimson",
+    cursor: "pointer",
+  },
+  editBtnSmall: {
+    padding: "4px 8px",
+    borderRadius: 6,
+    border: "1px solid #111",
+    textDecoration: "none",
+    color: "inherit",
+    background: "white",
+    fontSize: 13,
+  },
+  deleteBtnSmall: {
+    padding: "4px 8px",
+    borderRadius: 6,
+    border: "1px solid crimson",
+    background: "white",
+    color: "crimson",
+    cursor: "pointer",
+    fontSize: 13,
+  },
 };

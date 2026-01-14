@@ -1,10 +1,12 @@
 import React, { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
+import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
 
 export default function ArtistDetails() {
   const { id } = useParams();
+  const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
   const isAdmin = isAuthenticated && user?.role === "A";
 
@@ -42,6 +44,19 @@ export default function ArtistDetails() {
     };
   }, [id]);
 
+  async function handleDeleteArtist() {
+    if (!window.confirm(`Delete artist "${artist?.name || 'this artist'}"? This will fail if albums exist.`)) {
+      return;
+    }
+
+    try {
+      await contentApi.deleteArtist(id);
+      navigate("/", { replace: true });
+    } catch (err) {
+      alert(err.message || "Failed to delete artist");
+    }
+  }
+
   if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
   if (err) return <div style={{ padding: 24, color: "crimson" }}>{err}</div>;
 
@@ -64,6 +79,9 @@ export default function ArtistDetails() {
             <Link to={`/admin/artists/${id}/edit`} style={styles.actionBtn}>
               Edit artist
             </Link>
+            <button onClick={handleDeleteArtist} style={styles.deleteBtn}>
+              Delete artist
+            </button>
             <Link to={`/admin/artists/${id}/albums/new`} style={styles.actionBtn}>
               + Add album
             </Link>
@@ -110,6 +128,14 @@ const styles = {
     color: "inherit",
     background: "white",
     display: "inline-block",
+  },
+  deleteBtn: {
+    padding: "8px 10px",
+    borderRadius: 10,
+    border: "1px solid crimson",
+    background: "white",
+    color: "crimson",
+    cursor: "pointer",
   },
   meta: {
     display: "flex",
