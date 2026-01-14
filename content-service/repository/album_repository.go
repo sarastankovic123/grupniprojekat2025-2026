@@ -2,6 +2,7 @@ package repository
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"content-service/db"
@@ -79,3 +80,71 @@ func CreateAlbum(album models.Album) (models.Album, error) {
 	return album, err
 }
 
+func UpdateAlbum(id string, album models.Album) error {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	update := bson.M{
+		"$set": bson.M{
+			"title":       album.Title,
+			"releaseDate": album.ReleaseDate,
+			"genres":      album.Genres,
+			"artistId":    album.ArtistID,
+		},
+	}
+
+	result, err := db.AlbumsCollection.UpdateOne(
+		ctx,
+		bson.M{"_id": objID},
+		update,
+	)
+	if err != nil {
+		return err
+	}
+
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("album not found")
+	}
+
+	return nil
+}
+
+func DeleteAlbum(id string) error {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := db.AlbumsCollection.DeleteOne(
+		ctx,
+		bson.M{"_id": objID},
+	)
+	if err != nil {
+		return err
+	}
+
+	if result.DeletedCount == 0 {
+		return fmt.Errorf("album not found")
+	}
+
+	return nil
+}
+
+func CountSongsByAlbumID(albumID primitive.ObjectID) (int64, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	count, err := db.SongsCollection.CountDocuments(ctx, bson.M{"albumId": albumID})
+	if err != nil {
+		return 0, err
+	}
+	return count, nil
+}

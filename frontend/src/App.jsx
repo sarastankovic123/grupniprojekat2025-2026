@@ -86,10 +86,26 @@ export default function App() {
         }
       />
       <Route
+        path="/admin/albums/:id/edit"
+        element={
+          <ProtectedRoute allowedRoles={["A"]}>
+            <AlbumForm mode="edit" />
+          </ProtectedRoute>
+        }
+      />
+      <Route
         path="/admin/albums/:albumId/songs/new"
         element={
           <ProtectedRoute allowedRoles={["A"]}>
             <SongForm />
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/admin/songs/:id/edit"
+        element={
+          <ProtectedRoute allowedRoles={["A"]}>
+            <SongForm mode="edit" />
           </ProtectedRoute>
         }
       />

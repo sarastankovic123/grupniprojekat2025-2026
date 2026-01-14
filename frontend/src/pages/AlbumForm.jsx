@@ -1,6 +1,6 @@
-import React, { useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
-import { apiFetch } from "../api/apiFetch";
+import { contentApi } from "../api/content";
 
 function splitGenres(str) {
   return str
@@ -9,16 +9,41 @@ function splitGenres(str) {
     .filter(Boolean);
 }
 
-export default function AlbumForm() {
-  const { artistId } = useParams();
+export default function AlbumForm({ mode = "create" }) {
+  const isEdit = mode === "edit";
+  const { id, artistId } = useParams();
   const navigate = useNavigate();
 
   const [title, setTitle] = useState("");
   const [releaseDate, setReleaseDate] = useState(""); // yyyy-mm-dd
   const [genresText, setGenresText] = useState("");
+  const [albumArtistId, setAlbumArtistId] = useState(artistId || "");
 
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
+
+  const albumId = useMemo(() => (isEdit ? id : null), [isEdit, id]);
+
+  useEffect(() => {
+    if (!isEdit || !albumId) return;
+
+    (async () => {
+      try {
+        setLoading(true);
+        const album = await contentApi.getAlbum(albumId);
+
+        setTitle(album?.title ?? "");
+        setReleaseDate(album?.releaseDate ?? "");
+        const g = album?.genres ?? [];
+        setGenresText(Array.isArray(g) ? g.join(", ") : "");
+        setAlbumArtistId(album?.artistId ?? "");
+      } catch (err) {
+        setStatus({ type: "error", message: err.message || "Greška pri učitavanju albuma." });
+      } finally {
+        setLoading(false);
+      }
+    })();
+  }, [isEdit, albumId]);
 
   async function handleSubmit(e) {
     e.preventDefault();
@@ -31,24 +56,26 @@ export default function AlbumForm() {
 
     const payload = {
       title: title.trim(),
-      artistId, // OBAVEZNO po backendu
+      artistId: albumArtistId, // OBAVEZNO po backendu
       releaseDate: releaseDate ? releaseDate : undefined,
       genres: splitGenres(genresText),
     };
 
     try {
       setLoading(true);
-      const created = await apiFetch("/api/content/albums", {
-        method: "POST",
-        body: JSON.stringify(payload),
-      });
 
-      const albumId = created?.id || created?._id;
-      setStatus({ type: "success", message: "Album je kreiran." });
-
-      navigate(albumId ? `/albums/${albumId}` : `/artists/${artistId}`, { replace: true });
+      if (isEdit) {
+        await contentApi.updateAlbum(albumId, payload);
+        setStatus({ type: "success", message: "Album je izmenjen." });
+        navigate(`/albums/${albumId}`, { replace: true });
+      } else {
+        const created = await contentApi.createAlbum(artistId, payload);
+        const newAlbumId = created?.id || created?._id;
+        setStatus({ type: "success", message: "Album je kreiran." });
+        navigate(newAlbumId ? `/albums/${newAlbumId}` : `/artists/${artistId}`, { replace: true });
+      }
     } catch (err) {
-      setStatus({ type: "error", message: err.message || "Greška pri kreiranju albuma." });
+      setStatus({ type: "error", message: err.message || "Greška pri čuvanju." });
     } finally {
       setLoading(false);
     }
@@ -56,7 +83,7 @@ export default function AlbumForm() {
 
   return (
     <div style={{ maxWidth: 640, margin: "40px auto", padding: 16 }}>
-      <h2>Kreiranje albuma</h2>
+      <h2>{isEdit ? "Izmena albuma" : "Kreiranje albuma"}</h2>
 
       <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
         <label style={{ display: "grid", gap: 6 }}>
@@ -99,7 +126,8 @@ export default function AlbumForm() {
         )}
 
         <div style={{ display: "flex", gap: 12 }}>
-          <Link to={`/artists/${artistId}`}>Nazad na umetnika</Link>
+          <Link to="/">Nazad</Link>
+          {isEdit && <Link to={`/albums/${albumId}`}>Detalji</Link>}
         </div>
       </form>
     </div>
