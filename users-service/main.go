@@ -53,6 +53,9 @@ func main() {
 	r.POST("/api/auth/logout", handlers.Logout)
 	r.POST("/api/auth/magic-link/request", handlers.RequestMagicLink)
 	r.POST("/api/auth/magic-link/consume", handlers.ConsumeMagicLink)
+	r.POST("/api/auth/resend-confirmation", handlers.ResendConfirmation)
+
+
 
 	fmt.Printf("Users service running on port %s\n", config.Port)
 	r.Run(":" + config.Port)

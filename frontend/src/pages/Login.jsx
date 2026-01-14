@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { apiFetch } from "../api/apiFetch";
 
 export default function Login() {
   const nav = useNavigate();
@@ -16,20 +17,45 @@ export default function Login() {
 
   const [loading, setLoading] = useState(false);
   const [err, setErr] = useState("");
+  const [notConfirmed, setNotConfirmed] = useState(false);
+  const [resendLoading, setResendLoading] = useState(false);
 
   async function onSubmit(e) {
     e.preventDefault();
     setErr("");
+    setNotConfirmed(false);
     setLoading(true);
+
     try {
       const data = await login(form);
       nav("/verify-otp", { state: { ...data, email: form.email } });
     } catch (e) {
-      setErr(e.message || "Login failed");
+      const msg = e?.message || "Login failed";
+      setErr(msg);
+
+      if (msg === "Email is not confirmed") {
+        setNotConfirmed(true);
+      }
     } finally {
       setLoading(false);
     }
   }
+
+  const handleResend = async () => {
+    try {
+      setResendLoading(true);
+      await apiFetch("/api/auth/resend-confirmation", {
+        method: "POST",
+        body: JSON.stringify({ email: form.email }),
+      });
+
+      alert("Confirmation email resent!");
+    } catch (e) {
+      alert("Failed to resend confirmation");
+    } finally {
+      setResendLoading(false);
+    }
+  };
 
   return (
     <div style={styles.page}>
@@ -52,7 +78,9 @@ export default function Login() {
             Password
             <input
               value={form.password}
-              onChange={(e) => setForm((p) => ({ ...p, password: e.target.value }))}
+              onChange={(e) =>
+                setForm((p) => ({ ...p, password: e.target.value }))
+              }
               type="password"
               required
               style={styles.input}
@@ -60,6 +88,29 @@ export default function Login() {
           </label>
 
           {err ? <div style={styles.error}>{err}</div> : null}
+
+          {notConfirmed && (
+            <div style={styles.helperBox}>
+              <p>Your email is not confirmed yet.</p>
+
+              <button
+                type="button"
+                onClick={handleResend}
+                disabled={resendLoading}
+                style={{ ...styles.btn, ...styles.btnSecondary }}
+              >
+                {resendLoading ? "Resending..." : "Resend confirmation"}
+              </button>
+
+              <button
+                type="button"
+                onClick={() => nav("/confirm")}
+                style={{ ...styles.btn, ...styles.btnSecondary }}
+              >
+                Open confirmation page
+              </button>
+            </div>
+          )}
 
           <button disabled={loading} style={styles.btn}>
             {loading ? "Sending OTP..." : "Login (send OTP)"}
@@ -81,7 +132,6 @@ export default function Login() {
             Confirm account
           </button>
 
-          {/* LINKOVI - moraju biti unutar return-a */}
           <div style={styles.links}>
             <Link to="/forgot-password" style={styles.link}>
               Zaboravljena lozinka?
@@ -102,9 +152,24 @@ const styles = {
   form: { display: "flex", flexDirection: "column", gap: 12 },
   label: { display: "flex", flexDirection: "column", gap: 6 },
   input: { padding: 10, borderRadius: 10, border: "1px solid #ccc" },
-  btn: { padding: 10, borderRadius: 10, border: "1px solid #111", cursor: "pointer" },
+  btn: {
+    padding: 10,
+    borderRadius: 10,
+    border: "1px solid #111",
+    cursor: "pointer",
+  },
   btnSecondary: { background: "#fff" },
   error: { color: "crimson" },
+
+  helperBox: {
+    border: "1px solid #f0c36d",
+    background: "#fff7e6",
+    padding: 12,
+    borderRadius: 10,
+    display: "flex",
+    flexDirection: "column",
+    gap: 8,
+  },
 
   links: { display: "flex", flexDirection: "column", gap: 6, marginTop: 8 },
   link: { textDecoration: "none" },

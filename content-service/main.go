@@ -50,15 +50,17 @@ func main() {
 			artists.GET("/:id", handlers.GetArtistByID)
 			artists.GET("/:id/albums", handlers.GetAlbumsByArtist)
 			artists.POST("", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateArtist)
+			artists.PUT("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.UpdateArtist)
+			artists.DELETE("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.DeleteArtist)
 		}
 
 		albums := api.Group("/albums")
 		{
-
 			albums.GET("/:id", handlers.GetAlbumByID)
-
 			albums.GET("/:id/songs", middleware.AuthMiddleware(), handlers.GetSongsByAlbum)
 			albums.POST("", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateAlbum)
+			albums.PUT("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.UpdateAlbum)
+			albums.DELETE("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.DeleteAlbum)
 		}
 
 		songs := api.Group("/songs")
