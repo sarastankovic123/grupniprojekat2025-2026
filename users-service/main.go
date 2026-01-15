@@ -10,6 +10,7 @@ import (
 
 	"shared-utils/validation"
 	"users-service/config"
+	"users-service/bootstrap"
 	"users-service/db"
 	"users-service/handlers"
 	"users-service/middleware"
@@ -20,6 +21,7 @@ func main() {
 	config.LoadConfig()
 
 	db.ConnectMongo()
+	bootstrap.EnsureAdminFromEnv()
 
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {

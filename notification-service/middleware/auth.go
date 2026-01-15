@@ -8,6 +8,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
+	"shared-utils/auth"
 )
 
 type JWTClaims struct {
@@ -88,7 +89,14 @@ func RequireRole(requiredRole string) gin.HandlerFunc {
 			return
 		}
 
-		if role != requiredRole {
+		roleStr, ok := role.(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "User role invalid"})
+			c.Abort()
+			return
+		}
+
+		if !auth.RoleMatches(requiredRole, roleStr) {
 			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
 			c.Abort()
 			return

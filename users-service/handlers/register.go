@@ -11,6 +11,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"shared-utils/validation"
+	"shared-utils/auth"
 	"users-service/config"
 	"users-service/models"
 	"users-service/repository"
@@ -61,7 +62,7 @@ func Register(c *gin.Context) {
 		FirstName:         req.FirstName,
 		LastName:          req.LastName,
 		PasswordHash:      hash,
-		Role:              "USER",
+		Role:              auth.RoleRegular,
 		IsConfirmed:       false,
 		PasswordChangedAt: time.Now(),
 		CreatedAt:         time.Now(),

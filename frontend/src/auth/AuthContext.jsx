@@ -5,6 +5,16 @@ import { apiFetch } from "../api/apiFetch";
 
 const AuthContext = createContext(null);
 
+function normalizeRole(role) {
+  const r = String(role || "")
+    .trim()
+    .toUpperCase();
+
+  if (r === "ADMIN" || r === "A") return "A";
+  if (r === "USER" || r === "RK") return "RK";
+  return r;
+}
+
 function decodeToken(token) {
   try {
     const decoded = jwtDecode(token);
@@ -12,7 +22,7 @@ function decodeToken(token) {
       userId: decoded.user_id,
       email: decoded.email,
       username: decoded.username,
-      role: decoded.role,
+      role: normalizeRole(decoded.role),
     };
   } catch (err) {
     console.error("Failed to decode token:", err);

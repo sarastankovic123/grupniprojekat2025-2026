@@ -152,7 +152,7 @@ export default function Profile() {
           <div style={styles.infoRow}>
             <span style={styles.infoLabel}>Role:</span>
             <span style={{ ...styles.infoValue, ...styles.roleBadge }}>
-              {user?.role || "USER"}
+              {user?.role || "RK"}
             </span>
           </div>
           <div style={styles.infoRow}>

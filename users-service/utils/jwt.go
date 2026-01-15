@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
+	"shared-utils/auth"
 	"users-service/config"
 	"users-service/models"
 )
@@ -29,7 +30,7 @@ func GenerateJWT(user *models.User) (string, error) {
 		UserID:   user.ID.Hex(),
 		Email:    user.Email,
 		Username: user.Username,
-		Role:     user.Role,
+		Role:     auth.NormalizeRole(user.Role),
 		RegisteredClaims: jwt.RegisteredClaims{
 			ExpiresAt: jwt.NewNumericDate(time.Now().Add(config.JWTAccessExpiry)),
 			IssuedAt:  jwt.NewNumericDate(time.Now()),
