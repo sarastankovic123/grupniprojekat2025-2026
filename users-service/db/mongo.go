@@ -16,6 +16,7 @@ var UsersCollection *mongo.Collection
 var EmailTokensCollection *mongo.Collection
 var MagicLinkTokensCollection *mongo.Collection
 var RefreshTokensCollection *mongo.Collection
+var PasswordResetTokensCollection *mongo.Collection
 
 func ConnectMongo() {
 	const maxAttempts = 20
@@ -38,6 +39,7 @@ func ConnectMongo() {
 				EmailTokensCollection = db.Collection("email_tokens")
 				MagicLinkTokensCollection = db.Collection("magic_link_tokens")
 				RefreshTokensCollection = db.Collection("refresh_tokens")
+				PasswordResetTokensCollection = db.Collection("password_reset_tokens")
 
 				fmt.Printf("Connected to MongoDB (users-service) after %d attempt(s)\n", attempt)
 				return

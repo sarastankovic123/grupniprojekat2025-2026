@@ -9,9 +9,13 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"shared-utils/validation"
+	"users-service/config"
+	"users-service/db"
 	"users-service/models"
 	"users-service/repository"
 	"users-service/utils"
+
+	"go.mongodb.org/mongo-driver/bson"
 )
 
 type LoginRequest struct {
@@ -48,6 +52,46 @@ func Login(c *gin.Context) {
 
 	if !user.IsConfirmed {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Email is not confirmed"})
+		return
+	}
+
+	now := time.Now()
+
+	// If account is temporarily locked (e.g., after password expiry), deny login.
+	if user.PasswordLockUntil != nil && now.Before(*user.PasswordLockUntil) {
+		c.JSON(http.StatusForbidden, gin.H{
+			"error":       "Login temporarily disabled. Please try again later.",
+			"lockedUntil": user.PasswordLockUntil.Format(time.RFC3339),
+		})
+		return
+	}
+
+	// Enforce password max age (default 60 days). After expiry, lock login for a short period.
+	if config.PasswordMaxAge > 0 && now.After(user.PasswordChangedAt.Add(config.PasswordMaxAge)) {
+		expiredAt := user.PasswordChangedAt.Add(config.PasswordMaxAge)
+		lockUntil := expiredAt.Add(config.PasswordExpiryLock)
+
+		// Persist lockUntil for auditability; do not shorten an existing lock.
+		if user.PasswordLockUntil == nil || user.PasswordLockUntil.Before(lockUntil) {
+			_, _ = db.UsersCollection.UpdateOne(
+				c.Request.Context(),
+				bson.M{"_id": user.ID},
+				bson.M{"$set": bson.M{"passwordLockUntil": lockUntil}},
+			)
+			user.PasswordLockUntil = &lockUntil
+		}
+
+		if now.Before(lockUntil) {
+			c.JSON(http.StatusForbidden, gin.H{
+				"error":       "Password expired. Login temporarily disabled.",
+				"lockedUntil": lockUntil.Format(time.RFC3339),
+			})
+			return
+		}
+
+		c.JSON(http.StatusForbidden, gin.H{
+			"error": "Password expired. Please reset your password.",
+		})
 		return
 	}
 

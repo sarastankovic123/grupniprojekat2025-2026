@@ -22,6 +22,11 @@ type CreateSongRequest struct {
 	AlbumID  string `json:"albumId" binding:"required,len=24,hexadecimal"`
 }
 
+type CreateSongForAlbumRequest struct {
+	Title    string `json:"title" binding:"required,min=1,max=200"`
+	Duration int    `json:"duration" binding:"required,min=1,max=7200"`
+}
+
 type UpdateSongRequest struct {
 	Title    string `json:"title" binding:"required,min=1,max=200"`
 	Duration int    `json:"duration"`
@@ -99,6 +104,71 @@ func CreateSong(c *gin.Context) {
 		userID, exists := c.Get("userID")
 		if exists {
 			// SECURITY FIX: HTML escape title to prevent XSS
+			sanitizedTitle := validation.SanitizeForHTML(created.Title)
+			notifBody, _ := json.Marshal(map[string]string{
+				"userId":  userID.(string),
+				"message": fmt.Sprintf("New song created: %s", sanitizedTitle),
+			})
+			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+			req.Header.Set("Content-Type", "application/json")
+			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
+			http.DefaultClient.Do(req)
+		}
+	}()
+}
+
+func CreateSongForAlbum(c *gin.Context) {
+	albumID := strings.TrimSpace(c.Param("id"))
+	if albumID == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing album id"})
+		return
+	}
+
+	var req CreateSongForAlbumRequest
+	if err := c.ShouldBindJSON(&req); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid request body"})
+		return
+	}
+
+	req.Title = strings.TrimSpace(req.Title)
+	if req.Title == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Missing required fields: title"})
+		return
+	}
+
+	albumObjID, err := primitive.ObjectIDFromHex(albumID)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid albumId"})
+		return
+	}
+
+	exists, err := repository.AlbumExistsByID(albumObjID)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate album"})
+		return
+	}
+	if !exists {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Album does not exist"})
+		return
+	}
+
+	song := models.Song{
+		Title:    req.Title,
+		Duration: fmt.Sprintf("%d", req.Duration),
+		AlbumID:  albumObjID,
+	}
+
+	created, err := repository.CreateSong(song)
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to create song"})
+		return
+	}
+
+	c.JSON(http.StatusCreated, created)
+
+	go func() {
+		userID, exists := c.Get("userID")
+		if exists {
 			sanitizedTitle := validation.SanitizeForHTML(created.Title)
 			notifBody, _ := json.Marshal(map[string]string{
 				"userId":  userID.(string),

@@ -16,5 +16,6 @@ type User struct {
 	Role              string             `bson:"role"`
 	IsConfirmed       bool               `bson:"isConfirmed"`
 	PasswordChangedAt time.Time          `bson:"passwordChangedAt"`
+	PasswordLockUntil *time.Time         `bson:"passwordLockUntil,omitempty"`
 	CreatedAt         time.Time          `bson:"createdAt"`
 }

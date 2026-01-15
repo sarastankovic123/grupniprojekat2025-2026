@@ -50,6 +50,12 @@ func Register(c *gin.Context) {
 		return
 	}
 
+	_, err = repository.FindUserByEmail(req.Email)
+	if err == nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
+		return
+	}
+
 	hash, err := utils.HashPassword(req.Password)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Password hashing failed"})

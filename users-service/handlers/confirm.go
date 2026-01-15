@@ -13,16 +13,18 @@ import (
 )
 
 func ConfirmEmail(c *gin.Context) {
-	var req struct {
-		Token string `json:"token" binding:"required"`
-	}
+	token := c.Query("token")
+	if token == "" {
+		var req struct {
+			Token string `json:"token" binding:"required"`
+		}
 
-	if err := c.ShouldBindJSON(&req); err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Token missing"})
-		return
+		if err := c.ShouldBindJSON(&req); err != nil {
+			c.JSON(http.StatusBadRequest, gin.H{"error": "Token missing"})
+			return
+		}
+		token = req.Token
 	}
-
-	token := req.Token
 
 	emailToken, err := repository.FindEmailToken(token)
 	if err != nil {

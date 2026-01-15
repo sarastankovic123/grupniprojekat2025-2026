@@ -14,6 +14,10 @@ var (
 	RefreshSecret       []byte
 	JWTAccessExpiry     time.Duration
 	JWTRefreshExpiry    time.Duration
+	PasswordMinAge      time.Duration
+	PasswordMaxAge      time.Duration
+	PasswordExpiryLock  time.Duration
+	PasswordResetExpiry time.Duration
 	ServiceAPIKey       string
 	RateLimitAuthReqs   int
 	RateLimitAuthWindow time.Duration
@@ -56,6 +60,26 @@ func LoadConfig() {
 	JWTRefreshExpiry, err = time.ParseDuration(getEnv("JWT_REFRESH_EXPIRY", "168h"))
 	if err != nil {
 		log.Fatal("Invalid JWT_REFRESH_EXPIRY format:", err)
+	}
+
+	PasswordMinAge, err = time.ParseDuration(getEnv("PASSWORD_MIN_AGE", "24h"))
+	if err != nil {
+		log.Fatal("Invalid PASSWORD_MIN_AGE format:", err)
+	}
+
+	PasswordMaxAge, err = time.ParseDuration(getEnv("PASSWORD_MAX_AGE", "1440h")) // 60 days
+	if err != nil {
+		log.Fatal("Invalid PASSWORD_MAX_AGE format:", err)
+	}
+
+	PasswordExpiryLock, err = time.ParseDuration(getEnv("PASSWORD_EXPIRY_LOCKOUT", "10m"))
+	if err != nil {
+		log.Fatal("Invalid PASSWORD_EXPIRY_LOCKOUT format:", err)
+	}
+
+	PasswordResetExpiry, err = time.ParseDuration(getEnv("PASSWORD_RESET_TOKEN_EXPIRY", "15m"))
+	if err != nil {
+		log.Fatal("Invalid PASSWORD_RESET_TOKEN_EXPIRY format:", err)
 	}
 
 
