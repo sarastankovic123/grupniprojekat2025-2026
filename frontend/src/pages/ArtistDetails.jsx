@@ -8,7 +8,7 @@ export default function ArtistDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { user, isAuthenticated } = useAuth();
-  const isAdmin = isAuthenticated && user?.role === "A";
+  const isAdmin = isAuthenticated && (user?.role === "ADMIN" || user?.role === "A");
 
   const [artist, setArtist] = useState(null);
   const [albums, setAlbums] = useState([]);

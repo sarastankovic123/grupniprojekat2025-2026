@@ -10,8 +10,8 @@ function normalizeRole(role) {
     .trim()
     .toUpperCase();
 
-  if (r === "ADMIN" || r === "A") return "A";
-  if (r === "USER" || r === "RK") return "RK";
+  if (r === "ADMIN" || r === "A" || r === "ADMINISTRATOR") return "ADMIN";
+  if (r === "USER" || r === "U" || r === "RK") return "USER";
   return r;
 }
 

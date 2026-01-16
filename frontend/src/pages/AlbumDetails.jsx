@@ -10,7 +10,7 @@ export default function AlbumDetails() {
   const navigate = useNavigate();
 
   const { user, isAuthenticated } = useAuth();
-  const isAdmin = isAuthenticated && user?.role === "A";
+  const isAdmin = isAuthenticated && (user?.role === "ADMIN" || user?.role === "A");
 
   // state može pomoći za "Back to artist"
   const artistIdFromState =

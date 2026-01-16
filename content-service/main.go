@@ -49,20 +49,20 @@ func main() {
 			artists.GET("", handlers.GetArtists)
 			artists.GET("/:id", handlers.GetArtistByID)
 			artists.GET("/:id/albums", handlers.GetAlbumsByArtist)
-			artists.POST("/:id/albums", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.CreateAlbumForArtist)
-			artists.POST("", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.CreateArtist)
-			artists.PUT("/:id", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.UpdateArtist)
-			artists.DELETE("/:id", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.DeleteArtist)
+			artists.POST("/:id/albums", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateAlbumForArtist)
+			artists.POST("", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateArtist)
+			artists.PUT("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.UpdateArtist)
+			artists.DELETE("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.DeleteArtist)
 		}
 
 		albums := api.Group("/albums")
 		{
 			albums.GET("/:id", handlers.GetAlbumByID)
 			albums.GET("/:id/songs", middleware.AuthMiddleware(), handlers.GetSongsByAlbum)
-			albums.POST("/:id/songs", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.CreateSongForAlbum)
-			albums.POST("", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.CreateAlbum)
-			albums.PUT("/:id", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.UpdateAlbum)
-			albums.DELETE("/:id", middleware.AuthMiddleware(), middleware.RequireRole("A"), handlers.DeleteAlbum)
+			albums.POST("/:id/songs", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateSongForAlbum)
+			albums.POST("", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateAlbum)
+			albums.PUT("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.UpdateAlbum)
+			albums.DELETE("/:id", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.DeleteAlbum)
 		}
 
 		songs := api.Group("/songs")
@@ -73,21 +73,21 @@ func main() {
 			songs.POST(
 				"",
 				middleware.AuthMiddleware(),
-				middleware.RequireRole("A"),
+				middleware.RequireRole("ADMIN"),
 				handlers.CreateSong,
 			)
 
 			songs.PUT(
 				"/:id",
 				middleware.AuthMiddleware(),
-				middleware.RequireRole("A"),
+				middleware.RequireRole("ADMIN"),
 				handlers.UpdateSong,
 			)
 
 			songs.DELETE(
 				"/:id",
 				middleware.AuthMiddleware(),
-				middleware.RequireRole("A"),
+				middleware.RequireRole("ADMIN"),
 				handlers.DeleteSong,
 			)
 		}

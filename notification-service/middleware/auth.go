@@ -74,7 +74,7 @@ func AuthMiddleware() gin.HandlerFunc {
 		c.Set("userID", claims.UserID)
 		c.Set("email", claims.Email)
 		c.Set("username", claims.Username)
-		c.Set("role", claims.Role)
+		c.Set("role", auth.NormalizeRole(claims.Role))
 
 		c.Next()
 	}

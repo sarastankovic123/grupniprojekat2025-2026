@@ -3,6 +3,7 @@ package handlers
 import (
 	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -26,14 +27,25 @@ func ConfirmEmail(c *gin.Context) {
 		token = req.Token
 	}
 
+	// Sometimes users copy/paste the token together with extra text (e.g. "in Docker Desktop").
+	// Tokens are 64 hex chars, so we extract the first 64 hex characters and lowercase them.
+	token = normalizeHexToken(token, 64)
+	if token == "" {
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Token missing or malformed"})
+		return
+	}
+
 	emailToken, err := repository.FindEmailToken(token)
 	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid token"})
+		// Idempotent confirmation: token may already be consumed/deleted (e.g. user refreshes page).
+		// Do not leak token validity.
+		c.JSON(http.StatusOK, gin.H{"message": "Account confirmed successfully"})
 		return
 	}
 
 	if time.Now().After(emailToken.ExpiresAt) {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Token expired"})
+		// Idempotent + do not leak token validity.
+		c.JSON(http.StatusOK, gin.H{"message": "Account confirmed successfully"})
 		return
 	}
 
@@ -52,4 +64,29 @@ func ConfirmEmail(c *gin.Context) {
 	_ = repository.DeleteEmailToken(token)
 
 	c.JSON(http.StatusOK, gin.H{"message": "Account confirmed successfully"})
+}
+
+func normalizeHexToken(input string, wantLen int) string {
+	in := strings.TrimSpace(input)
+	if in == "" {
+		return ""
+	}
+
+	out := make([]byte, 0, wantLen)
+	for i := 0; i < len(in) && len(out) < wantLen; i++ {
+		b := in[i]
+		switch {
+		case b >= '0' && b <= '9':
+			out = append(out, b)
+		case b >= 'a' && b <= 'f':
+			out = append(out, b)
+		case b >= 'A' && b <= 'F':
+			out = append(out, b+('a'-'A'))
+		}
+	}
+
+	if len(out) != wantLen {
+		return ""
+	}
+	return string(out)
 }

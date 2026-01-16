@@ -6,7 +6,7 @@ import NotificationBell from "../components/NotificationBell";
 
 export default function Artists() {
   const { logout, isAuthenticated, user } = useAuth();
-  const isAdmin = user?.role === "A";
+  const isAdmin = user?.role === "ADMIN" || user?.role === "A";
 
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);

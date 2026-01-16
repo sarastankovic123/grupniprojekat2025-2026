@@ -68,7 +68,7 @@ func Register(c *gin.Context) {
 		FirstName:         req.FirstName,
 		LastName:          req.LastName,
 		PasswordHash:      hash,
-		Role:              auth.RoleRegular,
+		Role:              auth.RoleUser,
 		IsConfirmed:       false,
 		PasswordChangedAt: time.Now(),
 		CreatedAt:         time.Now(),

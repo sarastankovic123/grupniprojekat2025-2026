@@ -42,11 +42,11 @@ export default function App() {
       <Route path="/recover" element={<MagicLinkRequest />} />
       <Route path="/magic-login" element={<MagicLogin />} />
 
-      {/* Authenticated (RK + A) */}
+      {/* Authenticated (USER + ADMIN) */}
       <Route
         path="/profile"
         element={
-          <ProtectedRoute allowedRoles={["RK", "A"]}>
+          <ProtectedRoute allowedRoles={["USER", "ADMIN"]}>
             <Profile />
           </ProtectedRoute>
         }
@@ -54,7 +54,7 @@ export default function App() {
       <Route
         path="/profile/password"
         element={
-          <ProtectedRoute allowedRoles={["RK", "A"]}>
+          <ProtectedRoute allowedRoles={["USER", "ADMIN"]}>
             <ChangePassword />
           </ProtectedRoute>
         }
@@ -64,7 +64,7 @@ export default function App() {
       <Route
         path="/admin/artists/new"
         element={
-          <ProtectedRoute allowedRoles={["A"]}>
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
             <ArtistForm mode="create" />
           </ProtectedRoute>
         }
@@ -72,7 +72,7 @@ export default function App() {
       <Route
         path="/admin/artists/:id/edit"
         element={
-          <ProtectedRoute allowedRoles={["A"]}>
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
             <ArtistForm mode="edit" />
           </ProtectedRoute>
         }
@@ -80,7 +80,7 @@ export default function App() {
       <Route
         path="/admin/artists/:artistId/albums/new"
         element={
-          <ProtectedRoute allowedRoles={["A"]}>
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
             <AlbumForm />
           </ProtectedRoute>
         }
@@ -88,7 +88,7 @@ export default function App() {
       <Route
         path="/admin/albums/:id/edit"
         element={
-          <ProtectedRoute allowedRoles={["A"]}>
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
             <AlbumForm mode="edit" />
           </ProtectedRoute>
         }
@@ -96,7 +96,7 @@ export default function App() {
       <Route
         path="/admin/albums/:albumId/songs/new"
         element={
-          <ProtectedRoute allowedRoles={["A"]}>
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
             <SongForm />
           </ProtectedRoute>
         }
@@ -104,7 +104,7 @@ export default function App() {
       <Route
         path="/admin/songs/:id/edit"
         element={
-          <ProtectedRoute allowedRoles={["A"]}>
+          <ProtectedRoute allowedRoles={["ADMIN"]}>
             <SongForm mode="edit" />
           </ProtectedRoute>
         }
