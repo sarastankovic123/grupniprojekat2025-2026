@@ -16,7 +16,12 @@ export default function ResetPassword() {
   const [params] = useSearchParams();
   const navigate = useNavigate();
 
-  const token = useMemo(() => params.get("token") || "", [params]);
+  const urlToken = useMemo(() => params.get("token") || "", [params]);
+  const [manualToken, setManualToken] = useState("");
+  const token = useMemo(
+    () => urlToken || manualToken.trim(),
+    [urlToken, manualToken]
+  );
 
   const [newPassword, setNewPassword] = useState("");
   const [confirm, setConfirm] = useState("");
@@ -28,7 +33,11 @@ export default function ResetPassword() {
     setStatus({ type: "", message: "" });
 
     if (!token) {
-      setStatus({ type: "error", message: "Nedostaje token u linku." });
+      setStatus({
+        type: "error",
+        message:
+          "Nedostaje token u linku. Otvori kompletan link iz emaila ili nalepi token ručno.",
+      });
       return;
     }
     if (!newPassword || !confirm) {
@@ -88,6 +97,18 @@ export default function ResetPassword() {
             autoComplete="new-password"
           />
         </label>
+
+        {!urlToken && (
+          <label style={{ display: "grid", gap: 6 }}>
+            Token iz linka
+            <input
+              type="text"
+              value={manualToken}
+              onChange={(e) => setManualToken(e.target.value)}
+              placeholder="Nalepi token ako nije u URL-u"
+            />
+          </label>
+        )}
 
         <button type="submit" disabled={loading}>
           {loading ? "Menjam..." : "Promeni lozinku"}

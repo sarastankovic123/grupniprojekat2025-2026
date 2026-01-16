@@ -27,9 +27,15 @@ func ConfirmEmail(c *gin.Context) {
 		token = req.Token
 	}
 
+	rawToken := token
+
 	// Sometimes users copy/paste the token together with extra text (e.g. "in Docker Desktop").
 	// Tokens are 64 hex chars, so we extract the first 64 hex characters and lowercase them.
-	token = normalizeHexToken(token, 64)
+	token = normalizeHexToken(rawToken, 64)
+	if token == "" {
+		// Backwards compatibility: accept legacy 56-char hex tokens as well.
+		token = normalizeHexToken(rawToken, 56)
+	}
 	if token == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Token missing or malformed"})
 		return
