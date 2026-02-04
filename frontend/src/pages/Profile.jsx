@@ -2,6 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { fetchNotifications, markAsRead, markAsUnread } from "../api/notifications";
+import { apiFetch } from "../api/apiFetch";
 
 function getNotifId(n) {
   return n?.id || n?._id || n?.notificationId;
@@ -17,12 +18,57 @@ function getIsRead(n) {
 }
 
 export default function Profile() {
-  const { user, logout } = useAuth();
+  const { user, logout, setAuthToken } = useAuth();
+
+  const [profile, setProfile] = useState(null);
+  const [profileForm, setProfileForm] = useState({
+    username: "",
+    firstName: "",
+    lastName: "",
+  });
+  const [profileLoading, setProfileLoading] = useState(true);
+  const [profileStatus, setProfileStatus] = useState({ type: "", message: "" });
 
   const [notifications, setNotifications] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingIds, setUpdatingIds] = useState(new Set());
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadProfile() {
+      setProfileStatus({ type: "", message: "" });
+      setProfileLoading(true);
+
+      try {
+        const data = await apiFetch("/api/auth/me");
+        if (!alive) return;
+
+        const u = data?.user || null;
+        setProfile(u);
+        setProfileForm({
+          username: u?.username || "",
+          firstName: u?.firstName || "",
+          lastName: u?.lastName || "",
+        });
+      } catch (err) {
+        if (!alive) return;
+        setProfileStatus({
+          type: "error",
+          message: err.message || "Failed to load profile",
+        });
+      } finally {
+        if (!alive) return;
+        setProfileLoading(false);
+      }
+    }
+
+    loadProfile();
+    return () => {
+      alive = false;
+    };
+  }, []);
 
   useEffect(() => {
     let alive = true;
@@ -127,12 +173,42 @@ export default function Profile() {
     [notifications]
   );
 
+  async function saveProfile(e) {
+    e.preventDefault();
+    setProfileStatus({ type: "", message: "" });
+
+    try {
+      const payload = {
+        username: profileForm.username,
+        firstName: profileForm.firstName,
+        lastName: profileForm.lastName,
+      };
+
+      const data = await apiFetch("/api/auth/me", {
+        method: "PATCH",
+        body: JSON.stringify(payload),
+      });
+
+      const jwt = data?.accessToken || data?.access_token;
+      if (jwt) setAuthToken(jwt);
+      if (data?.user) setProfile(data.user);
+
+      setProfileStatus({ type: "success", message: "Sačuvano." });
+    } catch (err) {
+      setProfileStatus({
+        type: "error",
+        message: err.message || "Greška pri čuvanju profila.",
+      });
+    }
+  }
+
   return (
     <div style={styles.page}>
       <div style={styles.topbar}>
         <h2 style={{ margin: 0 }}>Profile</h2>
         <div style={styles.topbarRight}>
           <Link to="/" style={styles.link}>← Back to Artists</Link>
+          <Link to="/profile/password" style={styles.link}>Promeni lozinku</Link>
           <button onClick={logout} style={styles.btn}>Logout</button>
         </div>
       </div>
@@ -140,14 +216,78 @@ export default function Profile() {
       {/* User Info Card */}
       <div style={styles.card}>
         <h3 style={{ marginTop: 0 }}>User Information</h3>
+
+        <form onSubmit={saveProfile} style={{ display: "grid", gap: 12, marginBottom: 16 }}>
+          <label style={{ display: "grid", gap: 6 }}>
+            Username
+            <input
+              value={profileForm.username}
+              onChange={(e) =>
+                setProfileForm((p) => ({ ...p, username: e.target.value }))
+              }
+              disabled={profileLoading}
+              autoComplete="username"
+            />
+          </label>
+
+          <label style={{ display: "grid", gap: 6 }}>
+            Ime
+            <input
+              value={profileForm.firstName}
+              onChange={(e) =>
+                setProfileForm((p) => ({ ...p, firstName: e.target.value }))
+              }
+              disabled={profileLoading}
+              autoComplete="given-name"
+            />
+          </label>
+
+          <label style={{ display: "grid", gap: 6 }}>
+            Prezime
+            <input
+              value={profileForm.lastName}
+              onChange={(e) =>
+                setProfileForm((p) => ({ ...p, lastName: e.target.value }))
+              }
+              disabled={profileLoading}
+              autoComplete="family-name"
+            />
+          </label>
+
+          <button type="submit" disabled={profileLoading}>
+            {profileLoading ? "Učitavam..." : "Sačuvaj"}
+          </button>
+
+          {profileStatus.message ? (
+            <div
+              style={{
+                padding: 10,
+                borderRadius: 8,
+                background:
+                  profileStatus.type === "success" ? "#e9f7ef" : "#fdecea",
+              }}
+            >
+              {profileStatus.message}
+            </div>
+          ) : null}
+        </form>
+
         <div style={styles.infoGrid}>
           <div style={styles.infoRow}>
             <span style={styles.infoLabel}>Username:</span>
-            <span style={styles.infoValue}>{user?.username || "N/A"}</span>
+            <span style={styles.infoValue}>{profile?.username || user?.username || "N/A"}</span>
           </div>
           <div style={styles.infoRow}>
             <span style={styles.infoLabel}>Email:</span>
-            <span style={styles.infoValue}>{user?.email || "N/A"}</span>
+            <span style={styles.infoValue}>{profile?.email || user?.email || "N/A"}</span>
+          </div>
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Ime:</span>
+            <span style={styles.infoValue}>{profile?.firstName || "N/A"}</span>
+          </div>
+          <div style={styles.infoRow}>
+            <span style={styles.infoLabel}>Prezime:</span>
+            <span style={styles.infoValue}>{profile?.lastName || "N/A"}</span>
           </div>
           <div style={styles.infoRow}>
             <span style={styles.infoLabel}>Role:</span>

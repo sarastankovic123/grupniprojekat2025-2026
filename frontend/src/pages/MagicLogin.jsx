@@ -10,7 +10,9 @@ export default function MagicLogin() {
   const [status, setStatus] = useState({ type: "info", message: "Verifikujem link..." });
 
   useEffect(() => {
-    const token = params.get("token");
+    const token =
+      params.get("token") ||
+      new URLSearchParams(window.location.hash.replace(/^#/, "")).get("token");
 
     if (!token) {
       setStatus({ type: "error", message: "Nedostaje token u linku." });
@@ -19,7 +21,14 @@ export default function MagicLogin() {
 
     (async () => {
       try {
+        const consumedKey = `magicLinkConsumed:${token}`;
+        if (sessionStorage.getItem(consumedKey) === "1") {
+          navigate("/", { replace: true });
+          return;
+        }
+
         await consumeMagicLink(token);
+        sessionStorage.setItem(consumedKey, "1");
         setStatus({ type: "success", message: "Uspešna prijava. Preusmeravam..." });
         navigate("/", { replace: true });
       } catch (err) {

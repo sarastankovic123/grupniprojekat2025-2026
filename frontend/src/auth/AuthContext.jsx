@@ -124,6 +124,8 @@ export function AuthProvider({ children }) {
     const jwt = data?.[TOKEN_RESPONSE_FIELD] || data?.access_token;
     if (!jwt) throw new Error("Missing accessToken in magic-link response");
 
+    // Ensure persistence even if React remounts (e.g. StrictMode in dev)
+    localStorage.setItem(STORAGE_TOKEN_KEY, jwt);
     setAccessToken(jwt);
     return data;
   }
@@ -131,6 +133,10 @@ export function AuthProvider({ children }) {
   function logout() {
     setAccessToken(null);
     setUser(null);
+  }
+
+  function setAuthToken(token) {
+    setAccessToken(token);
   }
 
   const value = useMemo(
@@ -151,6 +157,7 @@ export function AuthProvider({ children }) {
       requestMagicLink,
       consumeMagicLink,
 
+      setAuthToken,
       logout,
     }),
     [accessToken, user, bootstrapped]

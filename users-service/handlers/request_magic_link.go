@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
@@ -48,7 +49,12 @@ func RequestMagicLink(c *gin.Context) {
 
 		_ = repository.CreateMagicLinkToken(magicToken)
 
-		link := os.Getenv("FRONTEND_URL") + "/magic-login?token=" + token
+		frontendURL := strings.TrimRight(os.Getenv("FRONTEND_URL"), "/")
+		if frontendURL == "" {
+			frontendURL = "http://localhost:5173"
+		}
+
+		link := frontendURL + "/magic-login?token=" + token
 		_ = utils.SendMagicLinkEmail(user.Email, link)
 
 		fmt.Println("MAGIC LINK:", link) // debug

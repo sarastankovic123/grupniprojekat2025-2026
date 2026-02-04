@@ -49,6 +49,14 @@ export default function Artists() {
             <>
               <NotificationBell />
 
+              <Link to="/profile" style={styles.linkBtn}>
+                Profile
+              </Link>
+
+              <Link to="/profile/password" style={styles.linkBtn}>
+                Promeni lozinku
+              </Link>
+
               {isAdmin ? (
                 <Link to="/admin/artists/new" style={styles.linkBtn}>
                   + Add artist
@@ -66,6 +74,9 @@ export default function Artists() {
               </Link>
               <Link to="/register" style={styles.linkBtn}>
                 Register
+              </Link>
+              <Link to="/forgot-password" style={styles.linkBtn}>
+                Zaboravljena lozinka?
               </Link>
             </>
           )}

@@ -9,8 +9,8 @@ import (
 	"github.com/go-playground/validator/v10"
 
 	"shared-utils/validation"
-	"users-service/config"
 	"users-service/bootstrap"
+	"users-service/config"
 	"users-service/db"
 	"users-service/handlers"
 	"users-service/middleware"
@@ -22,7 +22,6 @@ func main() {
 
 	db.ConnectMongo()
 	bootstrap.EnsureAdminFromEnv()
-
 
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := validation.RegisterCustomValidators(v); err != nil {
@@ -39,9 +38,7 @@ func main() {
 		})
 	})
 
-
 	authLimiter := middleware.NewRateLimiter(config.RateLimitAuthReqs, config.RateLimitAuthWindow)
-
 
 	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
 	r.Use(apiLimiter.RateLimitByIP())
@@ -60,8 +57,8 @@ func main() {
 	r.POST("/api/auth/magic-link/request", handlers.RequestMagicLink)
 	r.POST("/api/auth/magic-link/consume", handlers.ConsumeMagicLink)
 	r.POST("/api/auth/resend-confirmation", handlers.ResendConfirmation)
-
-
+	r.GET("/api/auth/me", middleware.AuthMiddleware(), handlers.GetMe)
+	r.PATCH("/api/auth/me", middleware.AuthMiddleware(), handlers.UpdateMe)
 
 	fmt.Printf("Users service running on port %s\n", config.Port)
 	r.Run(":" + config.Port)
