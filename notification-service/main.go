@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"log"
+	"os"
 
 	"notification-service/config"
 	"notification-service/db"
@@ -54,5 +55,15 @@ func main() {
 	}
 
 	fmt.Printf("Notification service running on port %s\n", config.Port)
-	r.Run(":" + config.Port)
+	if os.Getenv("TLS_ENABLED") == "true" {
+		certFile := os.Getenv("TLS_CERT_FILE")
+		keyFile := os.Getenv("TLS_KEY_FILE")
+		if certFile == "" || keyFile == "" {
+			log.Fatal("TLS is enabled but TLS_CERT_FILE or TLS_KEY_FILE is missing")
+		}
+		log.Printf("TLS enabled (notification-service): %s\n", certFile)
+		r.RunTLS(":"+config.Port, certFile, keyFile)
+	} else {
+		r.Run(":" + config.Port)
+	}
 }

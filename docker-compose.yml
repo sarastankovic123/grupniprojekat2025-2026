@@ -31,10 +31,15 @@ services:
       - .env
     environment:
       - PORT=${USERS_SERVICE_PORT}
+      - TLS_ENABLED=${TLS_ENABLED:-true}
+      - TLS_CERT_FILE=/certs/tls.crt
+      - TLS_KEY_FILE=/certs/tls.key
     depends_on:
       - mongo
     expose:
       - "${USERS_SERVICE_PORT}"
+    volumes:
+      - tls_certs:/certs:ro
     networks:
       - app-network
 
@@ -48,10 +53,15 @@ services:
       - .env
     environment:
       - PORT=${CONTENT_SERVICE_PORT}
+      - TLS_ENABLED=${TLS_ENABLED:-true}
+      - TLS_CERT_FILE=/certs/tls.crt
+      - TLS_KEY_FILE=/certs/tls.key
     depends_on:
       - mongo
     expose:
       - "${CONTENT_SERVICE_PORT}"
+    volumes:
+      - tls_certs:/certs:ro
     networks:
       - app-network
 
@@ -65,10 +75,15 @@ services:
       - .env
     environment:
       - PORT=${NOTIFICATION_SERVICE_PORT}
+      - TLS_ENABLED=${TLS_ENABLED:-true}
+      - TLS_CERT_FILE=/certs/tls.crt
+      - TLS_KEY_FILE=/certs/tls.key
     depends_on:
       - mongo
     expose:
       - "${NOTIFICATION_SERVICE_PORT}"
+    volumes:
+      - tls_certs:/certs:ro
     networks:
       - app-network
 
@@ -82,15 +97,18 @@ services:
       - .env
     environment:
       - PORT=${API_GATEWAY_PORT}
-      - USERS_SERVICE_URL=${USERS_SERVICE_URL:-http://users-service:8001}
-      - CONTENT_SERVICE_URL=${CONTENT_SERVICE_URL:-http://content-service:8002}
-      - NOTIFICATIONS_SERVICE_URL=${NOTIFICATIONS_SERVICE_URL:-http://notification-service:8003}
+      - USERS_SERVICE_URL=${USERS_SERVICE_URL:-https://users-service:8001}
+      - CONTENT_SERVICE_URL=${CONTENT_SERVICE_URL:-https://content-service:8002}
+      - NOTIFICATIONS_SERVICE_URL=${NOTIFICATIONS_SERVICE_URL:-https://notification-service:8003}
+      - TLS_CA_FILE=/certs/tls.crt
     depends_on:
       - users-service
       - content-service
       - notification-service
     expose:
       - "${API_GATEWAY_PORT}"
+    volumes:
+      - tls_certs:/certs:ro
     networks:
       - app-network
 

@@ -1,6 +1,8 @@
 const express = require('express');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const https = require('https');
+const fs = require('fs');
 
 const app = express();
 
@@ -20,6 +22,18 @@ const NOTIFICATIONS_SERVICE_URL =
 
 const JWT_SECRET =
     process.env.JWT_SECRET || 'dev-secret-min-32-chars';
+
+const TLS_CA_FILE = process.env.TLS_CA_FILE || '/certs/tls.crt';
+let httpsAgent = null;
+try {
+    const ca = fs.readFileSync(TLS_CA_FILE);
+    httpsAgent = new https.Agent({ ca });
+    console.log(`API Gateway: loaded TLS CA from ${TLS_CA_FILE}`);
+} catch (e) {
+    // Fallback: still allow HTTPS (encrypted), but without cert verification (dev-only).
+    httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    console.warn(`API Gateway: failed to read TLS CA at ${TLS_CA_FILE}, using rejectUnauthorized=false`);
+}
 
 // =========================
 // Middleware
@@ -66,11 +80,13 @@ app.get('/health', (req, res) => {
 // =========================
 async function proxy(req, res, targetUrl) {
     try {
+        const isHttps = String(targetUrl || '').startsWith('https://');
         const response = await axios({
             method: req.method,
             url: `${targetUrl}${req.originalUrl}`,
             headers: req.headers,
             data: req.body,
+            ...(isHttps ? { httpsAgent } : null),
         });
 
         res.status(response.status).json(response.data);
