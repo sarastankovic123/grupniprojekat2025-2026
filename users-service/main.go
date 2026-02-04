@@ -9,17 +9,47 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
+	"shared-utils/logging"
 	"shared-utils/validation"
 	"users-service/bootstrap"
 	"users-service/config"
 	"users-service/db"
+	"users-service/email"
 	"users-service/handlers"
 	"users-service/middleware"
 )
 
+var logger *logging.Logger
+
 func main() {
 
 	config.LoadConfig()
+
+	// Initialize logger FIRST
+	var err error
+	isDev := os.Getenv("ENV") == "development"
+	logger, err = logging.NewLogger(logging.LogConfig{
+		ServiceName:   "users-service",
+		LogDir:        "./logs",
+		MaxSize:       50,
+		MaxBackups:    30,
+		MaxAge:        90,
+		Compress:      true,
+		ConsoleOutput: isDev,
+	})
+	if err != nil {
+		log.Fatal("Failed to initialize logger:", err)
+	}
+	logger.Application.Info().Msg("Users service starting...")
+
+	// Initialize email service
+	if err := email.InitEmailService(logger); err != nil {
+		log.Fatal("Failed to initialize email service:", err)
+	}
+	logger.Application.Info().Msg("Email service initialized")
+
+	// Set logger for handlers package
+	handlers.SetLogger(logger)
 
 	db.ConnectMongo()
 	bootstrap.EnsureAdminFromEnv()
@@ -32,6 +62,9 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	// Add request ID middleware FIRST
+	r.Use(logging.RequestIDMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
 		c.JSON(200, gin.H{

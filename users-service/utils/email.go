@@ -1,18 +1,23 @@
 package utils
 
-import "log"
+import "users-service/email"
 
-func SendOTPEmail(email string, otp string) error {
-	log.Printf("[DEV OTP] Send OTP to %s: %s\n", email, otp)
-	return nil
+func SendOTPEmail(to, otp string) error {
+	emailService := email.GetEmailService()
+	return emailService.SendOTP(to, otp, 5) // 5 minutes expiry
 }
 
-func SendMagicLinkEmail(email string, link string) error {
-	log.Printf("[DEV MAGIC LINK] Send magic link to %s: %s\n", email, link)
-	return nil
+func SendMagicLinkEmail(to, link string) error {
+	emailService := email.GetEmailService()
+	return emailService.SendMagicLink(to, link, 15) // 15 minutes expiry
 }
 
-func SendPasswordResetEmail(email string, link string) error {
-	log.Printf("[DEV PASSWORD RESET] Send reset link to %s: %s\n", email, link)
-	return nil
+func SendPasswordResetEmail(to, link string) error {
+	emailService := email.GetEmailService()
+	return emailService.SendPasswordReset(to, link, 15) // 15 minutes expiry
+}
+
+func SendEmailConfirmationEmail(to, link string) error {
+	emailService := email.GetEmailService()
+	return emailService.SendEmailConfirmation(to, link, 30) // 30 minutes expiry
 }

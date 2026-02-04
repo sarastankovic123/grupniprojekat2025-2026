@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
+import { theme } from "../theme";
 
 export default function AlbumDetails() {
   const { id } = useParams();
@@ -175,59 +176,76 @@ export default function AlbumDetails() {
 }
 
 const styles = {
-  page: { padding: 24 },
+  page: {
+    padding: theme.spacing.xl,
+    background: theme.colors.background,
+    minHeight: "100vh",
+  },
   headerRow: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    gap: 12,
-    marginBottom: 16,
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.xl,
+    padding: theme.spacing.lg,
+    background: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    border: `1px solid ${theme.colors.border}`,
+    boxShadow: theme.shadows.sm,
   },
-  actions: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
+  actions: {
+    display: "flex",
+    gap: theme.spacing.sm,
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
   actionBtn: {
-    padding: "8px 10px",
-    borderRadius: 10,
-    border: "1px solid #111",
-    textDecoration: "none",
-    color: "inherit",
-    background: "white",
-    display: "inline-block",
+    ...theme.components.button("secondary"),
+    padding: "8px 16px",
   },
-  meta: { display: "flex", gap: 12, fontSize: 13, opacity: 0.85, marginTop: 6, flexWrap: "wrap" },
-  songList: { display: "grid", gap: 10 },
+  meta: {
+    display: "flex",
+    gap: theme.spacing.md,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text.light,
+    marginTop: theme.spacing.xs,
+    flexWrap: "wrap",
+  },
+  songList: {
+    display: "grid",
+    gap: theme.spacing.md,
+  },
   songRow: {
-    border: "1px solid #ddd",
-    borderRadius: 12,
-    padding: 12,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
+    background: theme.colors.surface,
+    boxShadow: theme.shadows.sm,
+    transition: theme.transitions.base,
   },
-  songMeta: { display: "flex", gap: 12, fontSize: 13, opacity: 0.85, marginTop: 6, flexWrap: "wrap" },
+  songMeta: {
+    display: "flex",
+    gap: theme.spacing.md,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text.light,
+    marginTop: theme.spacing.xs,
+    flexWrap: "wrap",
+  },
   deleteBtn: {
-    padding: "8px 10px",
-    borderRadius: 10,
-    border: "1px solid crimson",
-    background: "white",
-    color: "crimson",
-    cursor: "pointer",
+    ...theme.components.button("danger"),
+    padding: "8px 16px",
   },
   editBtnSmall: {
-    padding: "4px 8px",
-    borderRadius: 6,
-    border: "1px solid #111",
-    textDecoration: "none",
-    color: "inherit",
-    background: "white",
-    fontSize: 13,
+    ...theme.components.button("secondary"),
+    padding: "6px 12px",
+    fontSize: theme.typography.fontSize.sm,
   },
   deleteBtnSmall: {
-    padding: "4px 8px",
-    borderRadius: 6,
-    border: "1px solid crimson",
-    background: "white",
-    color: "crimson",
-    cursor: "pointer",
-    fontSize: 13,
+    ...theme.components.button("danger"),
+    padding: "6px 12px",
+    fontSize: theme.typography.fontSize.sm,
   },
 };

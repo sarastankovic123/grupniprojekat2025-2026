@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { theme } from "../theme";
 
 export default function VerifyOtp() {
   const nav = useNavigate();
@@ -79,13 +80,41 @@ export default function VerifyOtp() {
 }
 
 const styles = {
-  page: { padding: 24, display: "flex", justifyContent: "center" },
-  card: { width: 460, border: "1px solid #ddd", borderRadius: 12, padding: 16 },
-  meta: { fontSize: 13, opacity: 0.85, marginBottom: 12, display: "grid", gap: 6 },
-  form: { display: "flex", flexDirection: "column", gap: 12 },
-  label: { display: "flex", flexDirection: "column", gap: 6 },
-  input: { padding: 10, borderRadius: 10, border: "1px solid #ccc" },
-  btn: { padding: 10, borderRadius: 10, border: "1px solid #111", cursor: "pointer" },
-  btnSecondary: { background: "#fff" },
-  error: { color: "crimson" },
+  page: {
+    padding: theme.spacing.xl,
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    minHeight: "100vh",
+    background: theme.colors.background,
+  },
+  card: {
+    ...theme.components.card(),
+    width: 460,
+    maxWidth: "90%",
+  },
+  meta: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text.secondary,
+    marginBottom: theme.spacing.md,
+    display: "grid",
+    gap: theme.spacing.xs,
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing.md,
+    marginTop: theme.spacing.lg,
+  },
+  label: theme.components.label(),
+  input: theme.components.input(),
+  btn: theme.components.button(),
+  btnSecondary: theme.components.button("secondary"),
+  error: {
+    color: theme.colors.semantic.error,
+    padding: theme.spacing.md,
+    background: "#FDF5F4",
+    borderRadius: theme.radius.md,
+    border: `1px solid ${theme.colors.semantic.error}`,
+  },
 };

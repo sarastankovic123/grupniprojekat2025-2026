@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { Link, useNavigate, useSearchParams } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
+import { theme } from "../theme";
 
 function isStrongPassword(pw) {
   const minLen = pw.length >= 8;
@@ -74,29 +75,32 @@ export default function ResetPassword() {
   }
 
   return (
-    <div style={{ maxWidth: 420, margin: "40px auto", padding: 16 }}>
-      <h2>Postavi novu lozinku</h2>
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>Postavi novu lozinku</h2>
 
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          Nova lozinka
-          <input
-            type="password"
-            value={newPassword}
-            onChange={(e) => setNewPassword(e.target.value)}
-            autoComplete="new-password"
-          />
-        </label>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <label style={styles.label}>
+            Nova lozinka
+            <input
+              type="password"
+              value={newPassword}
+              onChange={(e) => setNewPassword(e.target.value)}
+              autoComplete="new-password"
+              style={styles.input}
+            />
+          </label>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          Potvrdi lozinku
-          <input
-            type="password"
-            value={confirm}
-            onChange={(e) => setConfirm(e.target.value)}
-            autoComplete="new-password"
-          />
-        </label>
+          <label style={styles.label}>
+            Potvrdi lozinku
+            <input
+              type="password"
+              value={confirm}
+              onChange={(e) => setConfirm(e.target.value)}
+              autoComplete="new-password"
+              style={styles.input}
+            />
+          </label>
 
         {!urlToken && (
           <label style={{ display: "grid", gap: 6 }}>
@@ -110,26 +114,80 @@ export default function ResetPassword() {
           </label>
         )}
 
-        <button type="submit" disabled={loading}>
-          {loading ? "Menjam..." : "Promeni lozinku"}
-        </button>
+          <button type="submit" disabled={loading} style={styles.btn}>
+            {loading ? "Menjam..." : "Promeni lozinku"}
+          </button>
 
-        {status.message && (
-          <div
-            style={{
-              padding: 10,
-              borderRadius: 8,
-              background: status.type === "success" ? "#e9f7ef" : "#fdecea",
-            }}
-          >
-            {status.message}
+          {status.message && (
+            <div
+              style={{
+                ...styles.message,
+                ...(status.type === "success" ? styles.success : styles.error),
+              }}
+            >
+              {status.message}
+            </div>
+          )}
+
+          <div style={styles.linkContainer}>
+            <Link to="/login" style={styles.link}>
+              Nazad na login
+            </Link>
           </div>
-        )}
-
-        <div style={{ marginTop: 10 }}>
-          <Link to="/login">Nazad na login</Link>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: theme.colors.background,
+    padding: theme.spacing.xl,
+  },
+  card: {
+    ...theme.components.card(),
+    width: 420,
+    maxWidth: "90%",
+  },
+  title: {
+    fontSize: theme.typography.fontSize["2xl"],
+    marginBottom: theme.spacing.lg,
+    color: theme.colors.text.primary,
+    fontWeight: theme.typography.fontWeight.bold,
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing.md,
+  },
+  label: theme.components.label(),
+  input: theme.components.input(),
+  btn: {
+    ...theme.components.button(),
+    marginTop: theme.spacing.sm,
+  },
+  message: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    fontSize: theme.typography.fontSize.base,
+  },
+  success: {
+    background: "#E8F5E9",
+    color: theme.colors.semantic.success,
+    border: `1px solid ${theme.colors.semantic.success}`,
+  },
+  error: {
+    background: "#FDF5F4",
+    color: theme.colors.semantic.error,
+    border: `1px solid ${theme.colors.semantic.error}`,
+  },
+  linkContainer: {
+    marginTop: theme.spacing.md,
+  },
+  link: theme.components.link(),
+};

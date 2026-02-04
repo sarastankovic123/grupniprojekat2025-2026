@@ -1,13 +1,13 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"shared-utils/logging"
 	"shared-utils/validation"
 	"users-service/config"
 	"users-service/db"
@@ -26,6 +26,11 @@ type LoginRequest struct {
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
+		// Log validation failure
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogValidationFailure(ctx, "login_request", map[string]string{
+			"error": validation.FormatValidationError(err),
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": validation.FormatValidationError(err)})
 		return
 	}
@@ -35,22 +40,41 @@ func Login(c *gin.Context) {
 
 	// Additional email validation before database query
 	if !utils.IsValidEmail(req.Email) {
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogValidationFailure(ctx, "email_format", map[string]string{
+			"error": "Invalid email format",
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
 	user, err := repository.FindUserByEmail(req.Email)
 	if err != nil {
+		// Log failed login attempt (user not found)
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogLoginAttempt(ctx, req.Email, false, "user not found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
 	if !utils.CheckPassword(req.Password, user.PasswordHash) {
+		// Log failed login attempt (wrong password)
+		ctx := logging.NewSecurityEventContext(c)
+		c.Set("user_id", user.ID.Hex())
+		c.Set("email", user.Email)
+		ctx = logging.NewSecurityEventContext(c)
+		Logger.LogLoginAttempt(ctx, user.Email, false, "invalid password")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
 		return
 	}
 
 	if !user.IsConfirmed {
+		// Log failed login attempt (email not confirmed)
+		ctx := logging.NewSecurityEventContext(c)
+		c.Set("user_id", user.ID.Hex())
+		c.Set("email", user.Email)
+		ctx = logging.NewSecurityEventContext(c)
+		Logger.LogLoginAttempt(ctx, user.Email, false, "email not confirmed")
 		c.JSON(http.StatusForbidden, gin.H{"error": "Email is not confirmed"})
 		return
 	}
@@ -96,7 +120,6 @@ func Login(c *gin.Context) {
 	}
 
 	otp := utils.GenerateOTP()
-	fmt.Println("OTP:", otp)
 
 	tokenDoc := models.EmailConfirmationToken{
 		UserID:    user.ID,
@@ -114,6 +137,13 @@ func Login(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to send OTP"})
 		return
 	}
+
+	// Log successful OTP generation and sending
+	ctx := logging.NewSecurityEventContext(c)
+	c.Set("user_id", user.ID.Hex())
+	c.Set("email", user.Email)
+	ctx = logging.NewSecurityEventContext(c)
+	Logger.LogOTPEvent(ctx, "auth_otp_sent", true, "")
 
 	c.JSON(http.StatusOK, gin.H{"message": "OTP sent"})
 }

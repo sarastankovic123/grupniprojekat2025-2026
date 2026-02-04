@@ -9,6 +9,7 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/golang-jwt/jwt/v5"
 	"shared-utils/auth"
+	"shared-utils/logging"
 )
 
 type JWTClaims struct {
@@ -50,6 +51,8 @@ func AuthMiddleware() gin.HandlerFunc {
 			// Fall back to Authorization header for backward compatibility
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
+				ctx := logging.NewSecurityEventContext(c)
+				Logger.LogAuthTokenEvent(ctx, "auth_token_missing", "no token provided in cookie or header")
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required (cookie or header)"})
 				c.Abort()
 				return
@@ -57,6 +60,8 @@ func AuthMiddleware() gin.HandlerFunc {
 
 			parts := strings.Split(authHeader, " ")
 			if len(parts) != 2 || parts[0] != "Bearer" {
+				ctx := logging.NewSecurityEventContext(c)
+				Logger.LogAuthTokenEvent(ctx, "auth_token_invalid", "invalid authorization header format")
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid authorization header format"})
 				c.Abort()
 				return
@@ -66,6 +71,8 @@ func AuthMiddleware() gin.HandlerFunc {
 
 		claims, err := ValidateJWT(tokenString)
 		if err != nil {
+			ctx := logging.NewSecurityEventContext(c)
+			Logger.LogAuthTokenEvent(ctx, "auth_token_invalid", err.Error())
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired token"})
 			c.Abort()
 			return
@@ -84,6 +91,8 @@ func RequireRole(requiredRole string) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		role, exists := c.Get("role")
 		if !exists {
+			ctx := logging.NewSecurityEventContext(c)
+			Logger.LogAuthzFailure(ctx, requiredRole, "none")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User role not found"})
 			c.Abort()
 			return
@@ -91,12 +100,23 @@ func RequireRole(requiredRole string) gin.HandlerFunc {
 
 		roleStr, ok := role.(string)
 		if !ok {
+			ctx := logging.NewSecurityEventContext(c)
+			Logger.LogAuthzFailure(ctx, requiredRole, "invalid")
 			c.JSON(http.StatusUnauthorized, gin.H{"error": "User role invalid"})
 			c.Abort()
 			return
 		}
 
 		if !auth.RoleMatches(requiredRole, roleStr) {
+			// Set user context for proper logging
+			if userID, exists := c.Get("userID"); exists {
+				c.Set("user_id", userID)
+			}
+			if email, exists := c.Get("email"); exists {
+				c.Set("email", email)
+			}
+			ctx := logging.NewSecurityEventContext(c)
+			Logger.LogAuthzFailure(ctx, requiredRole, roleStr)
 			c.JSON(http.StatusForbidden, gin.H{"error": "Insufficient permissions"})
 			c.Abort()
 			return

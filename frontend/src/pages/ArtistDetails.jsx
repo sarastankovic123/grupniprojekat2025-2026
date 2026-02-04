@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
+import { theme } from "../theme";
 
 export default function ArtistDetails() {
   const { id } = useParams();
@@ -111,42 +112,67 @@ export default function ArtistDetails() {
 }
 
 const styles = {
-  page: { padding: 24 },
+  page: {
+    padding: theme.spacing.xl,
+    background: theme.colors.background,
+    minHeight: "100vh",
+  },
   header: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 16,
-    gap: 12,
+    marginBottom: theme.spacing.xl,
+    gap: theme.spacing.md,
+    padding: theme.spacing.lg,
+    background: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    border: `1px solid ${theme.colors.border}`,
+    boxShadow: theme.shadows.sm,
   },
-  actions: { display: "flex", gap: 10, alignItems: "center", flexWrap: "wrap" },
+  actions: {
+    display: "flex",
+    gap: theme.spacing.sm,
+    alignItems: "center",
+    flexWrap: "wrap",
+  },
   actionBtn: {
-    padding: "8px 10px",
-    borderRadius: 10,
-    border: "1px solid #111",
-    textDecoration: "none",
-    color: "inherit",
-    background: "white",
-    display: "inline-block",
+    ...theme.components.button("secondary"),
+    padding: "8px 16px",
   },
   deleteBtn: {
-    padding: "8px 10px",
-    borderRadius: 10,
-    border: "1px solid crimson",
-    background: "white",
-    color: "crimson",
-    cursor: "pointer",
+    ...theme.components.button("danger"),
+    padding: "8px 16px",
   },
   meta: {
     display: "flex",
-    gap: 12,
-    fontSize: 13,
-    opacity: 0.85,
-    marginTop: 6,
+    gap: theme.spacing.md,
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text.light,
+    marginTop: theme.spacing.xs,
     flexWrap: "wrap",
   },
-  grid: { display: "grid", gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))", gap: 12 },
-  card: { border: "1px solid #ddd", borderRadius: 12, padding: 12, textDecoration: "none", color: "inherit" },
-  title: { fontWeight: 700 },
-  metaSmall: { fontSize: 13, opacity: 0.8, marginTop: 6 },
+  grid: {
+    display: "grid",
+    gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
+    gap: theme.spacing.lg,
+  },
+  card: {
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
+    textDecoration: "none",
+    color: theme.colors.text.primary,
+    background: theme.colors.surface,
+    boxShadow: theme.shadows.sm,
+    transition: theme.transitions.base,
+  },
+  title: {
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.text.primary,
+  },
+  metaSmall: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text.light,
+    marginTop: theme.spacing.xs,
+  },
 };

@@ -1,6 +1,7 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { contentApi } from "../api/content";
+import { theme } from "../theme";
 
 function toInt(value) {
   const n = Number(value);
@@ -91,45 +92,105 @@ export default function SongForm({ mode = "create" }) {
   }
 
   return (
-    <div style={{ maxWidth: 640, margin: "40px auto", padding: 16 }}>
-      <h2>{isEdit ? "Izmena pesme" : "Kreiranje pesme"}</h2>
+    <div style={styles.page}>
+      <div style={styles.card}>
+        <h2 style={styles.title}>{isEdit ? "Izmena pesme" : "Kreiranje pesme"}</h2>
 
-      <form onSubmit={handleSubmit} style={{ display: "grid", gap: 12, marginTop: 16 }}>
-        <label style={{ display: "grid", gap: 6 }}>
-          Naziv pesme
-          <input value={title} onChange={(e) => setTitle(e.target.value)} />
-        </label>
+        <form onSubmit={handleSubmit} style={styles.form}>
+          <label style={styles.label}>
+            Naziv pesme
+            <input
+              value={title}
+              onChange={(e) => setTitle(e.target.value)}
+              style={styles.input}
+            />
+          </label>
 
-        <label style={{ display: "grid", gap: 6 }}>
-          Trajanje (sekunde)
-          <input
-            value={durationSec}
-            onChange={(e) => setDurationSec(e.target.value)}
-            inputMode="numeric"
-            placeholder="npr. 225"
-          />
-        </label>
+          <label style={styles.label}>
+            Trajanje (sekunde)
+            <input
+              value={durationSec}
+              onChange={(e) => setDurationSec(e.target.value)}
+              inputMode="numeric"
+              placeholder="npr. 225"
+              style={styles.input}
+            />
+          </label>
 
-        <button disabled={loading} type="submit">
-          {loading ? "Čuvam..." : "Sačuvaj"}
-        </button>
+          <button disabled={loading} type="submit" style={styles.btn}>
+            {loading ? "Čuvam..." : "Sačuvaj"}
+          </button>
 
-        {status.message && (
-          <div
-            style={{
-              padding: 10,
-              borderRadius: 8,
-              background: status.type === "success" ? "#e9f7ef" : "#fdecea",
-            }}
-          >
-            {status.message}
+          {status.message && (
+            <div
+              style={{
+                ...styles.message,
+                ...(status.type === "success" ? styles.success : styles.error),
+              }}
+            >
+              {status.message}
+            </div>
+          )}
+
+          <div style={styles.linkContainer}>
+            <Link to={`/albums/${albumIdTrimmed}`} style={styles.link}>
+              Nazad na album
+            </Link>
           </div>
-        )}
-
-        <div style={{ display: "flex", gap: 12 }}>
-          <Link to={`/albums/${albumIdTrimmed}`}>Nazad na album</Link>
-        </div>
-      </form>
+        </form>
+      </div>
     </div>
   );
 }
+
+const styles = {
+  page: {
+    minHeight: "100vh",
+    display: "flex",
+    alignItems: "center",
+    justifyContent: "center",
+    background: theme.colors.background,
+    padding: theme.spacing.xl,
+  },
+  card: {
+    ...theme.components.card(),
+    width: 640,
+    maxWidth: "90%",
+  },
+  title: {
+    fontSize: theme.typography.fontSize["2xl"],
+    marginBottom: theme.spacing.lg,
+    color: theme.colors.text.primary,
+    fontWeight: theme.typography.fontWeight.bold,
+  },
+  form: {
+    display: "flex",
+    flexDirection: "column",
+    gap: theme.spacing.md,
+  },
+  label: theme.components.label(),
+  input: theme.components.input(),
+  btn: {
+    ...theme.components.button(),
+    marginTop: theme.spacing.sm,
+  },
+  message: {
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    fontSize: theme.typography.fontSize.base,
+  },
+  success: {
+    background: "#E8F5E9",
+    color: theme.colors.semantic.success,
+    border: `1px solid ${theme.colors.semantic.success}`,
+  },
+  error: {
+    background: "#FDF5F4",
+    color: theme.colors.semantic.error,
+    border: `1px solid ${theme.colors.semantic.error}`,
+  },
+  linkContainer: {
+    marginTop: theme.spacing.md,
+  },
+  link: theme.components.link(),
+};

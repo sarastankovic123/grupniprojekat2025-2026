@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
+import { theme } from "../theme";
 
 export default function Register() {
   const navigate = useNavigate();
@@ -162,59 +163,47 @@ const styles = {
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    background: "#f5f5f5",
-    padding: 24,
+    background: theme.colors.background,
+    padding: theme.spacing.xl,
   },
   card: {
+    ...theme.components.card(),
     width: 420,
-    background: "white",
-    padding: 24,
-    borderRadius: 12,
-    border: "1px solid #ddd",
+    maxWidth: "90%",
   },
   title: {
-    fontSize: 32,
-    marginBottom: 16,
+    fontSize: theme.typography.fontSize["2xl"],
+    marginBottom: theme.spacing.lg,
+    color: theme.colors.text.primary,
+    fontWeight: theme.typography.fontWeight.bold,
   },
   form: {
     display: "flex",
     flexDirection: "column",
-    gap: 10,
+    gap: theme.spacing.md,
   },
   input: {
+    ...theme.components.input(),
     height: 42,
-    padding: "0 12px",
-    borderRadius: 10,
-    border: "1px solid #ccc",
-    outline: "none",
   },
   error: {
-    color: "#b00020",
-    background: "#ffecec",
-    padding: 10,
-    borderRadius: 8,
-    border: "1px solid #ffb3b3",
+    color: theme.colors.semantic.error,
+    background: "#FDF5F4",
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    border: `1px solid ${theme.colors.semantic.error}`,
   },
   primaryBtn: {
-    marginTop: 12,
+    ...theme.components.button(),
+    marginTop: theme.spacing.md,
     height: 44,
-    borderRadius: 10,
-    border: "1px solid #111",
-    background: "#eee",
-    fontWeight: 600,
-    cursor: "pointer",
   },
   secondaryBtn: {
-    marginTop: 8,
+    ...theme.components.button("secondary"),
+    marginTop: theme.spacing.sm,
     height: 44,
-    borderRadius: 10,
-    border: "1px solid #111",
-    background: "white",
     display: "flex",
     alignItems: "center",
     justifyContent: "center",
-    textDecoration: "none",
-    color: "black",
-    fontWeight: 600,
   },
 };

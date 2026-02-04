@@ -10,8 +10,9 @@ import (
 
 	"github.com/gin-gonic/gin"
 
-	"shared-utils/validation"
 	"shared-utils/auth"
+	"shared-utils/logging"
+	"shared-utils/validation"
 	"users-service/config"
 	"users-service/models"
 	"users-service/repository"
@@ -22,6 +23,10 @@ func Register(c *gin.Context) {
 	var req RegisterRequest
 
 	if err := c.ShouldBindJSON(&req); err != nil {
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogValidationFailure(ctx, "registration_request", map[string]string{
+			"error": validation.FormatValidationError(err),
+		})
 		c.JSON(http.StatusBadRequest, gin.H{"error": validation.FormatValidationError(err)})
 		return
 	}
@@ -35,23 +40,31 @@ func Register(c *gin.Context) {
 	req.LastName = validation.StripControlCharacters(req.LastName)
 
 	if !utils.IsValidEmail(req.Email) {
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogUserRegistration(ctx, "", req.Email, false, "invalid email format")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid email format"})
 		return
 	}
 
 	if !utils.IsStrongPassword(req.Password) {
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogUserRegistration(ctx, "", req.Email, false, "weak password")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password must contain uppercase, lowercase, number, and special character"})
 		return
 	}
 
 	_, err := repository.FindUserByUsername(req.Username)
 	if err == nil {
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogUserRegistration(ctx, "", req.Email, false, "username already exists")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Username already exists"})
 		return
 	}
 
 	_, err = repository.FindUserByEmail(req.Email)
 	if err == nil {
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogUserRegistration(ctx, "", req.Email, false, "email already exists")
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Email already exists"})
 		return
 	}
@@ -99,13 +112,23 @@ func Register(c *gin.Context) {
 
 	// 👇 CONFIRMATION LINK
 	confirmURL := fmt.Sprintf(
-    	"http://localhost:5173/confirm?token=%s",
-    	tokenValue,
-    )
+		"%s/confirm?token=%s",
+		config.FrontendURL,
+		tokenValue,
+	)
 
-	// DEV ONLY LOGS
-	fmt.Println("CONFIRM TOKEN (DEV ONLY):", tokenValue)
-	fmt.Println("CONFIRM LINK  (DEV ONLY):", confirmURL)
+	// Send email confirmation
+	if err := utils.SendEmailConfirmationEmail(user.Email, confirmURL); err != nil {
+		// Log but don't fail registration if email fails
+		Logger.Application.Error().
+			Err(err).
+			Str("email", user.Email).
+			Msg("Failed to send confirmation email")
+	}
+
+	// Log successful registration
+	ctx := logging.NewSecurityEventContext(c)
+	Logger.LogUserRegistration(ctx, user.ID.Hex(), user.Email, true, "")
 
 	c.JSON(http.StatusCreated, gin.H{
 		"message": "Registration successful. Please confirm your email.",

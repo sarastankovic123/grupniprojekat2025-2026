@@ -14,12 +14,36 @@ import (
 	"github.com/gin-gonic/gin/binding"
 	"github.com/go-playground/validator/v10"
 
+	"shared-utils/logging"
 	"shared-utils/validation"
 )
+
+var logger *logging.Logger
 
 func main() {
 	// Load configuration
 	config.LoadConfig()
+
+	// Initialize logger FIRST
+	var err error
+	isDev := os.Getenv("ENV") == "development"
+	logger, err = logging.NewLogger(logging.LogConfig{
+		ServiceName:   "content-service",
+		LogDir:        "./logs",
+		MaxSize:       50,
+		MaxBackups:    30,
+		MaxAge:        90,
+		Compress:      true,
+		ConsoleOutput: isDev,
+	})
+	if err != nil {
+		log.Fatal("Failed to initialize logger:", err)
+	}
+	logger.Application.Info().Msg("Content service starting...")
+
+	// Set logger for handlers and middleware packages
+	handlers.SetLogger(logger)
+	middleware.SetLogger(logger)
 
 	db.ConnectMongo()
 
@@ -32,6 +56,9 @@ func main() {
 	}
 
 	r := gin.Default()
+
+	// Add request ID middleware FIRST
+	r.Use(logging.RequestIDMiddleware())
 
 	// Global rate limiting (100 requests per minute)
 	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)

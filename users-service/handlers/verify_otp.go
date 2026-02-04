@@ -9,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"shared-utils/logging"
 	"users-service/config"
 	"users-service/models"
 	"users-service/repository"
@@ -29,23 +30,40 @@ func VerifyOTP(c *gin.Context) {
 
 	user, err := repository.FindUserByEmail(req.Email)
 	if err != nil {
+		ctx := logging.NewSecurityEventContext(c)
+		Logger.LogOTPEvent(ctx, "auth_otp_failed", false, "user not found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired OTP"})
 		return
 	}
 
 	tokenDoc, err := repository.FindEmailToken(req.OTP)
 	if err != nil {
+		ctx := logging.NewSecurityEventContext(c)
+		c.Set("user_id", user.ID.Hex())
+		c.Set("email", user.Email)
+		ctx = logging.NewSecurityEventContext(c)
+		Logger.LogOTPEvent(ctx, "auth_otp_failed", false, "invalid OTP")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired OTP"})
 		return
 	}
 
 	if tokenDoc.UserID != user.ID {
+		ctx := logging.NewSecurityEventContext(c)
+		c.Set("user_id", user.ID.Hex())
+		c.Set("email", user.Email)
+		ctx = logging.NewSecurityEventContext(c)
+		Logger.LogOTPEvent(ctx, "auth_otp_failed", false, "user ID mismatch")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired OTP"})
 		return
 	}
 
 	if time.Now().After(tokenDoc.ExpiresAt) {
 		_ = repository.DeleteEmailToken(req.OTP)
+		ctx := logging.NewSecurityEventContext(c)
+		c.Set("user_id", user.ID.Hex())
+		c.Set("email", user.Email)
+		ctx = logging.NewSecurityEventContext(c)
+		Logger.LogOTPEvent(ctx, "auth_otp_failed", false, "expired OTP")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid or expired OTP"})
 		return
 	}
@@ -98,6 +116,13 @@ func VerifyOTP(c *gin.Context) {
 		false, // Set to true in production with HTTPS
 		true,  // httpOnly
 	)
+
+	// Log successful OTP verification
+	ctx := logging.NewSecurityEventContext(c)
+	c.Set("user_id", user.ID.Hex())
+	c.Set("email", user.Email)
+	ctx = logging.NewSecurityEventContext(c)
+	Logger.LogOTPEvent(ctx, "auth_otp_verified", true, "")
 
 	c.JSON(http.StatusOK, gin.H{
 		"message":      "Login successful",

@@ -3,6 +3,7 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/AuthContext";
 import NotificationBell from "../components/NotificationBell";
+import { theme } from "../theme";
 
 export default function Artists() {
   const { logout, isAuthenticated, user } = useAuth();
@@ -107,43 +108,66 @@ export default function Artists() {
 }
 
 const styles = {
-  page: { padding: 24 },
+  page: {
+    padding: theme.spacing.xl,
+    background: theme.colors.background,
+    minHeight: "100vh",
+  },
   topbar: {
     display: "flex",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 16,
+    marginBottom: theme.spacing.xl,
+    padding: theme.spacing.lg,
+    background: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    border: `1px solid ${theme.colors.border}`,
+    boxShadow: theme.shadows.sm,
   },
-  topbarRight: { display: "flex", alignItems: "center", gap: 12 },
+  topbarRight: {
+    display: "flex",
+    alignItems: "center",
+    gap: theme.spacing.md,
+  },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(220px, 1fr))",
-    gap: 12,
+    gap: theme.spacing.lg,
   },
   card: {
-    border: "1px solid #ddd",
-    borderRadius: 12,
-    padding: 12,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.lg,
+    padding: theme.spacing.lg,
     textDecoration: "none",
-    color: "inherit",
+    color: theme.colors.text.primary,
+    background: theme.colors.surface,
+    boxShadow: theme.shadows.sm,
+    transition: theme.transitions.base,
   },
-  title: { fontWeight: 700 },
-  meta: { fontSize: 13, opacity: 0.8, marginTop: 6 },
+  title: {
+    fontWeight: theme.typography.fontWeight.bold,
+    color: theme.colors.text.primary,
+    marginBottom: theme.spacing.xs,
+  },
+  meta: {
+    fontSize: theme.typography.fontSize.sm,
+    color: theme.colors.text.light,
+    marginTop: theme.spacing.xs,
+  },
   btn: {
-    padding: "8px 10px",
-    borderRadius: 10,
-    border: "1px solid #111",
-    cursor: "pointer",
-    background: "white",
+    ...theme.components.button(),
+    padding: "8px 16px",
   },
   linkBtn: {
-    padding: "8px 10px",
-    borderRadius: 10,
-    border: "1px solid #111",
-    textDecoration: "none",
-    color: "inherit",
-    background: "white",
-    display: "inline-block",
+    ...theme.components.button("secondary"),
+    padding: "8px 16px",
   },
-  error: { color: "crimson", marginBottom: 12 },
+  error: {
+    color: theme.colors.semantic.error,
+    marginBottom: theme.spacing.md,
+    padding: theme.spacing.md,
+    background: "#FDF5F4",
+    borderRadius: theme.radius.md,
+    border: `1px solid ${theme.colors.semantic.error}`,
+  },
 };

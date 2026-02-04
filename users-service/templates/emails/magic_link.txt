@@ -1,0 +1,13 @@
+Music Platform - Your Magic Login Link
+
+Click this link to log in instantly:
+
+{{.Link}}
+
+This link will expire in {{.ExpiryMinutes}} minutes and can only be used once.
+
+If you didn't request this, please ignore this email.
+
+---
+Music Platform
+© 2026 All rights reserved.

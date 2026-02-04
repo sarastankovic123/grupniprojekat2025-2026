@@ -1,0 +1,15 @@
+Music Platform - Your Login Code
+
+Enter this code to complete your login:
+
+{{.OTP}}
+
+This code will expire in {{.ExpiryMinutes}} minutes.
+
+For security reasons, never share this code with anyone.
+
+If you didn't request this, please ignore this email.
+
+---
+Music Platform
+© 2026 All rights reserved.

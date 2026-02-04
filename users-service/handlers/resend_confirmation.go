@@ -57,12 +57,19 @@ func ResendConfirmation(c *gin.Context) {
 	}
 
 	confirmURL := fmt.Sprintf(
-		"http://localhost:5173/confirm?token=%s",
+		"%s/confirm?token=%s",
+		config.FrontendURL,
 		tokenValue,
 	)
 
-	// DEV LOG
-	fmt.Println("RESEND CONFIRM LINK (DEV):", confirmURL)
+	// Send email confirmation
+	if err := utils.SendEmailConfirmationEmail(user.Email, confirmURL); err != nil {
+		// Log error but still create notification
+		Logger.Application.Error().
+			Err(err).
+			Str("email", user.Email).
+			Msg("Failed to send confirmation email")
+	}
 
 	go func() {
 		notifBody, _ := json.Marshal(map[string]string{
