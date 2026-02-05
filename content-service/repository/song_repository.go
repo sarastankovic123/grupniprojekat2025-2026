@@ -165,3 +165,33 @@ func AlbumExistsByID(id primitive.ObjectID) (bool, error) {
 	}
 	return count > 0, nil
 }
+
+// SearchSongs searches songs by title
+func SearchSongs(searchQuery string) ([]models.Song, error) {
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{}
+
+	// Add title search if provided
+	if searchQuery != "" {
+		filter["title"] = bson.M{"$regex": searchQuery, "$options": "i"}
+	}
+
+	cursor, err := db.SongsCollection.Find(ctx, filter)
+	if err != nil {
+		return nil, err
+	}
+	defer cursor.Close(ctx)
+
+	var songs []models.Song
+	if err := cursor.All(ctx, &songs); err != nil {
+		return nil, err
+	}
+
+	if songs == nil {
+		songs = []models.Song{}
+	}
+
+	return songs, nil
+}

@@ -75,6 +75,7 @@ func main() {
 		artists := api.Group("/artists")
 		{
 			artists.GET("", handlers.GetArtists)
+			artists.GET("/genres", handlers.GetGenres)
 			artists.GET("/:id", handlers.GetArtistByID)
 			artists.GET("/:id/albums", handlers.GetAlbumsByArtist)
 			artists.POST("/:id/albums", middleware.AuthMiddleware(), middleware.RequireRole("ADMIN"), handlers.CreateAlbumForArtist)

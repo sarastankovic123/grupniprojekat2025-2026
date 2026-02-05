@@ -3,6 +3,8 @@ import { Link } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/AuthContext";
 import NotificationBell from "../components/NotificationBell";
+import SearchBar from "../components/SearchBar";
+import GenreFilter from "../components/GenreFilter";
 import { theme } from "../theme";
 
 export default function Artists() {
@@ -13,6 +15,32 @@ export default function Artists() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  // Search and filter state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [selectedGenres, setSelectedGenres] = useState([]);
+  const [availableGenres, setAvailableGenres] = useState([]);
+
+  // Fetch available genres on mount
+  useEffect(() => {
+    let alive = true;
+
+    async function loadGenres() {
+      try {
+        const data = await apiFetch("/api/content/artists/genres");
+        if (!alive) return;
+        setAvailableGenres(Array.isArray(data) ? data : []);
+      } catch (e) {
+        console.error("Failed to load genres:", e);
+      }
+    }
+
+    loadGenres();
+    return () => {
+      alive = false;
+    };
+  }, []);
+
+  // Fetch artists with search and filter
   useEffect(() => {
     let alive = true;
 
@@ -20,7 +48,13 @@ export default function Artists() {
       setErr("");
       setLoading(true);
       try {
-        const data = await apiFetch("/api/content/artists");
+        // Build query parameters
+        const params = new URLSearchParams();
+        if (searchQuery) params.append("search", searchQuery);
+        if (selectedGenres.length) params.append("genres", selectedGenres.join(","));
+
+        const url = `/api/content/artists${params.toString() ? `?${params}` : ""}`;
+        const data = await apiFetch(url);
         if (!alive) return;
 
         const list = Array.isArray(data) ? data : data?.items || [];
@@ -38,7 +72,14 @@ export default function Artists() {
     return () => {
       alive = false;
     };
-  }, []);
+  }, [searchQuery, selectedGenres]);
+
+  const handleClearFilters = () => {
+    setSearchQuery("");
+    setSelectedGenres([]);
+  };
+
+  const hasFilters = searchQuery || selectedGenres.length > 0;
 
   return (
     <div style={styles.page}>
@@ -84,8 +125,33 @@ export default function Artists() {
         </div>
       </div>
 
-      {loading ? <div>Loading...</div> : null}
+      {/* Search and Filter Bar */}
+      <div style={styles.filterBar}>
+        <SearchBar
+          value={searchQuery}
+          onChange={setSearchQuery}
+          placeholder="Search artists by name..."
+        />
+        <GenreFilter
+          selectedGenres={selectedGenres}
+          onChange={setSelectedGenres}
+          availableGenres={availableGenres}
+        />
+        {hasFilters && (
+          <button onClick={handleClearFilters} style={styles.clearBtn}>
+            Clear Filters
+          </button>
+        )}
+      </div>
+
+      {loading ? <div style={styles.loadingMessage}>Loading...</div> : null}
       {err ? <div style={styles.error}>{err}</div> : null}
+
+      {!loading && artists.length === 0 && (
+        <div style={styles.emptyState}>
+          No artists found. {hasFilters && "Try adjusting your search or filters."}
+        </div>
+      )}
 
       <div style={styles.grid}>
         {artists.map((a) => {
@@ -169,5 +235,39 @@ const styles = {
     background: "#FDF5F4",
     borderRadius: theme.radius.md,
     border: `1px solid ${theme.colors.semantic.error}`,
+  },
+  filterBar: {
+    display: "flex",
+    gap: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    padding: theme.spacing.lg,
+    background: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    border: `1px solid ${theme.colors.border}`,
+    boxShadow: theme.shadows.sm,
+    flexWrap: "wrap",
+    alignItems: "center",
+  },
+  clearBtn: {
+    ...theme.components.button("danger"),
+    padding: "8px 16px",
+    fontSize: theme.typography.fontSize.sm,
+    whiteSpace: "nowrap",
+  },
+  loadingMessage: {
+    textAlign: "center",
+    padding: theme.spacing.xl,
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.lg,
+  },
+  emptyState: {
+    textAlign: "center",
+    padding: theme.spacing["3xl"],
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.lg,
+    background: theme.colors.surface,
+    borderRadius: theme.radius.lg,
+    border: `1px solid ${theme.colors.border}`,
+    marginBottom: theme.spacing.lg,
   },
 };

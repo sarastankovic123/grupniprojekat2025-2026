@@ -34,7 +34,18 @@ type UpdateSongRequest struct {
 }
 
 func GetSongs(c *gin.Context) {
-	songs, err := repository.GetAllSongs()
+	// Parse search query parameter
+	searchQuery := strings.TrimSpace(c.Query("search"))
+
+	var songs []models.Song
+	var err error
+
+	if searchQuery != "" {
+		songs, err = repository.SearchSongs(searchQuery)
+	} else {
+		songs, err = repository.GetAllSongs()
+	}
+
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch songs"})
 		return
