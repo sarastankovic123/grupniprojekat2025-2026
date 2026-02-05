@@ -25,5 +25,6 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 
 COPY --from=builder /app/users-service .
+COPY --from=builder /app/templates ./templates
 EXPOSE 8001
 CMD ["./users-service"]

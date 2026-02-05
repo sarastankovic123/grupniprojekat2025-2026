@@ -206,6 +206,41 @@ export const theme = {
       boxShadow: '0 1px 3px rgba(85, 107, 47, 0.1)',
     }),
   },
+
+  // ===== GRADIENTS (for modern home page) =====
+  gradients: {
+    heroOlive: 'linear-gradient(135deg, #556B2F 0%, #3D4B1F 50%, #2A3416 100%)',
+    cardOverlay: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%)',
+    genreRock: 'linear-gradient(135deg, #C2411A 0%, #8B2F14 100%)',
+    genrePop: 'linear-gradient(135deg, #E85D99 0%, #B8256F 100%)',
+    genreJazz: 'linear-gradient(135deg, #4A7575 0%, #2F4F4F 100%)',
+    genreMetal: 'linear-gradient(135deg, #1A1A1A 0%, #4A4A4A 100%)',
+    genreElectronic: 'linear-gradient(135deg, #0891B2 0%, #0E7490 100%)',
+    genreClassical: 'linear-gradient(135deg, #7C2D12 0%, #431407 100%)',
+    genreHipHop: 'linear-gradient(135deg, #DC2626 0%, #991B1B 100%)',
+    genreBlues: 'linear-gradient(135deg, #1E40AF 0%, #1E3A8A 100%)',
+    statCard: 'linear-gradient(135deg, #D8E4C0 0%, #C4D6A8 100%)',
+  },
+
+  // ===== GLASSMORPHISM EFFECT =====
+  glass: {
+    background: 'rgba(255, 255, 255, 0.1)',
+    backdropFilter: 'blur(10px)',
+    WebkitBackdropFilter: 'blur(10px)',
+    border: '1px solid rgba(255, 255, 255, 0.2)',
+    boxShadow: '0 8px 32px rgba(85, 107, 47, 0.15)',
+  },
+
+  // ===== ANIMATION EFFECTS =====
+  animations: {
+    hoverLift: {
+      transform: 'translateY(-8px) scale(1.02)',
+      boxShadow: '0 12px 40px rgba(85, 107, 47, 0.3)',
+    },
+    scaleHover: {
+      transform: 'scale(1.05)',
+    },
+  },
 };
 
 // ===== HOVER/FOCUS STATE GENERATORS =====

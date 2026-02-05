@@ -1,15 +1,4 @@
 services:
-  tls-init:
-    image: alpine:3.20
-    container_name: tls-init
-    restart: "no"
-    command: ["/bin/sh", "-c", "apk add --no-cache openssl >/dev/null && /tls/init.sh"]
-    volumes:
-      - tls_certs:/certs
-      - ./tls:/tls:ro
-    networks:
-      - app-network
-
   mongo:
     image: mongo:7
     container_name: mongo
@@ -119,7 +108,6 @@ services:
     command: ["/bin/sh", "-c", "while [ ! -f /certs/tls.crt ] || [ ! -f /certs/tls.key ]; do echo 'waiting for TLS certs...'; sleep 0.2; done; exec nginx -g 'daemon off;'"]
     depends_on:
       - api-gateway
-      - tls-init
     ports:
       - "8080:80"
       - "8443:443"

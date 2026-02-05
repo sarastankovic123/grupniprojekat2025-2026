@@ -157,6 +157,7 @@ func (s *emailService) send(msg *EmailMessage, emailType string) error {
 				Str("email_type", emailType).
 				Str("original_to", msg.To[0]).
 				Str("subject", msg.Subject).
+				Str("text_body", msg.TextBody).
 				Msg("Email not sent (dev mode, no dev recipient configured)")
 			return nil
 		}
