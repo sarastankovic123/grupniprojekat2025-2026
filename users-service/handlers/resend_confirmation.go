@@ -79,7 +79,7 @@ func ResendConfirmation(c *gin.Context) {
 
 		req, _ := http.NewRequest(
 			"POST",
-			"http://notification-service:8003/api/notifications",
+			"https://localhost:8003/api/notifications",
 			bytes.NewBuffer(notifBody),
 		)
 

@@ -23,6 +23,7 @@ services:
       - TLS_ENABLED=${TLS_ENABLED:-true}
       - TLS_CERT_FILE=/certs/tls.crt
       - TLS_KEY_FILE=/certs/tls.key
+      - FRONTEND_URL=${FRONTEND_URL}
     depends_on:
       - mongo
     expose:

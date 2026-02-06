@@ -136,7 +136,7 @@ func VerifyOTP(c *gin.Context) {
 			"userId":  user.ID.Hex(),
 			"message": fmt.Sprintf("Login successful at %s", time.Now().Format("2006-01-02 15:04:05")),
 		})
-		req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+		req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
 		req.Header.Set("Content-Type", "application/json")
 		req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
 		http.DefaultClient.Do(req)

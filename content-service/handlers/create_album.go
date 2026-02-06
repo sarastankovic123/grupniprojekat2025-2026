@@ -85,7 +85,7 @@ func CreateAlbum(c *gin.Context) {
 				"userId":  userID.(string),
 				"message": fmt.Sprintf("New album created: %s", sanitizedTitle),
 			})
-			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+			req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
 			http.DefaultClient.Do(req)
@@ -151,7 +151,7 @@ func CreateAlbumForArtist(c *gin.Context) {
 				"userId":  userID.(string),
 				"message": fmt.Sprintf("New album created: %s", sanitizedTitle),
 			})
-			req, _ := http.NewRequest("POST", "http://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
+			req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
 			req.Header.Set("Content-Type", "application/json")
 			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
 			http.DefaultClient.Do(req)
