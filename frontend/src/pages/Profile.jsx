@@ -1,9 +1,69 @@
 import React, { useEffect, useMemo, useState } from "react";
-import { Link } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { fetchNotifications, markAsRead, markAsUnread } from "../api/notifications";
 import { apiFetch } from "../api/apiFetch";
 
+// Material UI Components
+import {
+  Container,
+  Box,
+  Card,
+  CardContent,
+  Typography,
+  TextField,
+  Button,
+  Avatar,
+  Chip,
+  List,
+  ListItem,
+  ListItemIcon,
+  ListItemText,
+  ListItemButton,
+  IconButton,
+  Divider,
+  AppBar,
+  Toolbar,
+  Breadcrumbs,
+  Link,
+  Paper,
+  Tabs,
+  Tab,
+  Tooltip,
+  Snackbar,
+  Alert,
+  Badge,
+  Grid,
+  ButtonGroup,
+} from "@mui/material";
+import { LoadingButton } from "@mui/lab";
+
+// Material UI Icons
+import {
+  Email as EmailIcon,
+  Person as PersonIcon,
+  Badge as BadgeIcon,
+  AdminPanelSettings as AdminPanelSettingsIcon,
+  Edit as EditIcon,
+  Notifications as NotificationsIcon,
+  Settings as SettingsIcon,
+  Lock as LockIcon,
+  Logout as LogoutIcon,
+  Mail as MailIcon,
+  MailOutline as MailOutlineIcon,
+  Done as DoneIcon,
+  MarkAsUnread as MarkAsUnreadIcon,
+  Refresh as RefreshIcon,
+  Check as CheckIcon,
+  Home as HomeIcon,
+  Save as SaveIcon,
+} from "@mui/icons-material";
+
+// Skeleton Components
+import ProfileSkeleton from "../components/ProfileSkeleton";
+import NotificationsSkeleton from "../components/NotificationsSkeleton";
+
+// Helper functions
 function getNotifId(n) {
   return n?.id || n?._id || n?.notificationId;
 }
@@ -13,13 +73,36 @@ function getCreatedAt(n) {
 }
 
 function getIsRead(n) {
-  // backend može vratiti isRead ili read
   return Boolean(n?.isRead ?? n?.read);
+}
+
+function formatDateTime(timestamp) {
+  if (!timestamp) return "";
+  const date = new Date(timestamp);
+  if (Number.isNaN(date.getTime())) return String(timestamp);
+
+  return date.toLocaleString("en-US", {
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+// Tab Panel Component
+function TabPanel({ children, value, index }) {
+  return (
+    <Box role="tabpanel" hidden={value !== index}>
+      {value === index && <Box sx={{ p: 3 }}>{children}</Box>}
+    </Box>
+  );
 }
 
 export default function Profile() {
   const { user, logout, setAuthToken } = useAuth();
 
+  // Profile state
   const [profile, setProfile] = useState(null);
   const [profileForm, setProfileForm] = useState({
     username: "",
@@ -27,13 +110,19 @@ export default function Profile() {
     lastName: "",
   });
   const [profileLoading, setProfileLoading] = useState(true);
+  const [profileSaving, setProfileSaving] = useState(false);
   const [profileStatus, setProfileStatus] = useState({ type: "", message: "" });
 
+  // Notifications state
   const [notifications, setNotifications] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingIds, setUpdatingIds] = useState(new Set());
 
+  // Tab state
+  const [activeTab, setActiveTab] = useState(0);
+
+  // Load profile data
   useEffect(() => {
     let alive = true;
 
@@ -70,12 +159,13 @@ export default function Profile() {
     };
   }, []);
 
+  // Load notifications
   useEffect(() => {
     let alive = true;
 
     async function loadNotifications() {
       setError("");
-      setLoading(true);
+      setNotificationsLoading(true);
       try {
         const data = await fetchNotifications();
         if (!alive) return;
@@ -85,7 +175,7 @@ export default function Profile() {
         setError(err.message || "Failed to load notifications");
       } finally {
         if (!alive) return;
-        setLoading(false);
+        setNotificationsLoading(false);
       }
     }
 
@@ -95,19 +185,21 @@ export default function Profile() {
     };
   }, []);
 
+  // Refresh notifications
   async function refresh() {
     setError("");
-    setLoading(true);
+    setNotificationsLoading(true);
     try {
       const data = await fetchNotifications();
       setNotifications(Array.isArray(data) ? data : data?.items || []);
     } catch (err) {
       setError(err.message || "Failed to load notifications");
     } finally {
-      setLoading(false);
+      setNotificationsLoading(false);
     }
   }
 
+  // Toggle notification read status
   async function toggleReadStatus(notif) {
     const notifId = getNotifId(notif);
     if (!notifId) {
@@ -137,7 +229,6 @@ export default function Profile() {
           const id = getNotifId(n);
           if (id !== notifId) return n;
 
-          // flip isRead, ali čuvamo oba moguća polja
           const nextRead = !currentlyRead;
           return { ...n, isRead: nextRead, read: nextRead };
         })
@@ -154,28 +245,11 @@ export default function Profile() {
     }
   }
 
-  function formatDateTime(timestamp) {
-    if (!timestamp) return "";
-    const date = new Date(timestamp);
-    if (Number.isNaN(date.getTime())) return String(timestamp);
-
-    return date.toLocaleString("en-US", {
-      year: "numeric",
-      month: "short",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
-    });
-  }
-
-  const unreadCount = useMemo(
-    () => notifications.filter((n) => !getIsRead(n)).length,
-    [notifications]
-  );
-
+  // Save profile
   async function saveProfile(e) {
     e.preventDefault();
     setProfileStatus({ type: "", message: "" });
+    setProfileSaving(true);
 
     try {
       const payload = {
@@ -193,205 +267,401 @@ export default function Profile() {
       if (jwt) setAuthToken(jwt);
       if (data?.user) setProfile(data.user);
 
-      setProfileStatus({ type: "success", message: "Sačuvano." });
+      setProfileStatus({ type: "success", message: "Profile updated successfully!" });
     } catch (err) {
       setProfileStatus({
         type: "error",
-        message: err.message || "Greška pri čuvanju profila.",
+        message: err.message || "Failed to save profile",
       });
+    } finally {
+      setProfileSaving(false);
     }
   }
 
+  // Calculate unread count
+  const unreadCount = useMemo(
+    () => notifications.filter((n) => !getIsRead(n)).length,
+    [notifications]
+  );
+
+  // Handle tab change
+  const handleTabChange = (event, newValue) => {
+    setActiveTab(newValue);
+  };
+
+  // Show skeleton while loading initial profile
+  if (profileLoading) {
+    return (
+      <Box>
+        <AppBar position="static" color="default" elevation={1}>
+          <Container maxWidth="lg">
+            <Toolbar sx={{ px: { xs: 0 } }}>
+              <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                Profile
+              </Typography>
+            </Toolbar>
+          </Container>
+        </AppBar>
+        <Container maxWidth="lg" sx={{ mt: 4 }}>
+          <ProfileSkeleton />
+        </Container>
+      </Box>
+    );
+  }
+
   return (
-    <div style={styles.page}>
-      <div style={styles.topbar}>
-        <h2 style={{ margin: 0 }}>Profile</h2>
-        <div style={styles.topbarRight}>
-          <Link to="/" style={styles.link}>← Back to Artists</Link>
-          <Link to="/profile/password" style={styles.link}>Promeni lozinku</Link>
-          <button onClick={logout} style={styles.btn}>Logout</button>
-        </div>
-      </div>
+    <Box>
+      {/* Top Navigation Bar */}
+      <AppBar position="static" color="default" elevation={1}>
+        <Container maxWidth="lg">
+          <Toolbar sx={{ px: { xs: 0 } }}>
+            <Breadcrumbs sx={{ flexGrow: 1 }}>
+              <Link
+                component={RouterLink}
+                to="/"
+                underline="hover"
+                color="inherit"
+                sx={{ display: "flex", alignItems: "center", gap: 0.5 }}
+              >
+                <HomeIcon fontSize="small" />
+                Home
+              </Link>
+              <Typography color="text.primary">Profile</Typography>
+            </Breadcrumbs>
 
-      {/* User Info Card */}
-      <div style={styles.card}>
-        <h3 style={{ marginTop: 0 }}>User Information</h3>
+            <ButtonGroup variant="outlined" size="small" sx={{ display: { xs: "none", sm: "flex" } }}>
+              <Button component={RouterLink} to="/profile/password" startIcon={<LockIcon />}>
+                Change Password
+              </Button>
+              <Button onClick={logout} color="error" startIcon={<LogoutIcon />}>
+                Logout
+              </Button>
+            </ButtonGroup>
 
-        <form onSubmit={saveProfile} style={{ display: "grid", gap: 12, marginBottom: 16 }}>
-          <label style={{ display: "grid", gap: 6 }}>
-            Username
-            <input
-              value={profileForm.username}
-              onChange={(e) =>
-                setProfileForm((p) => ({ ...p, username: e.target.value }))
-              }
-              disabled={profileLoading}
-              autoComplete="username"
-            />
-          </label>
+            {/* Mobile buttons */}
+            <Box sx={{ display: { xs: "flex", sm: "none" }, gap: 1 }}>
+              <IconButton component={RouterLink} to="/profile/password" size="small">
+                <LockIcon />
+              </IconButton>
+              <IconButton onClick={logout} size="small" color="error">
+                <LogoutIcon />
+              </IconButton>
+            </Box>
+          </Toolbar>
+        </Container>
+      </AppBar>
 
-          <label style={{ display: "grid", gap: 6 }}>
-            Ime
-            <input
-              value={profileForm.firstName}
-              onChange={(e) =>
-                setProfileForm((p) => ({ ...p, firstName: e.target.value }))
-              }
-              disabled={profileLoading}
-              autoComplete="given-name"
-            />
-          </label>
-
-          <label style={{ display: "grid", gap: 6 }}>
-            Prezime
-            <input
-              value={profileForm.lastName}
-              onChange={(e) =>
-                setProfileForm((p) => ({ ...p, lastName: e.target.value }))
-              }
-              disabled={profileLoading}
-              autoComplete="family-name"
-            />
-          </label>
-
-          <button type="submit" disabled={profileLoading}>
-            {profileLoading ? "Učitavam..." : "Sačuvaj"}
-          </button>
-
-          {profileStatus.message ? (
-            <div
-              style={{
-                padding: 10,
-                borderRadius: 8,
-                background:
-                  profileStatus.type === "success" ? "#e9f7ef" : "#fdecea",
+      {/* Main Content */}
+      <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
+        <Grid container spacing={3}>
+          {/* Left Column - Profile Info Card */}
+          <Grid item xs={12} md={4}>
+            <Card
+              elevation={3}
+              sx={{
+                background: 'rgba(255, 255, 255, 0.7)',
+                backdropFilter: 'blur(10px)',
+                WebkitBackdropFilter: 'blur(10px)',
+                border: '1px solid rgba(255, 255, 255, 0.3)',
               }}
             >
-              {profileStatus.message}
-            </div>
-          ) : null}
-        </form>
+              <CardContent>
+                {/* Avatar Section */}
+                <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
+                  <Badge
+                    overlap="circular"
+                    anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                    badgeContent={
+                      <Avatar
+                        sx={{
+                          bgcolor: 'success.main',
+                          width: 28,
+                          height: 28,
+                          border: '2px solid white',
+                        }}
+                      >
+                        <CheckIcon sx={{ fontSize: 16 }} />
+                      </Avatar>
+                    }
+                  >
+                    <Avatar
+                      sx={{
+                        width: 120,
+                        height: 120,
+                        fontSize: 48,
+                        bgcolor: 'primary.main',
+                        boxShadow: 3,
+                      }}
+                    >
+                      {profile?.username?.charAt(0).toUpperCase() || user?.username?.charAt(0).toUpperCase() || 'U'}
+                    </Avatar>
+                  </Badge>
+                  <Typography variant="h4" sx={{ mt: 2, fontWeight: 700 }}>
+                    {profile?.username || user?.username || 'User'}
+                  </Typography>
+                  <Chip
+                    label={user?.role || 'USER'}
+                    color={user?.role === 'ADMIN' ? 'secondary' : 'primary'}
+                    size="small"
+                    icon={user?.role === 'ADMIN' ? <AdminPanelSettingsIcon /> : <PersonIcon />}
+                    sx={{ mt: 1 }}
+                  />
+                </Box>
 
-        <div style={styles.infoGrid}>
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Username:</span>
-            <span style={styles.infoValue}>{profile?.username || user?.username || "N/A"}</span>
-          </div>
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Email:</span>
-            <span style={styles.infoValue}>{profile?.email || user?.email || "N/A"}</span>
-          </div>
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Ime:</span>
-            <span style={styles.infoValue}>{profile?.firstName || "N/A"}</span>
-          </div>
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Prezime:</span>
-            <span style={styles.infoValue}>{profile?.lastName || "N/A"}</span>
-          </div>
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>Role:</span>
-            <span style={{ ...styles.infoValue, ...styles.roleBadge }}>
-              {user?.role || "USER"}
-            </span>
-          </div>
-          <div style={styles.infoRow}>
-            <span style={styles.infoLabel}>User ID:</span>
-            <span style={{ ...styles.infoValue, fontSize: 12, opacity: 0.7 }}>
-              {user?.userId || "N/A"}
-            </span>
-          </div>
-        </div>
-      </div>
+                <Divider sx={{ my: 2 }} />
 
-      {/* Notifications Section */}
-      <div style={styles.section}>
-        <div style={styles.sectionHeader}>
-          <h3 style={{ margin: 0 }}>Notifications</h3>
-          <div style={styles.sectionActions}>
-            <span style={styles.unreadBadge}>{unreadCount} unread</span>
-            <button onClick={refresh} disabled={loading} style={styles.refreshBtn}>
-              {loading ? "Refreshing..." : "🔄 Refresh"}
-            </button>
-          </div>
-        </div>
+                {/* User Info List */}
+                <List disablePadding>
+                  <ListItem disablePadding sx={{ py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      <EmailIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Email"
+                      secondary={profile?.email || user?.email || 'N/A'}
+                      primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                      secondaryTypographyProps={{ variant: 'body2', color: 'text.primary', fontWeight: 500 }}
+                    />
+                  </ListItem>
+                  <ListItem disablePadding sx={{ py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      <PersonIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="Full Name"
+                      secondary={`${profile?.firstName || ''} ${profile?.lastName || ''}`.trim() || 'N/A'}
+                      primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                      secondaryTypographyProps={{ variant: 'body2', color: 'text.primary', fontWeight: 500 }}
+                    />
+                  </ListItem>
+                  <ListItem disablePadding sx={{ py: 1 }}>
+                    <ListItemIcon sx={{ minWidth: 40 }}>
+                      <BadgeIcon color="primary" />
+                    </ListItemIcon>
+                    <ListItemText
+                      primary="User ID"
+                      secondary={user?.userId || 'N/A'}
+                      primaryTypographyProps={{ variant: 'caption', color: 'text.secondary' }}
+                      secondaryTypographyProps={{ variant: 'body2', color: 'text.primary', fontWeight: 400, fontSize: '0.75rem' }}
+                    />
+                  </ListItem>
+                </List>
 
-        {error && <div style={styles.error}>{error}</div>}
-        {loading && <div>Loading notifications...</div>}
+                {/* Stats Section */}
+                <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 3 }}>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      textAlign: 'center',
+                      bgcolor: 'primary.main',
+                      color: 'white',
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight="bold">
+                      {unreadCount}
+                    </Typography>
+                    <Typography variant="caption">Unread</Typography>
+                  </Paper>
+                  <Paper
+                    elevation={0}
+                    sx={{
+                      p: 2,
+                      textAlign: 'center',
+                      bgcolor: 'info.main',
+                      color: 'white',
+                      borderRadius: 2,
+                    }}
+                  >
+                    <Typography variant="h4" fontWeight="bold">
+                      {notifications.length}
+                    </Typography>
+                    <Typography variant="caption">Total</Typography>
+                  </Paper>
+                </Box>
+              </CardContent>
+            </Card>
+          </Grid>
 
-        {!loading && notifications.length === 0 && (
-          <div style={styles.emptyState}>No notifications yet</div>
-        )}
+          {/* Right Column - Tabbed Content */}
+          <Grid item xs={12} md={8}>
+            <Card elevation={3}>
+              <Tabs value={activeTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
+                <Tab icon={<EditIcon />} iconPosition="start" label="Edit Profile" />
+                <Tab icon={<NotificationsIcon />} iconPosition="start" label="Notifications" />
+                <Tab icon={<SettingsIcon />} iconPosition="start" label="Settings" />
+              </Tabs>
 
-        <div style={styles.notificationsList}>
-          {notifications.map((notif, idx) => {
-            const id = getNotifId(notif) || idx;
-            const isRead = getIsRead(notif);
-            const createdAt = getCreatedAt(notif);
+              {/* Tab 1: Edit Profile */}
+              <TabPanel value={activeTab} index={0}>
+                <Box component="form" onSubmit={saveProfile}>
+                  <Grid container spacing={3}>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Username"
+                        value={profileForm.username}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, username: e.target.value }))}
+                        disabled={profileSaving}
+                        variant="outlined"
+                        InputProps={{
+                          startAdornment: <PersonIcon sx={{ mr: 1, color: 'text.secondary' }} />,
+                        }}
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="First Name"
+                        value={profileForm.firstName}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, firstName: e.target.value }))}
+                        disabled={profileSaving}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12} sm={6}>
+                      <TextField
+                        fullWidth
+                        label="Last Name"
+                        value={profileForm.lastName}
+                        onChange={(e) => setProfileForm((p) => ({ ...p, lastName: e.target.value }))}
+                        disabled={profileSaving}
+                        variant="outlined"
+                      />
+                    </Grid>
+                    <Grid item xs={12}>
+                      <LoadingButton
+                        type="submit"
+                        variant="contained"
+                        loading={profileSaving}
+                        loadingIndicator="Saving..."
+                        startIcon={<SaveIcon />}
+                        size="large"
+                      >
+                        Save Changes
+                      </LoadingButton>
+                    </Grid>
+                  </Grid>
+                </Box>
+              </TabPanel>
 
-            return (
-              <div
-                key={id}
-                style={{
-                  ...styles.notificationCard,
-                  ...(isRead ? styles.notificationRead : styles.notificationUnread),
-                }}
-              >
-                <div style={styles.notificationContent}>
-                  <div style={styles.notificationMessage}>{notif.message}</div>
-                  <div style={styles.notificationTime}>{formatDateTime(createdAt)}</div>
-                </div>
-                <button
-                  onClick={() => toggleReadStatus(notif)}
-                  disabled={updatingIds.has(getNotifId(notif))}
-                  style={{
-                    ...styles.toggleBtn,
-                    ...(isRead ? styles.toggleBtnRead : styles.toggleBtnUnread),
-                  }}
-                >
-                  {updatingIds.has(getNotifId(notif))
-                    ? "..."
-                    : isRead
-                    ? "Mark Unread"
-                    : "Mark Read"}
-                </button>
-              </div>
-            );
-          })}
-        </div>
-      </div>
-    </div>
+              {/* Tab 2: Notifications */}
+              <TabPanel value={activeTab} index={1}>
+                <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
+                  <Typography variant="h6">
+                    Your Notifications
+                    {unreadCount > 0 && (
+                      <Chip
+                        label={`${unreadCount} unread`}
+                        color="primary"
+                        size="small"
+                        sx={{ ml: 2 }}
+                      />
+                    )}
+                  </Typography>
+                  <Tooltip title="Refresh notifications">
+                    <IconButton onClick={refresh} disabled={notificationsLoading} size="small">
+                      <RefreshIcon />
+                    </IconButton>
+                  </Tooltip>
+                </Box>
+
+                {error && (
+                  <Alert severity="error" sx={{ mb: 2 }}>
+                    {error}
+                  </Alert>
+                )}
+
+                {notificationsLoading ? (
+                  <NotificationsSkeleton />
+                ) : notifications.length === 0 ? (
+                  <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+                    <NotificationsIcon sx={{ fontSize: 64, opacity: 0.3, mb: 2 }} />
+                    <Typography>No notifications yet</Typography>
+                  </Box>
+                ) : (
+                  <List disablePadding>
+                    {notifications.map((notif, idx) => {
+                      const id = getNotifId(notif) || idx;
+                      const isRead = getIsRead(notif);
+                      const createdAt = getCreatedAt(notif);
+
+                      return (
+                        <ListItemButton
+                          key={id}
+                          sx={{
+                            bgcolor: isRead ? 'transparent' : 'action.hover',
+                            borderLeft: isRead ? 'none' : '4px solid',
+                            borderLeftColor: 'primary.main',
+                            borderRadius: 1,
+                            mb: 1,
+                            '&:hover': { bgcolor: 'action.selected' },
+                          }}
+                        >
+                          <ListItemIcon>
+                            {isRead ? (
+                              <MailOutlineIcon color="disabled" />
+                            ) : (
+                              <MailIcon color="primary" />
+                            )}
+                          </ListItemIcon>
+                          <ListItemText
+                            primary={notif.message}
+                            secondary={formatDateTime(createdAt)}
+                            primaryTypographyProps={{
+                              fontWeight: isRead ? 400 : 600,
+                            }}
+                          />
+                          <Tooltip title={isRead ? "Mark Unread" : "Mark Read"}>
+                            <IconButton
+                              onClick={() => toggleReadStatus(notif)}
+                              disabled={updatingIds.has(getNotifId(notif))}
+                              size="small"
+                            >
+                              {isRead ? <MarkAsUnreadIcon /> : <DoneIcon />}
+                            </IconButton>
+                          </Tooltip>
+                        </ListItemButton>
+                      );
+                    })}
+                  </List>
+                )}
+              </TabPanel>
+
+              {/* Tab 3: Settings */}
+              <TabPanel value={activeTab} index={2}>
+                <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
+                  <SettingsIcon sx={{ fontSize: 64, opacity: 0.3, mb: 2 }} />
+                  <Typography variant="h6" gutterBottom>
+                    Settings
+                  </Typography>
+                  <Typography variant="body2">
+                    Additional settings will be available here soon.
+                  </Typography>
+                </Box>
+              </TabPanel>
+            </Card>
+          </Grid>
+        </Grid>
+      </Container>
+
+      {/* Snackbar for Profile Status Messages */}
+      <Snackbar
+        open={!!profileStatus.message}
+        autoHideDuration={4000}
+        onClose={() => setProfileStatus({ type: '', message: '' })}
+        anchorOrigin={{ vertical: 'top', horizontal: 'center' }}
+      >
+        <Alert
+          severity={profileStatus.type === 'success' ? 'success' : 'error'}
+          variant="filled"
+          onClose={() => setProfileStatus({ type: '', message: '' })}
+          sx={{ width: '100%' }}
+        >
+          {profileStatus.message}
+        </Alert>
+      </Snackbar>
+    </Box>
   );
 }
-
-// styles ostaju tvoji (ne diram)
-const styles = {
-  page: { padding: 24, maxWidth: 1200, margin: "0 auto" },
-  topbar: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 24 },
-  topbarRight: { display: "flex", alignItems: "center", gap: 12 },
-  link: { textDecoration: "none", color: "#0066cc" },
-  btn: { padding: "8px 16px", borderRadius: 10, border: "1px solid #111", cursor: "pointer", background: "white" },
-  card: { border: "1px solid #ddd", borderRadius: 12, padding: 20, marginBottom: 24, background: "white" },
-  infoGrid: { display: "grid", gap: 12 },
-  infoRow: { display: "flex", alignItems: "center", gap: 12, padding: "8px 0", borderBottom: "1px solid #f0f0f0" },
-  infoLabel: { fontWeight: 600, width: 120, flexShrink: 0 },
-  infoValue: { flex: 1 },
-  roleBadge: { background: "#e8f4ff", padding: "4px 12px", borderRadius: 20, fontSize: 13, fontWeight: 700, color: "#0066cc", display: "inline-block" },
-  section: { border: "1px solid #ddd", borderRadius: 12, padding: 20, background: "white" },
-  sectionHeader: { display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 },
-  sectionActions: { display: "flex", alignItems: "center", gap: 12 },
-  unreadBadge: { background: "#f0f0f0", padding: "6px 12px", borderRadius: 20, fontSize: 13, fontWeight: 600 },
-  refreshBtn: { padding: "6px 12px", borderRadius: 10, border: "1px solid #ccc", cursor: "pointer", background: "white", fontSize: 13 },
-  error: { color: "crimson", marginBottom: 12, padding: 12, background: "#fff0f0", borderRadius: 8 },
-  emptyState: { textAlign: "center", padding: 40, opacity: 0.6 },
-  notificationsList: { display: "grid", gap: 12 },
-  notificationCard: { display: "flex", justifyContent: "space-between", alignItems: "center", padding: 16, border: "1px solid #e0e0e0", borderRadius: 10, gap: 16 },
-  notificationUnread: { background: "#f9f9ff", borderLeftWidth: 4, borderLeftColor: "#0066cc" },
-  notificationRead: { background: "white", opacity: 0.85 },
-  notificationContent: { flex: 1 },
-  notificationMessage: { fontSize: 15, marginBottom: 6 },
-  notificationTime: { fontSize: 13, opacity: 0.6 },
-  toggleBtn: { padding: "8px 16px", borderRadius: 8, border: "1px solid", cursor: "pointer", fontSize: 13, fontWeight: 600, flexShrink: 0 },
-  toggleBtnUnread: { background: "#0066cc", color: "white", borderColor: "#0066cc" },
-  toggleBtnRead: { background: "white", color: "#666", borderColor: "#ccc" },
-};

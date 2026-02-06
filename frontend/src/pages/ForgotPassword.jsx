@@ -1,7 +1,27 @@
 import React, { useState } from "react";
-import { Link } from "react-router-dom";
+import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
-import { theme } from "../theme";
+import {
+  Box,
+  Container,
+  Card,
+  CardContent,
+  TextField,
+  Typography,
+  Alert,
+  Stack,
+  Link,
+  Divider,
+  InputAdornment,
+} from "@mui/material";
+import { LoadingButton } from "@mui/lab";
+import {
+  VpnKey as VpnKeyIcon,
+  Email as EmailIcon,
+  Send as SendIcon,
+  ArrowBack as ArrowBackIcon,
+  Link as LinkIcon,
+} from "@mui/icons-material";
 
 export default function ForgotPassword() {
   const { requestPasswordReset } = useAuth();
@@ -23,7 +43,6 @@ export default function ForgotPassword() {
       setLoading(true);
       await requestPasswordReset({ email: email.trim() });
 
-      // Ne otkrivamo da li email postoji (sigurnosna praksa) — isto kao magic link
       setStatus({
         type: "success",
         message:
@@ -38,112 +57,150 @@ export default function ForgotPassword() {
   }
 
   return (
-    <div style={styles.page}>
-      <div style={styles.card}>
-        <h2 style={styles.title}>Reset lozinke</h2>
-        <p style={styles.description}>
-          Unesi email i poslaćemo ti kratkotrajan link za postavljanje nove lozinke.
-        </p>
+    <Box
+      sx={{
+        minHeight: "100vh",
+        display: "flex",
+        alignItems: "center",
+        justifyContent: "center",
+        background: "linear-gradient(135deg, #556B2F 0%, #3D4B1F 50%, #2A3416 100%)",
+        py: 4,
+      }}
+    >
+      <Container maxWidth="sm">
+        <Card
+          elevation={8}
+          sx={{
+            background: "rgba(255, 255, 255, 0.98)",
+            backdropFilter: "blur(10px)",
+            borderRadius: 3,
+            overflow: "hidden",
+          }}
+        >
+          <Box
+            sx={{
+              background: "linear-gradient(135deg, #556B2F 0%, #6B8E23 100%)",
+              p: 3,
+              textAlign: "center",
+            }}
+          >
+            <VpnKeyIcon sx={{ fontSize: 48, color: "white", mb: 1 }} />
+            <Typography variant="h4" component="h1" sx={{ color: "white", fontWeight: 600 }}>
+              Reset Lozinke
+            </Typography>
+            <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.9)", mt: 1 }}>
+              Poslaćemo ti link za postavljanje nove lozinke
+            </Typography>
+          </Box>
 
-        <form onSubmit={handleSubmit} style={styles.form}>
-          <label style={styles.label}>
-            Email
-            <input
-              type="email"
-              value={email}
-              placeholder="npr. pera@gmail.com"
-              onChange={(e) => setEmail(e.target.value)}
-              autoComplete="email"
-              style={styles.input}
-            />
-          </label>
+          <CardContent sx={{ p: 4 }}>
+            <form onSubmit={handleSubmit}>
+              <Stack spacing={3}>
+                <TextField
+                  label="Email Adresa"
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  placeholder="npr. pera@gmail.com"
+                  required
+                  fullWidth
+                  autoComplete="email"
+                  InputProps={{
+                    startAdornment: (
+                      <InputAdornment position="start">
+                        <EmailIcon color="action" />
+                      </InputAdornment>
+                    ),
+                  }}
+                  helperText="Unesi email adresu povezanu sa tvojim nalogom"
+                />
 
-          <button type="submit" disabled={loading} style={styles.btn}>
-            {loading ? "Šaljem..." : "Pošalji reset link"}
-          </button>
+                {status.message && (
+                  <Alert
+                    severity={status.type === "success" ? "success" : "error"}
+                    onClose={() => setStatus({ type: "", message: "" })}
+                  >
+                    {status.message}
+                  </Alert>
+                )}
 
-          {status.message && (
-            <div
-              style={{
-                ...styles.message,
-                ...(status.type === "success" ? styles.success : styles.error),
-              }}
-            >
-              {status.message}
-            </div>
-          )}
+                <LoadingButton
+                  type="submit"
+                  variant="contained"
+                  size="large"
+                  loading={loading}
+                  loadingPosition="start"
+                  startIcon={<SendIcon />}
+                  fullWidth
+                  sx={{
+                    py: 1.5,
+                    fontWeight: 600,
+                    textTransform: "none",
+                    fontSize: "1rem",
+                  }}
+                >
+                  {loading ? "Šaljem..." : "Pošalji Reset Link"}
+                </LoadingButton>
 
-          <div style={styles.links}>
-            <Link to="/login" style={styles.link}>
-              Nazad na login
-            </Link>
-            <Link to="/recover" style={styles.link}>
-              Magic link
-            </Link>
-          </div>
-        </form>
-      </div>
-    </div>
+                <Divider sx={{ my: 2 }}>
+                  <Typography variant="body2" color="text.secondary">
+                    Ili
+                  </Typography>
+                </Divider>
+
+                <Stack direction={{ xs: "column", sm: "row" }} spacing={2}>
+                  <Link
+                    component={RouterLink}
+                    to="/login"
+                    underline="none"
+                    sx={{ flex: 1, textDecoration: "none" }}
+                  >
+                    <LoadingButton
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<ArrowBackIcon />}
+                      sx={{
+                        py: 1.5,
+                        textTransform: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Nazad na Login
+                    </LoadingButton>
+                  </Link>
+                  <Link
+                    component={RouterLink}
+                    to="/recover"
+                    underline="none"
+                    sx={{ flex: 1, textDecoration: "none" }}
+                  >
+                    <LoadingButton
+                      variant="outlined"
+                      fullWidth
+                      startIcon={<LinkIcon />}
+                      sx={{
+                        py: 1.5,
+                        textTransform: "none",
+                        fontWeight: 600,
+                      }}
+                    >
+                      Magic Link
+                    </LoadingButton>
+                  </Link>
+                </Stack>
+              </Stack>
+            </form>
+          </CardContent>
+        </Card>
+
+        <Typography
+          variant="body2"
+          align="center"
+          sx={{ mt: 3, color: "rgba(255, 255, 255, 0.8)" }}
+        >
+          Reset link je validan 1 sat od slanja
+        </Typography>
+      </Container>
+    </Box>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: "100vh",
-    display: "flex",
-    alignItems: "center",
-    justifyContent: "center",
-    background: theme.colors.background,
-    padding: theme.spacing.xl,
-  },
-  card: {
-    ...theme.components.card(),
-    width: 420,
-    maxWidth: "90%",
-  },
-  title: {
-    fontSize: theme.typography.fontSize["2xl"],
-    marginBottom: theme.spacing.md,
-    color: theme.colors.text.primary,
-    fontWeight: theme.typography.fontWeight.bold,
-  },
-  description: {
-    color: theme.colors.text.secondary,
-    fontSize: theme.typography.fontSize.base,
-    marginBottom: theme.spacing.lg,
-    lineHeight: 1.5,
-  },
-  form: {
-    display: "flex",
-    flexDirection: "column",
-    gap: theme.spacing.md,
-  },
-  label: theme.components.label(),
-  input: theme.components.input(),
-  btn: {
-    ...theme.components.button(),
-    marginTop: theme.spacing.sm,
-  },
-  message: {
-    padding: theme.spacing.md,
-    borderRadius: theme.radius.md,
-    fontSize: theme.typography.fontSize.base,
-  },
-  success: {
-    background: "#E8F5E9",
-    color: theme.colors.semantic.success,
-    border: `1px solid ${theme.colors.semantic.success}`,
-  },
-  error: {
-    background: "#FDF5F4",
-    color: theme.colors.semantic.error,
-    border: `1px solid ${theme.colors.semantic.error}`,
-  },
-  links: {
-    display: "flex",
-    justifyContent: "space-between",
-    marginTop: theme.spacing.md,
-    gap: theme.spacing.sm,
-  },
-  link: theme.components.link(),
-};

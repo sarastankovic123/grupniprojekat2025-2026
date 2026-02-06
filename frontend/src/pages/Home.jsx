@@ -1,8 +1,62 @@
 import { useState, useEffect } from 'react';
-import { Link } from 'react-router-dom';
+import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { apiFetch } from '../api/apiFetch';
 import { theme } from '../theme';
+import HomePageSkeleton from '../components/home/HomePageSkeleton';
+
+// Material UI Components
+import {
+  AppBar,
+  Toolbar,
+  Container,
+  Box,
+  Typography,
+  Button,
+  Card,
+  CardActionArea,
+  CardMedia,
+  CardContent,
+  Grid,
+  Chip,
+  Stack,
+  IconButton,
+  Drawer,
+  List,
+  ListItem,
+  ListItemButton,
+  ListItemText,
+  Divider,
+} from '@mui/material';
+import MenuIcon from '@mui/icons-material/Menu';
+import CloseIcon from '@mui/icons-material/Close';
+
+// Helper functions
+function getGenreGradient(genre) {
+  const genreLower = genre.toLowerCase();
+  if (genreLower.includes('rock')) return theme.gradients.genreRock;
+  if (genreLower.includes('pop')) return theme.gradients.genrePop;
+  if (genreLower.includes('jazz')) return theme.gradients.genreJazz;
+  if (genreLower.includes('metal')) return theme.gradients.genreMetal;
+  if (genreLower.includes('electronic') || genreLower.includes('edm')) return theme.gradients.genreElectronic;
+  if (genreLower.includes('classical')) return theme.gradients.genreClassical;
+  if (genreLower.includes('hip')) return theme.gradients.genreHipHop;
+  if (genreLower.includes('blues')) return theme.gradients.genreBlues;
+  return theme.gradients.genreRock; // Default
+}
+
+function getGenreIcon(genre) {
+  const genreLower = genre.toLowerCase();
+  if (genreLower.includes('rock')) return '🎸';
+  if (genreLower.includes('pop')) return '🎤';
+  if (genreLower.includes('jazz')) return '🎺';
+  if (genreLower.includes('metal')) return '🥁';
+  if (genreLower.includes('electronic') || genreLower.includes('edm')) return '🎧';
+  if (genreLower.includes('classical')) return '🎻';
+  if (genreLower.includes('hip')) return '🎙️';
+  if (genreLower.includes('blues')) return '🎷';
+  return '🎵'; // Default
+}
 
 export default function Home() {
   const { isAuthenticated, user, logout } = useAuth();
@@ -10,6 +64,7 @@ export default function Home() {
   const [topGenres, setTopGenres] = useState([]);
   const [stats, setStats] = useState({ artists: 0, albums: 0, songs: 0 });
   const [loading, setLoading] = useState(true);
+  const [mobileOpen, setMobileOpen] = useState(false);
 
   useEffect(() => {
     loadHomeData();
@@ -70,14 +125,12 @@ export default function Home() {
                     }
                   }
                 } catch (err) {
-                  // Skip if error fetching songs (might require auth)
                   console.warn(`Failed to fetch songs for album ${album.title}:`, err);
                 }
               }
             }
           }
         } catch (err) {
-          // Skip if error fetching albums for this artist
           console.warn(`Failed to fetch albums for artist ${artist.name}:`, err);
         }
       }
@@ -94,536 +147,556 @@ export default function Home() {
     }
   }
 
-  // Get gradient for genre
-  function getGenreGradient(genre) {
-    const genreLower = genre.toLowerCase();
-    if (genreLower.includes('rock')) return theme.gradients.genreRock;
-    if (genreLower.includes('pop')) return theme.gradients.genrePop;
-    if (genreLower.includes('jazz')) return theme.gradients.genreJazz;
-    if (genreLower.includes('metal')) return theme.gradients.genreMetal;
-    if (genreLower.includes('electronic') || genreLower.includes('edm')) return theme.gradients.genreElectronic;
-    if (genreLower.includes('classical')) return theme.gradients.genreClassical;
-    if (genreLower.includes('hip')) return theme.gradients.genreHipHop;
-    if (genreLower.includes('blues')) return theme.gradients.genreBlues;
-    return theme.gradients.genreRock; // Default
-  }
-
-  // Get icon for genre
-  function getGenreIcon(genre) {
-    const genreLower = genre.toLowerCase();
-    if (genreLower.includes('rock')) return '🎸';
-    if (genreLower.includes('pop')) return '🎤';
-    if (genreLower.includes('jazz')) return '🎺';
-    if (genreLower.includes('metal')) return '🥁';
-    if (genreLower.includes('electronic') || genreLower.includes('edm')) return '🎧';
-    if (genreLower.includes('classical')) return '🎻';
-    if (genreLower.includes('hip')) return '🎙️';
-    if (genreLower.includes('blues')) return '🎷';
-    return '🎵'; // Default
-  }
+  const handleDrawerToggle = () => {
+    setMobileOpen(!mobileOpen);
+  };
 
   if (loading) {
-    return (
-      <div style={styles.loadingContainer}>
-        <div style={styles.loadingSpinner}>Loading...</div>
-      </div>
-    );
+    return <HomePageSkeleton />;
   }
 
   return (
-    <div style={styles.page}>
-      {/* Navigation Topbar */}
-      <div style={styles.topbar}>
-        <Link to="/" style={styles.logoLink}>
-          <h2 style={styles.logo}>🎵 Music Platform</h2>
-        </Link>
-        <div style={styles.topbarRight}>
-          <Link to="/" style={styles.navLink}>Home</Link>
-          {!isAuthenticated && (
-            <>
-              <Link to="/register" style={styles.navLink}>Register</Link>
-              <Link to="/login" style={styles.navLink}>Login</Link>
-            </>
-          )}
-          {isAuthenticated && (
-            <>
-              <Link to="/profile" style={styles.navLink}>Profile</Link>
-              <button onClick={logout} style={styles.logoutBtn}>Logout</button>
-            </>
-          )}
-        </div>
-      </div>
+    <Box>
+      {/* Navigation AppBar */}
+      <AppBar position="sticky" color="default" elevation={1}>
+        <Container maxWidth="xl">
+          <Toolbar sx={{ px: { xs: 0 } }}>
+            {/* Mobile Menu Icon */}
+            <IconButton
+              color="inherit"
+              edge="start"
+              onClick={handleDrawerToggle}
+              sx={{ display: { md: 'none' }, mr: 2 }}
+            >
+              <MenuIcon />
+            </IconButton>
 
-      {/* Hero Section */}
-      <section style={styles.hero}>
-        <div style={styles.heroContent}>
-          <h1 style={styles.heroTitle}>Discover Your Sound</h1>
-          <p style={styles.heroSubtitle}>
-            Explore thousands of artists, albums, and songs in our curated music catalog
-          </p>
-          <div style={styles.heroCTA}>
-            <Link to="/artists" style={styles.primaryButton}>
-              Browse Artists
-            </Link>
+            {/* Logo */}
+            <Typography
+              variant="h6"
+              component={RouterLink}
+              to="/"
+              sx={{
+                textDecoration: 'none',
+                color: 'primary.main',
+                fontWeight: 'bold',
+                flexGrow: { xs: 1, md: 0 },
+              }}
+            >
+              🎵 Music Platform
+            </Typography>
+
+            {/* Desktop Navigation */}
+            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2, ml: 4 }}>
+              <Button component={RouterLink} to="/" color="primary">
+                Home
+              </Button>
+              {!isAuthenticated && (
+                <>
+                  <Button component={RouterLink} to="/register">
+                    Register
+                  </Button>
+                  <Button component={RouterLink} to="/login">
+                    Login
+                  </Button>
+                </>
+              )}
+              {isAuthenticated && (
+                <>
+                  <Button component={RouterLink} to="/profile">
+                    Profile
+                  </Button>
+                  <Button onClick={logout} color="error">
+                    Logout
+                  </Button>
+                </>
+              )}
+            </Box>
+          </Toolbar>
+        </Container>
+      </AppBar>
+
+      {/* Mobile Drawer */}
+      <Drawer
+        anchor="left"
+        open={mobileOpen}
+        onClose={handleDrawerToggle}
+        sx={{ display: { md: 'none' } }}
+      >
+        <Box sx={{ width: 250 }}>
+          <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+            <Typography variant="h6" color="primary.main" fontWeight="bold">
+              🎵 Menu
+            </Typography>
+            <IconButton onClick={handleDrawerToggle}>
+              <CloseIcon />
+            </IconButton>
+          </Box>
+          <Divider />
+          <List>
+            <ListItem disablePadding>
+              <ListItemButton component={RouterLink} to="/" onClick={handleDrawerToggle}>
+                <ListItemText primary="Home" />
+              </ListItemButton>
+            </ListItem>
             {!isAuthenticated && (
-              <Link to="/register" style={styles.secondaryButtonFixed}>
-                Get Started
-              </Link>
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton component={RouterLink} to="/register" onClick={handleDrawerToggle}>
+                    <ListItemText primary="Register" />
+                  </ListItemButton>
+                </ListItem>
+                <ListItem disablePadding>
+                  <ListItemButton component={RouterLink} to="/login" onClick={handleDrawerToggle}>
+                    <ListItemText primary="Login" />
+                  </ListItemButton>
+                </ListItem>
+              </>
             )}
             {isAuthenticated && (
-              <button onClick={logout} style={styles.logoutButton}>
-                Logout
-              </button>
+              <>
+                <ListItem disablePadding>
+                  <ListItemButton component={RouterLink} to="/profile" onClick={handleDrawerToggle}>
+                    <ListItemText primary="Profile" />
+                  </ListItemButton>
+                </ListItem>
+                <Divider />
+                <ListItem disablePadding>
+                  <ListItemButton onClick={() => { logout(); handleDrawerToggle(); }}>
+                    <ListItemText primary="Logout" sx={{ color: 'error.main' }} />
+                  </ListItemButton>
+                </ListItem>
+              </>
             )}
-          </div>
-        </div>
-      </section>
+          </List>
+        </Box>
+      </Drawer>
+
+      {/* Hero Section */}
+      <Box
+        sx={{
+          minHeight: '80vh',
+          background: 'linear-gradient(135deg, #556B2F 0%, #3D4B1F 50%, #2A3416 100%)',
+          display: 'flex',
+          alignItems: 'center',
+          justifyContent: 'center',
+          position: 'relative',
+          overflow: 'hidden',
+          px: { xs: 2, md: 4 },
+          animation: 'fadeIn 1s ease-out',
+        }}
+      >
+        <Container maxWidth="lg">
+          <Box sx={{ textAlign: 'center', zIndex: 1 }}>
+            <Typography
+              variant="h1"
+              sx={{
+                fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+                fontWeight: 'bold',
+                color: 'white',
+                mb: 2,
+                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                lineHeight: 1.2,
+              }}
+            >
+              Discover Your Sound
+            </Typography>
+            <Typography
+              variant="h5"
+              sx={{
+                fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+                color: 'rgba(255, 255, 255, 0.9)',
+                mb: 4,
+                maxWidth: '700px',
+                mx: 'auto',
+                lineHeight: 1.6,
+              }}
+            >
+              Explore thousands of artists, albums, and songs in our curated music catalog
+            </Typography>
+            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+              <Button
+                component={RouterLink}
+                to="/artists"
+                variant="contained"
+                size="large"
+                sx={{
+                  bgcolor: 'white',
+                  color: 'primary.main',
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.9)',
+                    transform: 'scale(1.05)',
+                  },
+                }}
+              >
+                Browse Artists
+              </Button>
+            </Box>
+          </Box>
+        </Container>
+      </Box>
 
       {/* Featured Artists Section */}
       {featuredArtists.length > 0 && (
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>Featured Artists</h2>
-          <div style={styles.featuredGrid}>
+        <Container maxWidth="xl" sx={{ py: 6 }}>
+          <Typography
+            variant="h2"
+            sx={{
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              color: 'text.primary',
+              mb: 4,
+              textAlign: 'center',
+            }}
+          >
+            Featured Artists
+          </Typography>
+          <Grid container spacing={3}>
             {featuredArtists.map((artist, index) => (
-              <Link
-                to={`/artists/${artist.id}`}
-                style={{
-                  ...styles.featuredCard,
-                  animationDelay: `${0.1 * index}s`,
-                }}
+              <Grid
+                item
+                xs={12}
+                sm={6}
+                md={4}
                 key={artist.id}
+                style={{ animationDelay: `${0.1 * index}s` }}
+                sx={{ animation: 'fadeInUp 0.6s ease-out forwards' }}
               >
-                <div style={styles.cardImage}>
-                  {artist.image ? (
-                    <img
-                      src={artist.image}
-                      alt={artist.name}
-                      style={styles.cardImg}
-                    />
-                  ) : (
-                    <div style={styles.cardPlaceholder}>🎵</div>
-                  )}
-                </div>
-                <div style={styles.cardOverlay}>
-                  <h3 style={styles.cardTitle}>{artist.name}</h3>
-                  {artist.genres && artist.genres.length > 0 && (
-                    <div style={styles.cardGenres}>
-                      {artist.genres.slice(0, 2).map(g => (
-                        <span style={styles.genreBadge} key={g}>
-                          {g}
-                        </span>
-                      ))}
-                    </div>
-                  )}
-                </div>
-              </Link>
+                <Card
+                  elevation={2}
+                  sx={{
+                    position: 'relative',
+                    height: 400,
+                    overflow: 'hidden',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      transform: 'translateY(-8px) scale(1.02)',
+                      boxShadow: 8,
+                    },
+                  }}
+                >
+                  <CardActionArea
+                    component={RouterLink}
+                    to={`/artists/${artist.id}`}
+                    sx={{ height: '100%' }}
+                  >
+                    {artist.image ? (
+                      <CardMedia
+                        component="img"
+                        height="100%"
+                        image={artist.image}
+                        alt={artist.name}
+                        sx={{ objectFit: 'cover' }}
+                      />
+                    ) : (
+                      <Box
+                        sx={{
+                          height: '100%',
+                          display: 'flex',
+                          alignItems: 'center',
+                          justifyContent: 'center',
+                          fontSize: '80px',
+                          bgcolor: 'primary.light',
+                        }}
+                      >
+                        🎵
+                      </Box>
+                    )}
+                    {/* Gradient Overlay */}
+                    <Box
+                      sx={{
+                        position: 'absolute',
+                        bottom: 0,
+                        left: 0,
+                        right: 0,
+                        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%)',
+                        p: 3,
+                      }}
+                    >
+                      <Typography
+                        variant="h5"
+                        sx={{
+                          color: 'white',
+                          fontWeight: 'bold',
+                          mb: 1,
+                        }}
+                      >
+                        {artist.name}
+                      </Typography>
+                      {artist.genres && artist.genres.length > 0 && (
+                        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
+                          {artist.genres.slice(0, 2).map(genre => (
+                            <Chip
+                              key={genre}
+                              label={genre}
+                              size="small"
+                              sx={{
+                                background: 'rgba(255, 255, 255, 0.2)',
+                                backdropFilter: 'blur(10px)',
+                                WebkitBackdropFilter: 'blur(10px)',
+                                color: 'white',
+                                fontWeight: 500,
+                                border: 'none',
+                              }}
+                            />
+                          ))}
+                        </Stack>
+                      )}
+                    </Box>
+                  </CardActionArea>
+                </Card>
+              </Grid>
             ))}
-          </div>
-        </section>
+          </Grid>
+        </Container>
       )}
 
       {/* Browse by Genre Section */}
       {topGenres.length > 0 && (
-        <section style={styles.section}>
-          <h2 style={styles.sectionTitle}>Browse by Genre</h2>
-          <div style={styles.genreGrid}>
+        <Container maxWidth="xl" sx={{ py: 6 }}>
+          <Typography
+            variant="h2"
+            sx={{
+              fontSize: '2rem',
+              fontWeight: 'bold',
+              color: 'text.primary',
+              mb: 4,
+              textAlign: 'center',
+            }}
+          >
+            Browse by Genre
+          </Typography>
+          <Grid container spacing={2}>
             {topGenres.map((genre, index) => (
-              <Link
-                to={`/artists?genres=${genre.name}`}
-                style={{
-                  ...styles.genreCard,
-                  background: genre.gradient,
-                  animationDelay: `${0.1 * index}s`,
-                }}
+              <Grid
+                item
+                xs={6}
+                sm={4}
+                md={3}
+                lg={2}
                 key={genre.name}
+                style={{ animationDelay: `${0.1 * index}s` }}
+                sx={{ animation: 'scaleIn 0.5s ease-out forwards' }}
               >
-                <div style={styles.genreIcon}>{genre.icon}</div>
-                <h3 style={styles.genreName}>{genre.name}</h3>
-                <p style={styles.genreCount}>
-                  {genre.count} {genre.count === 1 ? 'artist' : 'artists'}
-                </p>
-              </Link>
+                <Card
+                  elevation={2}
+                  sx={{
+                    height: 200,
+                    background: genre.gradient,
+                    transition: 'all 0.3s ease',
+                    '&:hover': {
+                      filter: 'brightness(1.2)',
+                      transform: 'translateY(-4px)',
+                    },
+                  }}
+                >
+                  <CardActionArea
+                    component={RouterLink}
+                    to={`/artists?genres=${genre.name}`}
+                    sx={{
+                      height: '100%',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      justifyContent: 'center',
+                      p: 2,
+                    }}
+                  >
+                    <Typography sx={{ fontSize: '48px', mb: 1 }}>
+                      {genre.icon}
+                    </Typography>
+                    <Typography
+                      variant="h6"
+                      sx={{
+                        color: 'white',
+                        fontWeight: 'bold',
+                        textAlign: 'center',
+                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                        mb: 0.5,
+                      }}
+                    >
+                      {genre.name}
+                    </Typography>
+                    <Typography
+                      variant="caption"
+                      sx={{
+                        color: 'rgba(255, 255, 255, 0.9)',
+                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                      }}
+                    >
+                      {genre.count} {genre.count === 1 ? 'artist' : 'artists'}
+                    </Typography>
+                  </CardActionArea>
+                </Card>
+              </Grid>
             ))}
-          </div>
-        </section>
+          </Grid>
+        </Container>
       )}
 
       {/* Stats Section */}
-      <section style={styles.statsSection}>
-        <div style={styles.statsGrid}>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{stats.artists}</div>
-            <div style={styles.statLabel}>Artists</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{stats.albums}</div>
-            <div style={styles.statLabel}>Albums</div>
-          </div>
-          <div style={styles.statCard}>
-            <div style={styles.statNumber}>{stats.songs}</div>
-            <div style={styles.statLabel}>Songs</div>
-          </div>
-        </div>
+      <Container maxWidth="lg" sx={{ py: 6 }}>
+        <Grid container spacing={3}>
+          <Grid item xs={12} sm={4}>
+            <Card
+              elevation={2}
+              sx={{
+                background: theme.gradients.statCard,
+                p: 3,
+                textAlign: 'center',
+              }}
+            >
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: '3rem',
+                  fontWeight: 'bold',
+                  color: 'primary.main',
+                  mb: 1,
+                }}
+              >
+                {stats.artists}
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: '1.125rem',
+                  color: 'text.secondary',
+                  fontWeight: 500,
+                }}
+              >
+                Artists
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Card
+              elevation={2}
+              sx={{
+                background: theme.gradients.statCard,
+                p: 3,
+                textAlign: 'center',
+              }}
+            >
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: '3rem',
+                  fontWeight: 'bold',
+                  color: 'primary.main',
+                  mb: 1,
+                }}
+              >
+                {stats.albums}
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: '1.125rem',
+                  color: 'text.secondary',
+                  fontWeight: 500,
+                }}
+              >
+                Albums
+              </Typography>
+            </Card>
+          </Grid>
+          <Grid item xs={12} sm={4}>
+            <Card
+              elevation={2}
+              sx={{
+                background: theme.gradients.statCard,
+                p: 3,
+                textAlign: 'center',
+              }}
+            >
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: '3rem',
+                  fontWeight: 'bold',
+                  color: 'primary.main',
+                  mb: 1,
+                }}
+              >
+                {stats.songs}
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: '1.125rem',
+                  color: 'text.secondary',
+                  fontWeight: 500,
+                }}
+              >
+                Songs
+              </Typography>
+            </Card>
+          </Grid>
+        </Grid>
 
+        {/* CTA Box for Non-Authenticated Users */}
         {!isAuthenticated && (
-          <div style={styles.ctaBox}>
-            <h2 style={styles.ctaTitle}>Ready to explore?</h2>
-            <p style={styles.ctaText}>
-              Create an account to unlock personalized recommendations and more features
-            </p>
-            <Link to="/register" style={styles.ctaButton}>
-              Sign Up Now
-            </Link>
-          </div>
+          <Card
+            elevation={3}
+            sx={{
+              background: 'linear-gradient(135deg, #556B2F 0%, #3D4B1F 50%, #2A3416 100%)',
+              mt: 4,
+              p: 4,
+              textAlign: 'center',
+            }}
+          >
+            <CardContent>
+              <Typography
+                variant="h4"
+                sx={{
+                  fontSize: '2rem',
+                  color: 'white',
+                  mb: 2,
+                  fontWeight: 'bold',
+                }}
+              >
+                Ready to explore?
+              </Typography>
+              <Typography
+                variant="body1"
+                sx={{
+                  fontSize: '1.125rem',
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  mb: 3,
+                  maxWidth: '600px',
+                  mx: 'auto',
+                }}
+              >
+                Create an account to unlock personalized recommendations and more features
+              </Typography>
+              <Button
+                component={RouterLink}
+                to="/register"
+                variant="contained"
+                size="large"
+                sx={{
+                  bgcolor: 'white',
+                  color: 'primary.main',
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  '&:hover': {
+                    bgcolor: 'rgba(255, 255, 255, 0.9)',
+                  },
+                }}
+              >
+                Sign Up Now
+              </Button>
+            </CardContent>
+          </Card>
         )}
-      </section>
-    </div>
+      </Container>
+    </Box>
   );
 }
-
-const styles = {
-  page: {
-    minHeight: '100vh',
-    background: theme.colors.background,
-  },
-
-  // Topbar Navigation
-  topbar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
-    background: theme.colors.surface,
-    boxShadow: theme.shadows.sm,
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  logoLink: {
-    textDecoration: 'none',
-  },
-  logo: {
-    margin: 0,
-    color: theme.colors.primary,
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-  },
-  topbarRight: {
-    display: 'flex',
-    gap: theme.spacing.lg,
-    alignItems: 'center',
-  },
-  navLink: {
-    ...theme.components.link(),
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
-    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-  },
-  logoutBtn: {
-    ...theme.components.button('danger'),
-    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-    fontSize: theme.typography.fontSize.base,
-  },
-
-  // Loading
-  loadingContainer: {
-    minHeight: '100vh',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    background: theme.colors.background,
-  },
-  loadingSpinner: {
-    fontSize: theme.typography.fontSize.xl,
-    color: theme.colors.text.secondary,
-  },
-
-  // Hero Section
-  hero: {
-    minHeight: '80vh',
-    background: theme.gradients.heroOlive,
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    position: 'relative',
-    overflow: 'hidden',
-    padding: `${theme.spacing['3xl']} ${theme.spacing.xl}`,
-    animation: 'fadeIn 1s ease-out',
-  },
-  heroContent: {
-    maxWidth: '1200px',
-    width: '100%',
-    textAlign: 'center',
-    zIndex: 1,
-  },
-  heroTitle: {
-    fontSize: '56px',
-    fontWeight: theme.typography.fontWeight.bold,
-    color: 'white',
-    marginBottom: theme.spacing.lg,
-    textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-    lineHeight: 1.2,
-  },
-  heroSubtitle: {
-    fontSize: '20px',
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: theme.spacing['3xl'],
-    maxWidth: '700px',
-    margin: `0 auto ${theme.spacing['3xl']}`,
-    lineHeight: 1.6,
-  },
-  heroCTA: {
-    display: 'flex',
-    gap: theme.spacing.lg,
-    justifyContent: 'center',
-    flexWrap: 'wrap',
-  },
-  primaryButton: {
-    ...theme.components.button('primary'),
-    background: 'white',
-    color: theme.colors.primary,
-    padding: '14px 32px',
-    fontSize: '16px',
-    fontWeight: theme.typography.fontWeight.semibold,
-    boxShadow: theme.shadows.md,
-    transition: 'all 0.3s ease',
-    textDecoration: 'none',
-    display: 'inline-block',
-  },
-  secondaryButtonFixed: {
-    background: 'transparent',
-    border: '2px solid white',
-    color: 'white',
-    padding: '14px 32px',
-    fontSize: '16px',
-    fontWeight: theme.typography.fontWeight.semibold,
-    borderRadius: theme.radius.md,
-    textDecoration: 'none',
-    display: 'inline-block',
-    transition: 'all 0.3s ease',
-    cursor: 'pointer',
-  },
-  logoutButton: {
-    ...theme.components.button('danger'),
-    padding: '14px 32px',
-    fontSize: '16px',
-  },
-
-  // Section
-  section: {
-    padding: `${theme.spacing['3xl']} ${theme.spacing.xl}`,
-    maxWidth: '1400px',
-    margin: '0 auto',
-    animation: 'fadeInUp 0.8s ease-out',
-  },
-  sectionTitle: {
-    fontSize: theme.typography.fontSize['2xl'],
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.text.primary,
-    marginBottom: theme.spacing['2xl'],
-    textAlign: 'center',
-  },
-
-  // Featured Artists Grid
-  featuredGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(280px, 1fr))',
-    gap: theme.spacing.xl,
-  },
-  featuredCard: {
-    position: 'relative',
-    height: '400px',
-    borderRadius: theme.radius.lg,
-    overflow: 'hidden',
-    textDecoration: 'none',
-    boxShadow: theme.shadows.md,
-    transition: 'all 0.3s ease',
-    animation: 'fadeInUp 0.6s ease-out forwards',
-    ':hover': {
-      transform: 'translateY(-8px) scale(1.02)',
-      boxShadow: '0 12px 40px rgba(85, 107, 47, 0.3)',
-    },
-  },
-  cardImage: {
-    width: '100%',
-    height: '100%',
-    position: 'absolute',
-    top: 0,
-    left: 0,
-  },
-  cardImg: {
-    width: '100%',
-    height: '100%',
-    objectFit: 'cover',
-  },
-  cardPlaceholder: {
-    width: '100%',
-    height: '100%',
-    display: 'flex',
-    alignItems: 'center',
-    justifyContent: 'center',
-    fontSize: '80px',
-    background: theme.colors.primaryLight,
-  },
-  cardOverlay: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    padding: theme.spacing.xl,
-    background: theme.gradients.cardOverlay,
-  },
-  cardTitle: {
-    color: 'white',
-    fontSize: theme.typography.fontSize.lg,
-    fontWeight: theme.typography.fontWeight.bold,
-    marginBottom: theme.spacing.sm,
-  },
-  cardGenres: {
-    display: 'flex',
-    gap: theme.spacing.sm,
-    flexWrap: 'wrap',
-  },
-  genreBadge: {
-    background: 'rgba(255, 255, 255, 0.2)',
-    backdropFilter: 'blur(10px)',
-    color: 'white',
-    padding: `${theme.spacing.xs} ${theme.spacing.sm}`,
-    borderRadius: theme.radius.sm,
-    fontSize: theme.typography.fontSize.sm,
-    fontWeight: theme.typography.fontWeight.medium,
-  },
-
-  // Genre Grid
-  genreGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fill, minmax(200px, 1fr))',
-    gap: theme.spacing.lg,
-  },
-  genreCard: {
-    height: '200px',
-    borderRadius: theme.radius.lg,
-    padding: theme.spacing.xl,
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    justifyContent: 'center',
-    textDecoration: 'none',
-    boxShadow: theme.shadows.md,
-    transition: 'all 0.3s ease',
-    animation: 'scaleIn 0.5s ease-out forwards',
-    ':hover': {
-      filter: 'brightness(1.2)',
-      transform: 'translateY(-4px)',
-    },
-  },
-  genreIcon: {
-    fontSize: '48px',
-    marginBottom: theme.spacing.md,
-  },
-  genreName: {
-    color: 'white',
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-    marginBottom: theme.spacing.xs,
-    textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-  },
-  genreCount: {
-    color: 'rgba(255, 255, 255, 0.9)',
-    fontSize: theme.typography.fontSize.sm,
-    textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-  },
-
-  // Stats Section
-  statsSection: {
-    padding: `${theme.spacing['3xl']} ${theme.spacing.xl}`,
-    maxWidth: '1200px',
-    margin: '0 auto',
-  },
-  statsGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: theme.spacing.xl,
-    marginBottom: theme.spacing['3xl'],
-  },
-  statCard: {
-    background: theme.gradients.statCard,
-    padding: theme.spacing['2xl'],
-    borderRadius: theme.radius.lg,
-    textAlign: 'center',
-    boxShadow: theme.shadows.md,
-  },
-  statNumber: {
-    fontSize: '48px',
-    fontWeight: theme.typography.fontWeight.bold,
-    color: theme.colors.primary,
-    marginBottom: theme.spacing.sm,
-  },
-  statLabel: {
-    fontSize: theme.typography.fontSize.lg,
-    color: theme.colors.text.secondary,
-    fontWeight: theme.typography.fontWeight.medium,
-  },
-
-  // CTA Box
-  ctaBox: {
-    background: theme.gradients.heroOlive,
-    padding: theme.spacing['3xl'],
-    borderRadius: theme.radius.lg,
-    textAlign: 'center',
-    boxShadow: theme.shadows.lg,
-  },
-  ctaTitle: {
-    fontSize: theme.typography.fontSize['2xl'],
-    color: 'white',
-    marginBottom: theme.spacing.md,
-  },
-  ctaText: {
-    fontSize: theme.typography.fontSize.lg,
-    color: 'rgba(255, 255, 255, 0.9)',
-    marginBottom: theme.spacing['2xl'],
-    maxWidth: '600px',
-    margin: `0 auto ${theme.spacing['2xl']}`,
-  },
-  ctaButton: {
-    ...theme.components.button('primary'),
-    background: 'white',
-    color: theme.colors.primary,
-    padding: '14px 32px',
-    fontSize: '16px',
-    fontWeight: theme.typography.fontWeight.semibold,
-    boxShadow: theme.shadows.md,
-  },
-
-  // Quick Links
-  quickLinksSection: {
-    padding: `${theme.spacing['2xl']} ${theme.spacing.xl} ${theme.spacing['3xl']}`,
-    maxWidth: '1200px',
-    margin: '0 auto',
-  },
-  quickLinksGrid: {
-    display: 'grid',
-    gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))',
-    gap: theme.spacing.lg,
-  },
-  quickLink: {
-    display: 'flex',
-    flexDirection: 'column',
-    alignItems: 'center',
-    padding: theme.spacing.xl,
-    background: theme.colors.surface,
-    borderRadius: theme.radius.lg,
-    textDecoration: 'none',
-    color: theme.colors.text.primary,
-    boxShadow: theme.shadows.sm,
-    transition: 'all 0.3s ease',
-    ':hover': {
-      transform: 'translateY(-4px)',
-      boxShadow: theme.shadows.md,
-    },
-  },
-  quickLinkIcon: {
-    fontSize: '32px',
-    marginBottom: theme.spacing.sm,
-  },
-};
