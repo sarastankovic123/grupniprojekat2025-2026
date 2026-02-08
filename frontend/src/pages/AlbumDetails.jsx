@@ -354,9 +354,9 @@ export default function AlbumDetails() {
                     </div>
                   )}
 
-                  {/* Admin Actions (revealed on hover) */}
+                  {/* Admin Actions */}
                   {isAdmin && (
-                    <div className="song-card-actions" style={styles.cardActions}>
+                    <div style={styles.cardActionsVisible}>
                       <Link to={`/admin/songs/${songId}/edit`} style={styles.editBtnSmall}>
                         Edit
                       </Link>
@@ -616,6 +616,12 @@ const styles = {
     gap: theme.spacing.xs,
     opacity: 0,
     transition: 'opacity 0.2s ease',
+  },
+  cardActionsVisible: {
+    display: 'flex',
+    gap: theme.spacing.xs,
+    marginTop: 'auto',
+    paddingTop: theme.spacing.sm,
   },
   editBtnSmall: {
     ...theme.components.button('secondary'),

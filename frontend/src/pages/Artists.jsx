@@ -2,14 +2,13 @@ import React, { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { useAuth } from "../auth/AuthContext";
-import NotificationBell from "../components/NotificationBell";
+import Navbar from "../components/Navbar";
 import SearchBar from "../components/SearchBar";
 import GenreFilter from "../components/GenreFilter";
 import { theme } from "../theme";
 
 export default function Artists() {
-  const { logout, isAuthenticated, user } = useAuth();
-  const isAdmin = user?.role === "ADMIN" || user?.role === "A";
+  const { isAuthenticated, user } = useAuth();
 
   const [artists, setArtists] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -83,36 +82,7 @@ export default function Artists() {
 
   return (
     <div style={styles.page}>
-      {/* Topbar Navigation */}
-      <div style={styles.topbar}>
-        <Link to="/" style={styles.logoLink}>
-          <h2 style={styles.logo}>🎵 Music Platform</h2>
-        </Link>
-
-        <div style={styles.topbarRight}>
-          <Link to="/" style={styles.navLink}>Home</Link>
-
-          {isAuthenticated ? (
-            <>
-              <NotificationBell />
-
-              <Link to="/profile" style={styles.navLink}>
-                Profile
-              </Link>
-
-              {isAdmin ? (
-                <Link to="/admin/artists/new" style={styles.navLink}>
-                  + Add Artist
-                </Link>
-              ) : null}
-
-              <button onClick={logout} style={styles.btn}>
-                Logout
-              </button>
-            </>
-          ) : null}
-        </div>
-      </div>
+      <Navbar />
 
       {/* Hero Header Section */}
       <section style={styles.heroHeader}>
@@ -203,38 +173,6 @@ const styles = {
     minHeight: "100vh",
     background: theme.colors.background,
   },
-  topbar: {
-    display: "flex",
-    justifyContent: "space-between",
-    alignItems: "center",
-    padding: `${theme.spacing.lg} ${theme.spacing.xl}`,
-    background: theme.colors.surface,
-    boxShadow: theme.shadows.sm,
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-  },
-  logoLink: {
-    textDecoration: 'none',
-  },
-  logo: {
-    margin: 0,
-    color: theme.colors.primary,
-    fontSize: theme.typography.fontSize.xl,
-    fontWeight: theme.typography.fontWeight.bold,
-  },
-  topbarRight: {
-    display: "flex",
-    alignItems: "center",
-    gap: theme.spacing.lg,
-  },
-  navLink: {
-    ...theme.components.link(),
-    fontSize: theme.typography.fontSize.md,
-    fontWeight: theme.typography.fontWeight.medium,
-    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-    textDecoration: 'none',
-  },
   grid: {
     display: "grid",
     gridTemplateColumns: "repeat(auto-fill, minmax(280px, 1fr))",
@@ -260,15 +198,6 @@ const styles = {
     fontSize: theme.typography.fontSize.sm,
     color: theme.colors.text.light,
     marginTop: theme.spacing.xs,
-  },
-  btn: {
-    ...theme.components.button('danger'),
-    padding: `${theme.spacing.sm} ${theme.spacing.md}`,
-    fontSize: theme.typography.fontSize.base,
-  },
-  linkBtn: {
-    ...theme.components.button("secondary"),
-    padding: "8px 16px",
   },
   error: {
     color: theme.colors.semantic.error,

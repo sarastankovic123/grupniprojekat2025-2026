@@ -1,14 +1,15 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef, useCallback } from 'react';
 import { Link as RouterLink } from 'react-router-dom';
 import { useAuth } from '../auth/AuthContext';
 import { apiFetch } from '../api/apiFetch';
+import { contentApi } from '../api/content';
 import { theme } from '../theme';
+import { getGenreGradient, getGenreIcon } from '../utils/genreHelpers';
 import HomePageSkeleton from '../components/home/HomePageSkeleton';
+import Navbar from '../components/Navbar';
 
 // Material UI Components
 import {
-  AppBar,
-  Toolbar,
   Container,
   Box,
   Typography,
@@ -21,54 +22,247 @@ import {
   Chip,
   Stack,
   IconButton,
-  Drawer,
-  List,
-  ListItem,
-  ListItemButton,
-  ListItemText,
-  Divider,
+  Tooltip,
+  CircularProgress,
 } from '@mui/material';
-import MenuIcon from '@mui/icons-material/Menu';
-import CloseIcon from '@mui/icons-material/Close';
+import NotificationsActiveIcon from '@mui/icons-material/NotificationsActive';
+import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
+import MusicNoteIcon from '@mui/icons-material/MusicNote';
+import AlbumIcon from '@mui/icons-material/Album';
+import PersonIcon from '@mui/icons-material/Person';
 
-// Helper functions
-function getGenreGradient(genre) {
-  const genreLower = genre.toLowerCase();
-  if (genreLower.includes('rock')) return theme.gradients.genreRock;
-  if (genreLower.includes('pop')) return theme.gradients.genrePop;
-  if (genreLower.includes('jazz')) return theme.gradients.genreJazz;
-  if (genreLower.includes('metal')) return theme.gradients.genreMetal;
-  if (genreLower.includes('electronic') || genreLower.includes('edm')) return theme.gradients.genreElectronic;
-  if (genreLower.includes('classical')) return theme.gradients.genreClassical;
-  if (genreLower.includes('hip')) return theme.gradients.genreHipHop;
-  if (genreLower.includes('blues')) return theme.gradients.genreBlues;
-  return theme.gradients.genreRock; // Default
+// ── Utility Hooks ──────────────────────────────────────────────
+
+function useScrollReveal(threshold = 0.15) {
+  const [visibleSet, setVisibleSet] = useState(new Set());
+  const observerRef = useRef(null);
+
+  useEffect(() => {
+    observerRef.current = new IntersectionObserver(
+      (entries) => {
+        entries.forEach((entry) => {
+          if (entry.isIntersecting) {
+            setVisibleSet((prev) => {
+              const next = new Set(prev);
+              next.add(entry.target);
+              return next;
+            });
+            observerRef.current?.unobserve(entry.target);
+          }
+        });
+      },
+      { threshold }
+    );
+    return () => observerRef.current?.disconnect();
+  }, [threshold]);
+
+  const observe = useCallback((node) => {
+    if (node && observerRef.current) {
+      observerRef.current.observe(node);
+    }
+  }, []);
+
+  const isVisible = useCallback(
+    (node) => visibleSet.has(node),
+    [visibleSet]
+  );
+
+  return { observe, isVisible };
 }
 
-function getGenreIcon(genre) {
-  const genreLower = genre.toLowerCase();
-  if (genreLower.includes('rock')) return '🎸';
-  if (genreLower.includes('pop')) return '🎤';
-  if (genreLower.includes('jazz')) return '🎺';
-  if (genreLower.includes('metal')) return '🥁';
-  if (genreLower.includes('electronic') || genreLower.includes('edm')) return '🎧';
-  if (genreLower.includes('classical')) return '🎻';
-  if (genreLower.includes('hip')) return '🎙️';
-  if (genreLower.includes('blues')) return '🎷';
-  return '🎵'; // Default
+function useCountUp(target, duration = 1500, shouldStart = false) {
+  const [value, setValue] = useState(0);
+  const rafRef = useRef(null);
+
+  useEffect(() => {
+    if (!shouldStart || target === 0) {
+      if (shouldStart) setValue(target);
+      return;
+    }
+    const startTime = performance.now();
+    function tick(now) {
+      const elapsed = now - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      // ease-out cubic
+      const eased = 1 - Math.pow(1 - progress, 3);
+      setValue(Math.round(eased * target));
+      if (progress < 1) {
+        rafRef.current = requestAnimationFrame(tick);
+      }
+    }
+    rafRef.current = requestAnimationFrame(tick);
+    return () => rafRef.current && cancelAnimationFrame(rafRef.current);
+  }, [target, duration, shouldStart]);
+
+  return value;
 }
+
+// ── Floating Circles for Hero ──────────────────────────────────
+
+const HERO_CIRCLES = [
+  { size: 300, top: '-10%', left: '-5%', delay: '0s', duration: '7s', opacity: 0.05 },
+  { size: 200, top: '60%', right: '-3%', delay: '1s', duration: '9s', opacity: 0.04 },
+  { size: 100, bottom: '10%', left: '20%', delay: '3s', duration: '8s', opacity: 0.05 },
+];
+
+// ── Equalizer Bar config ──────────────────────────────────────
+
+const EQ_LEFT_BARS = [
+  { height: 60, delay: '0s', duration: '1.2s' },
+  { height: 90, delay: '0.2s', duration: '0.9s' },
+  { height: 45, delay: '0.4s', duration: '1.4s' },
+  { height: 75, delay: '0.1s', duration: '1.0s' },
+  { height: 55, delay: '0.5s', duration: '1.3s' },
+  { height: 85, delay: '0.3s', duration: '0.8s' },
+  { height: 40, delay: '0.6s', duration: '1.1s' },
+  { height: 70, delay: '0.15s', duration: '1.5s' },
+];
+
+const EQ_RIGHT_BARS = [
+  { height: 70, delay: '0.3s', duration: '1.1s' },
+  { height: 50, delay: '0.1s', duration: '1.3s' },
+  { height: 85, delay: '0.5s', duration: '0.9s' },
+  { height: 40, delay: '0.2s', duration: '1.4s' },
+  { height: 65, delay: '0.4s', duration: '1.0s' },
+  { height: 80, delay: '0s', duration: '1.2s' },
+  { height: 55, delay: '0.35s', duration: '0.85s' },
+  { height: 45, delay: '0.25s', duration: '1.5s' },
+];
+
+// ── Component ──────────────────────────────────────────────────
 
 export default function Home() {
-  const { isAuthenticated, user, logout } = useAuth();
+  const { isAuthenticated, user } = useAuth();
   const [featuredArtists, setFeaturedArtists] = useState([]);
   const [topGenres, setTopGenres] = useState([]);
   const [stats, setStats] = useState({ artists: 0, albums: 0, songs: 0 });
   const [loading, setLoading] = useState(true);
-  const [mobileOpen, setMobileOpen] = useState(false);
+  const [genreSubscriptions, setGenreSubscriptions] = useState([]);
+  const [subscribingGenres, setSubscribingGenres] = useState(new Set());
+  const [artistSubscriptions, setArtistSubscriptions] = useState([]);
+  const [subscribingArtists, setSubscribingArtists] = useState(new Set());
+
+  // Scroll reveal
+  const { observe, isVisible } = useScrollReveal(0.12);
+
+  // Refs for scroll-triggered sections
+  const artistCardRefs = useRef([]);
+  const genreCardRefs = useRef([]);
+  const statsSectionRef = useRef(null);
+  const artistHeadingRef = useRef(null);
+  const genreHeadingRef = useRef(null);
+  const ctaRef = useRef(null);
+
+  const [statsVisible, setStatsVisible] = useState(false);
+
+  // Count-up animations for stats
+  const artistCount = useCountUp(stats.artists, 1500, statsVisible);
+  const albumCount = useCountUp(stats.albums, 1800, statsVisible);
+  const songCount = useCountUp(stats.songs, 2000, statsVisible);
+
+  // Register refs for observation once data is loaded
+  useEffect(() => {
+    if (loading) return;
+    artistCardRefs.current.forEach((el) => el && observe(el));
+    genreCardRefs.current.forEach((el) => el && observe(el));
+    if (artistHeadingRef.current) observe(artistHeadingRef.current);
+    if (genreHeadingRef.current) observe(genreHeadingRef.current);
+    if (ctaRef.current) observe(ctaRef.current);
+
+    // Stats section observer
+    if (statsSectionRef.current) {
+      const obs = new IntersectionObserver(
+        ([entry]) => {
+          if (entry.isIntersecting) {
+            setStatsVisible(true);
+            obs.disconnect();
+          }
+        },
+        { threshold: 0.2 }
+      );
+      obs.observe(statsSectionRef.current);
+      return () => obs.disconnect();
+    }
+  }, [loading, observe, featuredArtists.length, topGenres.length]);
 
   useEffect(() => {
     loadHomeData();
   }, []);
+
+  useEffect(() => {
+    if (isAuthenticated) {
+      contentApi.getUserGenreSubscriptions()
+        .then(subs => {
+          if (Array.isArray(subs)) {
+            setGenreSubscriptions(subs.map(s => s.genre));
+          }
+        })
+        .catch(err => console.warn('Failed to load genre subscriptions:', err));
+
+      contentApi.getUserArtistSubscriptions()
+        .then(subs => {
+          if (Array.isArray(subs)) {
+            setArtistSubscriptions(subs.map(s => s.artistId || s.artist_id));
+          }
+        })
+        .catch(err => console.warn('Failed to load artist subscriptions:', err));
+    } else {
+      setGenreSubscriptions([]);
+      setArtistSubscriptions([]);
+    }
+  }, [isAuthenticated]);
+
+  async function handleToggleGenreSubscription(e, genreName) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) return;
+
+    setSubscribingGenres(prev => new Set(prev).add(genreName));
+    try {
+      const isSubscribed = genreSubscriptions.includes(genreName);
+      if (isSubscribed) {
+        await contentApi.unsubscribeFromGenre(genreName);
+        setGenreSubscriptions(prev => prev.filter(g => g !== genreName));
+      } else {
+        await contentApi.subscribeToGenre(genreName);
+        setGenreSubscriptions(prev => [...prev, genreName]);
+      }
+    } catch (err) {
+      console.error('Failed to toggle genre subscription:', err);
+    } finally {
+      setSubscribingGenres(prev => {
+        const next = new Set(prev);
+        next.delete(genreName);
+        return next;
+      });
+    }
+  }
+
+  async function handleToggleArtistSubscription(e, artistId) {
+    e.preventDefault();
+    e.stopPropagation();
+    if (!isAuthenticated) return;
+
+    setSubscribingArtists(prev => new Set(prev).add(artistId));
+    try {
+      const isSubscribed = artistSubscriptions.includes(artistId);
+      if (isSubscribed) {
+        await contentApi.unsubscribeFromArtist(artistId);
+        setArtistSubscriptions(prev => prev.filter(id => id !== artistId));
+      } else {
+        await contentApi.subscribeToArtist(artistId);
+        setArtistSubscriptions(prev => [...prev, artistId]);
+      }
+    } catch (err) {
+      console.error('Failed to toggle artist subscription:', err);
+    } finally {
+      setSubscribingArtists(prev => {
+        const next = new Set(prev);
+        next.delete(artistId);
+        return next;
+      });
+    }
+  }
 
   async function loadHomeData() {
     try {
@@ -77,10 +271,8 @@ export default function Home() {
         apiFetch('/api/content/artists/genres'),
       ]);
 
-      // Set featured artists (first 6)
       setFeaturedArtists(artists.slice(0, 6));
 
-      // Count artists per genre
       const genreCounts = {};
       artists.forEach(artist => {
         artist.genres?.forEach(g => {
@@ -88,7 +280,6 @@ export default function Home() {
         });
       });
 
-      // Map genres with counts and assign gradients/icons
       const topGenresData = genres
         .map(g => ({
           name: g,
@@ -101,11 +292,9 @@ export default function Home() {
 
       setTopGenres(topGenresData);
 
-      // Count albums and songs from all artists
       let totalAlbums = 0;
       let totalSongs = 0;
 
-      // Fetch albums and songs for each artist to get accurate counts
       for (const artist of artists) {
         try {
           const artistId = artist.id || artist._id;
@@ -113,8 +302,6 @@ export default function Home() {
             const albums = await apiFetch(`/api/content/artists/${artistId}/albums`);
             if (Array.isArray(albums)) {
               totalAlbums += albums.length;
-
-              // Count songs in each album
               for (const album of albums) {
                 try {
                   const albumId = album.id || album._id;
@@ -147,147 +334,198 @@ export default function Home() {
     }
   }
 
-  const handleDrawerToggle = () => {
-    setMobileOpen(!mobileOpen);
-  };
-
   if (loading) {
     return <HomePageSkeleton />;
   }
 
+  const statItems = [
+    { icon: <PersonIcon sx={{ fontSize: 32 }} />, value: artistCount, label: 'Artists' },
+    { icon: <AlbumIcon sx={{ fontSize: 32 }} />, value: albumCount, label: 'Albums' },
+    { icon: <MusicNoteIcon sx={{ fontSize: 32 }} />, value: songCount, label: 'Songs' },
+  ];
+
   return (
     <Box>
-      {/* Navigation AppBar */}
-      <AppBar position="sticky" color="default" elevation={1}>
-        <Container maxWidth="xl">
-          <Toolbar sx={{ px: { xs: 0 } }}>
-            {/* Mobile Menu Icon */}
-            <IconButton
-              color="inherit"
-              edge="start"
-              onClick={handleDrawerToggle}
-              sx={{ display: { md: 'none' }, mr: 2 }}
-            >
-              <MenuIcon />
-            </IconButton>
+      <Navbar />
 
-            {/* Logo */}
-            <Typography
-              variant="h6"
-              component={RouterLink}
-              to="/"
-              sx={{
-                textDecoration: 'none',
-                color: 'primary.main',
-                fontWeight: 'bold',
-                flexGrow: { xs: 1, md: 0 },
-              }}
-            >
-              🎵 Music Platform
-            </Typography>
-
-            {/* Desktop Navigation */}
-            <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 2, ml: 4 }}>
-              <Button component={RouterLink} to="/" color="primary">
-                Home
-              </Button>
-              {!isAuthenticated && (
-                <>
-                  <Button component={RouterLink} to="/register">
-                    Register
-                  </Button>
-                  <Button component={RouterLink} to="/login">
-                    Login
-                  </Button>
-                </>
-              )}
-              {isAuthenticated && (
-                <>
-                  <Button component={RouterLink} to="/profile">
-                    Profile
-                  </Button>
-                  <Button onClick={logout} color="error">
-                    Logout
-                  </Button>
-                </>
-              )}
-            </Box>
-          </Toolbar>
-        </Container>
-      </AppBar>
-
-      {/* Mobile Drawer */}
-      <Drawer
-        anchor="left"
-        open={mobileOpen}
-        onClose={handleDrawerToggle}
-        sx={{ display: { md: 'none' } }}
-      >
-        <Box sx={{ width: 250 }}>
-          <Box sx={{ p: 2, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-            <Typography variant="h6" color="primary.main" fontWeight="bold">
-              🎵 Menu
-            </Typography>
-            <IconButton onClick={handleDrawerToggle}>
-              <CloseIcon />
-            </IconButton>
-          </Box>
-          <Divider />
-          <List>
-            <ListItem disablePadding>
-              <ListItemButton component={RouterLink} to="/" onClick={handleDrawerToggle}>
-                <ListItemText primary="Home" />
-              </ListItemButton>
-            </ListItem>
-            {!isAuthenticated && (
-              <>
-                <ListItem disablePadding>
-                  <ListItemButton component={RouterLink} to="/register" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Register" />
-                  </ListItemButton>
-                </ListItem>
-                <ListItem disablePadding>
-                  <ListItemButton component={RouterLink} to="/login" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Login" />
-                  </ListItemButton>
-                </ListItem>
-              </>
-            )}
-            {isAuthenticated && (
-              <>
-                <ListItem disablePadding>
-                  <ListItemButton component={RouterLink} to="/profile" onClick={handleDrawerToggle}>
-                    <ListItemText primary="Profile" />
-                  </ListItemButton>
-                </ListItem>
-                <Divider />
-                <ListItem disablePadding>
-                  <ListItemButton onClick={() => { logout(); handleDrawerToggle(); }}>
-                    <ListItemText primary="Logout" sx={{ color: 'error.main' }} />
-                  </ListItemButton>
-                </ListItem>
-              </>
-            )}
-          </List>
-        </Box>
-      </Drawer>
-
-      {/* Hero Section */}
+      {/* ── Hero Section ─────────────────────────────────── */}
       <Box
         sx={{
-          minHeight: '80vh',
-          background: 'linear-gradient(135deg, #556B2F 0%, #3D4B1F 50%, #2A3416 100%)',
+          minHeight: '70vh',
+          background: 'linear-gradient(135deg, #556B2F 0%, #3D4B1F 30%, #2A3416 60%, #556B2F 100%)',
+          backgroundSize: '300% 300%',
+          animation: 'gradientShift 8s ease infinite',
           display: 'flex',
           alignItems: 'center',
           justifyContent: 'center',
           position: 'relative',
           overflow: 'hidden',
           px: { xs: 2, md: 4 },
-          animation: 'fadeIn 1s ease-out',
+          width: '100vw',
+          ml: 'calc(-50vw + 50%)',
         }}
       >
-        <Container maxWidth="lg">
-          <Box sx={{ textAlign: 'center', zIndex: 1 }}>
+        {/* Floating decorative circles */}
+        {HERO_CIRCLES.map((c, i) => (
+          <Box
+            key={i}
+            sx={{
+              position: 'absolute',
+              width: c.size,
+              height: c.size,
+              borderRadius: '50%',
+              background: `rgba(255, 255, 255, ${c.opacity})`,
+              top: c.top,
+              left: c.left,
+              right: c.right,
+              bottom: c.bottom,
+              animation: `float ${c.duration} ease-in-out ${c.delay} infinite`,
+              pointerEvents: 'none',
+            }}
+          />
+        ))}
+
+        {/* Radial spotlight overlay */}
+        <Box
+          sx={{
+            position: 'absolute',
+            inset: 0,
+            background: 'radial-gradient(ellipse at 50% 40%, rgba(107,142,35,0.18) 0%, transparent 65%)',
+            pointerEvents: 'none',
+          }}
+        />
+
+        {/* ── Left Equalizer Bars ── */}
+        <Box
+          sx={{
+            position: 'absolute',
+            left: { xs: 12, sm: 30, md: 60 },
+            bottom: '15%',
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: { xs: '3px', sm: '5px' },
+            pointerEvents: 'none',
+            opacity: 0,
+            animation: 'fadeInUp 1s ease-out 1s forwards',
+          }}
+        >
+          {EQ_LEFT_BARS.map((bar, i) => (
+            <Box
+              key={i}
+              sx={{
+                width: { xs: 4, sm: 6 },
+                height: bar.height,
+                borderRadius: '3px',
+                background: 'rgba(255, 255, 255, 0.15)',
+                transformOrigin: 'bottom',
+                animation: `eqBar ${bar.duration} ease-in-out ${bar.delay} infinite`,
+              }}
+            />
+          ))}
+        </Box>
+
+        {/* ── Right Equalizer Bars ── */}
+        <Box
+          sx={{
+            position: 'absolute',
+            right: { xs: 12, sm: 30, md: 60 },
+            bottom: '15%',
+            display: 'flex',
+            alignItems: 'flex-end',
+            gap: { xs: '3px', sm: '5px' },
+            pointerEvents: 'none',
+            opacity: 0,
+            animation: 'fadeInUp 1s ease-out 1.2s forwards',
+          }}
+        >
+          {EQ_RIGHT_BARS.map((bar, i) => (
+            <Box
+              key={i}
+              sx={{
+                width: { xs: 4, sm: 6 },
+                height: bar.height,
+                borderRadius: '3px',
+                background: 'rgba(255, 255, 255, 0.15)',
+                transformOrigin: 'bottom',
+                animation: `eqBar ${bar.duration} ease-in-out ${bar.delay} infinite`,
+              }}
+            />
+          ))}
+        </Box>
+
+        {/* ── Scrolling Sound Wave (bottom) ── */}
+        <Box
+          sx={{
+            position: 'absolute',
+            bottom: 0,
+            left: 0,
+            width: '200%',
+            height: { xs: 60, md: 80 },
+            pointerEvents: 'none',
+            animation: 'waveScroll 12s linear infinite',
+            opacity: 0.08,
+          }}
+        >
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 2400 80"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M0,40 Q50,10 100,40 T200,40 T300,40 T400,40 T500,40 T600,40 T700,40 T800,40 T900,40 T1000,40 T1100,40 T1200,40 T1300,40 T1400,40 T1500,40 T1600,40 T1700,40 T1800,40 T1900,40 T2000,40 T2100,40 T2200,40 T2300,40 T2400,40"
+              fill="none"
+              stroke="white"
+              strokeWidth="2"
+            />
+            <path
+              d="M0,50 Q75,20 150,50 T300,50 T450,50 T600,50 T750,50 T900,50 T1050,50 T1200,50 T1350,50 T1500,50 T1650,50 T1800,50 T1950,50 T2100,50 T2250,50 T2400,50"
+              fill="none"
+              stroke="white"
+              strokeWidth="1.5"
+            />
+            <path
+              d="M0,60 Q60,35 120,60 T240,60 T360,60 T480,60 T600,60 T720,60 T840,60 T960,60 T1080,60 T1200,60 T1320,60 T1440,60 T1560,60 T1680,60 T1800,60 T1920,60 T2040,60 T2160,60 T2280,60 T2400,60"
+              fill="none"
+              stroke="white"
+              strokeWidth="1"
+            />
+          </svg>
+        </Box>
+
+        {/* ── Second wave layer (top, reversed) ── */}
+        <Box
+          sx={{
+            position: 'absolute',
+            top: 0,
+            right: 0,
+            width: '200%',
+            height: { xs: 40, md: 50 },
+            pointerEvents: 'none',
+            animation: 'waveScroll 18s linear infinite reverse',
+            opacity: 0.05,
+          }}
+        >
+          <svg
+            width="100%"
+            height="100%"
+            viewBox="0 0 2400 50"
+            preserveAspectRatio="none"
+            xmlns="http://www.w3.org/2000/svg"
+          >
+            <path
+              d="M0,25 Q80,5 160,25 T320,25 T480,25 T640,25 T800,25 T960,25 T1120,25 T1280,25 T1440,25 T1600,25 T1760,25 T1920,25 T2080,25 T2240,25 T2400,25"
+              fill="none"
+              stroke="white"
+              strokeWidth="1.5"
+            />
+          </svg>
+        </Box>
+
+        {/* ── Hero Content ── */}
+        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+          <Box sx={{ textAlign: 'center' }}>
             <Typography
               variant="h1"
               sx={{
@@ -297,6 +535,8 @@ export default function Home() {
                 mb: 2,
                 textShadow: '0 2px 10px rgba(0,0,0,0.3)',
                 lineHeight: 1.2,
+                opacity: 0,
+                animation: 'fadeInUp 0.8s ease-out 0.2s forwards',
               }}
             >
               Discover Your Sound
@@ -310,11 +550,21 @@ export default function Home() {
                 maxWidth: '700px',
                 mx: 'auto',
                 lineHeight: 1.6,
+                opacity: 0,
+                animation: 'fadeInUp 0.8s ease-out 0.5s forwards',
               }}
             >
               Explore thousands of artists, albums, and songs in our curated music catalog
             </Typography>
-            <Box sx={{ display: 'flex', justifyContent: 'center' }}>
+            <Box
+              sx={{
+                display: 'flex',
+                justifyContent: 'center',
+                gap: 2,
+                opacity: 0,
+                animation: 'fadeInUp 0.8s ease-out 0.8s forwards',
+              }}
+            >
               <Button
                 component={RouterLink}
                 to="/artists"
@@ -327,329 +577,543 @@ export default function Home() {
                   py: 1.5,
                   fontSize: '1rem',
                   fontWeight: 600,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.9)',
-                    transform: 'scale(1.05)',
+                    bgcolor: 'rgba(255, 255, 255, 0.95)',
+                    transform: 'translateY(-3px) scale(1.05)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.98)',
                   },
                 }}
               >
                 Browse Artists
+              </Button>
+              <Button
+                component={RouterLink}
+                to="/genres"
+                variant="outlined"
+                size="large"
+                sx={{
+                  color: 'white',
+                  borderColor: 'rgba(255,255,255,0.6)',
+                  px: 4,
+                  py: 1.5,
+                  fontSize: '1rem',
+                  fontWeight: 600,
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                  '&:hover': {
+                    borderColor: 'white',
+                    bgcolor: 'rgba(255,255,255,0.1)',
+                    transform: 'translateY(-3px)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.98)',
+                  },
+                }}
+              >
+                Browse Genres
               </Button>
             </Box>
           </Box>
         </Container>
       </Box>
 
-      {/* Featured Artists Section */}
+      {/* ── Featured Artists Section ──────────────────────── */}
       {featuredArtists.length > 0 && (
-        <Container maxWidth="xl" sx={{ py: 6 }}>
-          <Typography
-            variant="h2"
+        <Container maxWidth="lg" sx={{ py: 8 }}>
+          {/* Section heading with decorative underline */}
+          <Box
+            ref={artistHeadingRef}
             sx={{
-              fontSize: '2rem',
-              fontWeight: 'bold',
-              color: 'text.primary',
-              mb: 4,
               textAlign: 'center',
+              mb: 5,
+              opacity: artistHeadingRef.current && isVisible(artistHeadingRef.current) ? 1 : 0,
+              transform: artistHeadingRef.current && isVisible(artistHeadingRef.current)
+                ? 'translateY(0)' : 'translateY(20px)',
+              transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
             }}
           >
-            Featured Artists
-          </Typography>
-          <Grid container spacing={3}>
-            {featuredArtists.map((artist, index) => (
-              <Grid
-                item
-                xs={12}
-                sm={6}
-                md={4}
-                key={artist.id}
-                style={{ animationDelay: `${0.1 * index}s` }}
-                sx={{ animation: 'fadeInUp 0.6s ease-out forwards' }}
-              >
-                <Card
-                  elevation={2}
+            <Typography
+              variant="h2"
+              sx={{
+                fontSize: '2rem',
+                fontWeight: 'bold',
+                color: 'text.primary',
+                mb: 1.5,
+              }}
+            >
+              Featured Artists
+            </Typography>
+            <Box
+              sx={{
+                width: 60,
+                height: 4,
+                borderRadius: 2,
+                bgcolor: 'primary.main',
+                mx: 'auto',
+              }}
+            />
+          </Box>
+
+          <Grid container spacing={3} justifyContent="center">
+            {featuredArtists.map((artist, index) => {
+              const artistId = artist.id || artist._id;
+              const isArtistSubscribed = artistSubscriptions.includes(artistId);
+              const isArtistSubscribing = subscribingArtists.has(artistId);
+              const ref = artistCardRefs.current[index];
+              const visible = ref && isVisible(ref);
+
+              return (
+                <Grid
+                  item
+                  xs={12}
+                  sm={6}
+                  md={4}
+                  key={artistId}
+                  ref={(el) => (artistCardRefs.current[index] = el)}
                   sx={{
-                    position: 'relative',
-                    height: 400,
-                    overflow: 'hidden',
-                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                    '&:hover': {
-                      transform: 'translateY(-8px) scale(1.02)',
-                      boxShadow: 8,
-                    },
+                    opacity: visible ? 1 : 0,
+                    transform: visible ? 'translateY(0)' : 'translateY(40px)',
+                    transition: `opacity 0.6s ease-out ${index * 0.1}s, transform 0.6s ease-out ${index * 0.1}s`,
                   }}
                 >
-                  <CardActionArea
-                    component={RouterLink}
-                    to={`/artists/${artist.id}`}
-                    sx={{ height: '100%' }}
+                  <Card
+                    elevation={2}
+                    sx={{
+                      position: 'relative',
+                      height: 380,
+                      overflow: 'hidden',
+                      transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                      '&:hover': {
+                        transform: 'translateY(-8px) scale(1.02)',
+                        boxShadow: '0 20px 60px rgba(85, 107, 47, 0.3)',
+                      },
+                      '&:hover .artist-card-media': {
+                        transform: 'scale(1.1)',
+                      },
+                      '&:hover .artist-card-overlay': {
+                        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.8) 100%)',
+                      },
+                    }}
                   >
-                    {artist.image ? (
-                      <CardMedia
-                        component="img"
-                        height="100%"
-                        image={artist.image}
-                        alt={artist.name}
-                        sx={{ objectFit: 'cover' }}
-                      />
-                    ) : (
+                    <CardActionArea
+                      component={RouterLink}
+                      to={`/artists/${artistId}`}
+                      sx={{ height: '100%' }}
+                    >
+                      {artist.image ? (
+                        <CardMedia
+                          className="artist-card-media"
+                          component="img"
+                          height="100%"
+                          image={artist.image}
+                          alt={artist.name}
+                          sx={{
+                            objectFit: 'cover',
+                            transition: 'transform 0.4s ease',
+                          }}
+                        />
+                      ) : (
+                        <Box
+                          className="artist-card-media"
+                          sx={{
+                            height: '100%',
+                            display: 'flex',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            fontSize: '80px',
+                            bgcolor: 'primary.light',
+                            transition: 'transform 0.4s ease',
+                          }}
+                        >
+                          🎵
+                        </Box>
+                      )}
+                      {/* Gradient Overlay */}
                       <Box
+                        className="artist-card-overlay"
+                        sx={{
+                          position: 'absolute',
+                          bottom: 0,
+                          left: 0,
+                          right: 0,
+                          background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%)',
+                          p: 2.5,
+                          transition: 'background 0.3s ease',
+                        }}
+                      >
+                        <Typography
+                          variant="h5"
+                          sx={{
+                            color: 'white',
+                            fontWeight: 'bold',
+                            mb: 0.5,
+                          }}
+                        >
+                          {artist.name}
+                        </Typography>
+                        {artist.genres && artist.genres.length > 0 && (
+                          <Stack direction="row" spacing={0.5} flexWrap="wrap" sx={{ gap: 0.5 }}>
+                            {artist.genres.slice(0, 2).map(genre => (
+                              <Chip
+                                key={genre}
+                                label={genre}
+                                size="small"
+                                sx={{
+                                  ...theme.glass,
+                                  color: 'white',
+                                  fontWeight: 500,
+                                  border: '1px solid rgba(255, 255, 255, 0.25)',
+                                  height: 24,
+                                  fontSize: '0.75rem',
+                                }}
+                              />
+                            ))}
+                          </Stack>
+                        )}
+                      </Box>
+                    </CardActionArea>
+                    {/* Artist Subscribe Button */}
+                    <Tooltip title={!isAuthenticated ? 'Login to subscribe' : isArtistSubscribed ? 'Unsubscribe' : 'Subscribe to notifications'}>
+                      <span style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
+                        <IconButton
+                          size="small"
+                          disabled={!isAuthenticated || isArtistSubscribing}
+                          onClick={(e) => handleToggleArtistSubscription(e, artistId)}
+                          sx={{
+                            bgcolor: isArtistSubscribed ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
+                            color: isArtistSubscribed ? 'primary.main' : 'white',
+                            backdropFilter: 'blur(4px)',
+                            transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                            transform: isArtistSubscribed ? 'scale(1.1)' : 'scale(1)',
+                            boxShadow: isArtistSubscribed ? '0 0 0 3px rgba(85, 107, 47, 0.3)' : 'none',
+                            '&:hover': {
+                              bgcolor: isArtistSubscribed ? 'white' : 'rgba(255,255,255,0.4)',
+                              transform: isArtistSubscribed ? 'scale(1.2)' : 'scale(1.1)',
+                            },
+                            '&:active': {
+                              transform: 'scale(0.9)',
+                            },
+                            '&.Mui-disabled': {
+                              bgcolor: 'rgba(255,255,255,0.15)',
+                              color: 'rgba(255,255,255,0.5)',
+                            },
+                          }}
+                        >
+                          {isArtistSubscribing ? (
+                            <CircularProgress size={18} color="inherit" />
+                          ) : isArtistSubscribed ? (
+                            <NotificationsActiveIcon fontSize="small" />
+                          ) : (
+                            <NotificationsNoneIcon fontSize="small" />
+                          )}
+                        </IconButton>
+                      </span>
+                    </Tooltip>
+                  </Card>
+                </Grid>
+              );
+            })}
+          </Grid>
+        </Container>
+      )}
+
+      {/* ── Browse by Genre Section ──────────────────────── */}
+      {topGenres.length > 0 && (
+        <Box
+          sx={{
+            py: 8,
+            background: 'linear-gradient(180deg, #F5F2ED 0%, #EDE8DF 50%, #F5F2ED 100%)',
+            // Full-bleed
+            width: '100vw',
+            ml: 'calc(-50vw + 50%)',
+          }}
+        >
+          <Container maxWidth="lg">
+            {/* Section heading with decorative underline */}
+            <Box
+              ref={genreHeadingRef}
+              sx={{
+                textAlign: 'center',
+                mb: 5,
+                opacity: genreHeadingRef.current && isVisible(genreHeadingRef.current) ? 1 : 0,
+                transform: genreHeadingRef.current && isVisible(genreHeadingRef.current)
+                  ? 'translateY(0)' : 'translateY(20px)',
+                transition: 'opacity 0.6s ease-out, transform 0.6s ease-out',
+              }}
+            >
+              <Typography
+                variant="h2"
+                sx={{
+                  fontSize: '2rem',
+                  fontWeight: 'bold',
+                  color: 'text.primary',
+                  mb: 1.5,
+                }}
+              >
+                Browse by Genre
+              </Typography>
+              <Box
+                sx={{
+                  width: 60,
+                  height: 4,
+                  borderRadius: 2,
+                  bgcolor: 'primary.main',
+                  mx: 'auto',
+                }}
+              />
+            </Box>
+
+            <Grid container spacing={2} justifyContent="center">
+              {topGenres.map((genre, index) => {
+                const isSubscribed = genreSubscriptions.includes(genre.name);
+                const isSubscribing = subscribingGenres.has(genre.name);
+                const ref = genreCardRefs.current[index];
+                const visible = ref && isVisible(ref);
+
+                return (
+                  <Grid
+                    item
+                    xs={6}
+                    sm={4}
+                    md={2}
+                    key={genre.name}
+                    ref={(el) => (genreCardRefs.current[index] = el)}
+                    sx={{
+                      opacity: visible ? 1 : 0,
+                      transform: visible ? 'scale(1)' : 'scale(0.85)',
+                      transition: `opacity 0.5s ease-out ${index * 0.08}s, transform 0.5s ease-out ${index * 0.08}s`,
+                    }}
+                  >
+                    <Card
+                      elevation={2}
+                      sx={{
+                        height: 200,
+                        background: genre.gradient,
+                        transition: 'all 0.35s cubic-bezier(0.4, 0, 0.2, 1)',
+                        position: 'relative',
+                        overflow: 'hidden',
+                        '&:hover': {
+                          filter: 'brightness(1.15)',
+                          transform: 'translateY(-8px) scale(1.05)',
+                          boxShadow: '0 16px 40px rgba(0,0,0,0.25)',
+                        },
+                        // Shine sweep on hover
+                        '&::before': {
+                          content: '""',
+                          position: 'absolute',
+                          top: 0,
+                          left: '-100%',
+                          width: '100%',
+                          height: '100%',
+                          background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.15), transparent)',
+                          transition: 'left 0.6s ease',
+                          zIndex: 1,
+                          pointerEvents: 'none',
+                        },
+                        '&:hover::before': {
+                          left: '100%',
+                        },
+                      }}
+                    >
+                      <CardActionArea
+                        component={RouterLink}
+                        to={`/artists?genres=${genre.name}`}
                         sx={{
                           height: '100%',
                           display: 'flex',
+                          flexDirection: 'column',
                           alignItems: 'center',
                           justifyContent: 'center',
-                          fontSize: '80px',
-                          bgcolor: 'primary.light',
+                          p: 2,
+                          position: 'relative',
+                          zIndex: 2,
                         }}
                       >
-                        🎵
-                      </Box>
-                    )}
-                    {/* Gradient Overlay */}
-                    <Box
-                      sx={{
-                        position: 'absolute',
-                        bottom: 0,
-                        left: 0,
-                        right: 0,
-                        background: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%)',
-                        p: 3,
-                      }}
-                    >
-                      <Typography
-                        variant="h5"
-                        sx={{
-                          color: 'white',
-                          fontWeight: 'bold',
-                          mb: 1,
-                        }}
-                      >
-                        {artist.name}
-                      </Typography>
-                      {artist.genres && artist.genres.length > 0 && (
-                        <Stack direction="row" spacing={1} flexWrap="wrap" sx={{ gap: 1 }}>
-                          {artist.genres.slice(0, 2).map(genre => (
-                            <Chip
-                              key={genre}
-                              label={genre}
-                              size="small"
-                              sx={{
-                                background: 'rgba(255, 255, 255, 0.2)',
-                                backdropFilter: 'blur(10px)',
-                                WebkitBackdropFilter: 'blur(10px)',
-                                color: 'white',
-                                fontWeight: 500,
-                                border: 'none',
-                              }}
-                            />
-                          ))}
-                        </Stack>
-                      )}
-                    </Box>
-                  </CardActionArea>
-                </Card>
-              </Grid>
-            ))}
-          </Grid>
-        </Container>
+                        <Typography
+                          sx={{
+                            fontSize: '40px',
+                            mb: 0.5,
+                            animation: visible ? 'float 4s ease-in-out infinite' : 'none',
+                            animationDelay: `${index * 0.3}s`,
+                          }}
+                        >
+                          {genre.icon}
+                        </Typography>
+                        <Typography
+                          variant="subtitle1"
+                          sx={{
+                            color: 'white',
+                            fontWeight: 'bold',
+                            textAlign: 'center',
+                            textShadow: '0 2px 4px rgba(0,0,0,0.3)',
+                            mb: 0.5,
+                            fontSize: '0.95rem',
+                          }}
+                        >
+                          {genre.name}
+                        </Typography>
+                        <Typography
+                          variant="caption"
+                          sx={{
+                            color: 'rgba(255, 255, 255, 0.9)',
+                            textShadow: '0 1px 2px rgba(0,0,0,0.3)',
+                          }}
+                        >
+                          {genre.count} {genre.count === 1 ? 'artist' : 'artists'}
+                        </Typography>
+                      </CardActionArea>
+                      {/* Subscribe Button */}
+                      <Tooltip title={!isAuthenticated ? 'Login to subscribe' : isSubscribed ? 'Unsubscribe' : 'Subscribe to notifications'}>
+                        <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 3 }}>
+                          <IconButton
+                            size="small"
+                            disabled={!isAuthenticated || isSubscribing}
+                            onClick={(e) => handleToggleGenreSubscription(e, genre.name)}
+                            sx={{
+                              bgcolor: isSubscribed ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.25)',
+                              color: isSubscribed ? 'primary.main' : 'white',
+                              backdropFilter: 'blur(4px)',
+                              transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                              transform: isSubscribed ? 'scale(1.1)' : 'scale(1)',
+                              boxShadow: isSubscribed ? '0 0 0 3px rgba(85, 107, 47, 0.3)' : 'none',
+                              '&:hover': {
+                                bgcolor: isSubscribed ? 'white' : 'rgba(255,255,255,0.4)',
+                                transform: isSubscribed ? 'scale(1.2)' : 'scale(1.1)',
+                              },
+                              '&:active': {
+                                transform: 'scale(0.9)',
+                              },
+                              '&.Mui-disabled': {
+                                bgcolor: 'rgba(255,255,255,0.15)',
+                                color: 'rgba(255,255,255,0.5)',
+                              },
+                            }}
+                          >
+                            {isSubscribing ? (
+                              <CircularProgress size={16} color="inherit" />
+                            ) : isSubscribed ? (
+                              <NotificationsActiveIcon sx={{ fontSize: 16 }} />
+                            ) : (
+                              <NotificationsNoneIcon sx={{ fontSize: 16 }} />
+                            )}
+                          </IconButton>
+                        </span>
+                      </Tooltip>
+                    </Card>
+                  </Grid>
+                );
+              })}
+            </Grid>
+          </Container>
+        </Box>
       )}
 
-      {/* Browse by Genre Section */}
-      {topGenres.length > 0 && (
-        <Container maxWidth="xl" sx={{ py: 6 }}>
-          <Typography
-            variant="h2"
-            sx={{
-              fontSize: '2rem',
-              fontWeight: 'bold',
-              color: 'text.primary',
-              mb: 4,
-              textAlign: 'center',
-            }}
-          >
-            Browse by Genre
-          </Typography>
-          <Grid container spacing={2}>
-            {topGenres.map((genre, index) => (
-              <Grid
-                item
-                xs={6}
-                sm={4}
-                md={3}
-                lg={2}
-                key={genre.name}
-                style={{ animationDelay: `${0.1 * index}s` }}
-                sx={{ animation: 'scaleIn 0.5s ease-out forwards' }}
-              >
+      {/* ── Stats Section ────────────────────────────────── */}
+      <Container maxWidth="lg" sx={{ py: 8 }}>
+        <Grid
+          container
+          spacing={3}
+          justifyContent="center"
+          ref={statsSectionRef}
+        >
+          {statItems.map((stat, index) => (
+              <Grid item xs={12} sm={4} key={stat.label}>
                 <Card
                   elevation={2}
                   sx={{
-                    height: 200,
-                    background: genre.gradient,
-                    transition: 'all 0.3s ease',
+                    background: theme.gradients.statCard,
+                    p: 3,
+                    textAlign: 'center',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    opacity: statsVisible ? 1 : 0,
+                    transform: statsVisible ? 'translateY(0)' : 'translateY(30px)',
+                    transitionDelay: `${index * 0.15}s`,
                     '&:hover': {
-                      filter: 'brightness(1.2)',
-                      transform: 'translateY(-4px)',
+                      transform: 'translateY(-6px)',
+                      boxShadow: '0 12px 30px rgba(85, 107, 47, 0.2)',
                     },
                   }}
                 >
-                  <CardActionArea
-                    component={RouterLink}
-                    to={`/artists?genres=${genre.name}`}
+                  {/* Icon container */}
+                  <Box
                     sx={{
-                      height: '100%',
+                      width: 56,
+                      height: 56,
+                      borderRadius: '50%',
+                      bgcolor: 'rgba(85, 107, 47, 0.12)',
                       display: 'flex',
-                      flexDirection: 'column',
                       alignItems: 'center',
                       justifyContent: 'center',
-                      p: 2,
+                      mx: 'auto',
+                      mb: 1.5,
+                      color: 'primary.main',
                     }}
                   >
-                    <Typography sx={{ fontSize: '48px', mb: 1 }}>
-                      {genre.icon}
-                    </Typography>
-                    <Typography
-                      variant="h6"
-                      sx={{
-                        color: 'white',
-                        fontWeight: 'bold',
-                        textAlign: 'center',
-                        textShadow: '0 2px 4px rgba(0,0,0,0.3)',
-                        mb: 0.5,
-                      }}
-                    >
-                      {genre.name}
-                    </Typography>
-                    <Typography
-                      variant="caption"
-                      sx={{
-                        color: 'rgba(255, 255, 255, 0.9)',
-                        textShadow: '0 1px 2px rgba(0,0,0,0.3)',
-                      }}
-                    >
-                      {genre.count} {genre.count === 1 ? 'artist' : 'artists'}
-                    </Typography>
-                  </CardActionArea>
+                    {stat.icon}
+                  </Box>
+                  <Typography
+                    variant="h2"
+                    sx={{
+                      fontSize: '3rem',
+                      fontWeight: 'bold',
+                      color: 'primary.main',
+                      mb: 1,
+                    }}
+                  >
+                    {stat.value}
+                  </Typography>
+                  <Typography
+                    variant="body1"
+                    sx={{
+                      fontSize: '0.85rem',
+                      color: 'text.secondary',
+                      fontWeight: 600,
+                      textTransform: 'uppercase',
+                      letterSpacing: '0.1em',
+                    }}
+                  >
+                    {stat.label}
+                  </Typography>
                 </Card>
               </Grid>
-            ))}
-          </Grid>
-        </Container>
-      )}
-
-      {/* Stats Section */}
-      <Container maxWidth="lg" sx={{ py: 6 }}>
-        <Grid container spacing={3}>
-          <Grid item xs={12} sm={4}>
-            <Card
-              elevation={2}
-              sx={{
-                background: theme.gradients.statCard,
-                p: 3,
-                textAlign: 'center',
-              }}
-            >
-              <Typography
-                variant="h2"
-                sx={{
-                  fontSize: '3rem',
-                  fontWeight: 'bold',
-                  color: 'primary.main',
-                  mb: 1,
-                }}
-              >
-                {stats.artists}
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  fontSize: '1.125rem',
-                  color: 'text.secondary',
-                  fontWeight: 500,
-                }}
-              >
-                Artists
-              </Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card
-              elevation={2}
-              sx={{
-                background: theme.gradients.statCard,
-                p: 3,
-                textAlign: 'center',
-              }}
-            >
-              <Typography
-                variant="h2"
-                sx={{
-                  fontSize: '3rem',
-                  fontWeight: 'bold',
-                  color: 'primary.main',
-                  mb: 1,
-                }}
-              >
-                {stats.albums}
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  fontSize: '1.125rem',
-                  color: 'text.secondary',
-                  fontWeight: 500,
-                }}
-              >
-                Albums
-              </Typography>
-            </Card>
-          </Grid>
-          <Grid item xs={12} sm={4}>
-            <Card
-              elevation={2}
-              sx={{
-                background: theme.gradients.statCard,
-                p: 3,
-                textAlign: 'center',
-              }}
-            >
-              <Typography
-                variant="h2"
-                sx={{
-                  fontSize: '3rem',
-                  fontWeight: 'bold',
-                  color: 'primary.main',
-                  mb: 1,
-                }}
-              >
-                {stats.songs}
-              </Typography>
-              <Typography
-                variant="body1"
-                sx={{
-                  fontSize: '1.125rem',
-                  color: 'text.secondary',
-                  fontWeight: 500,
-                }}
-              >
-                Songs
-              </Typography>
-            </Card>
-          </Grid>
+          ))}
         </Grid>
 
-        {/* CTA Box for Non-Authenticated Users */}
+        {/* ── CTA Box for Non-Authenticated Users ────────── */}
         {!isAuthenticated && (
           <Card
+            ref={ctaRef}
             elevation={3}
             sx={{
               background: 'linear-gradient(135deg, #556B2F 0%, #3D4B1F 50%, #2A3416 100%)',
-              mt: 4,
+              mt: 5,
               p: 4,
               textAlign: 'center',
+              position: 'relative',
+              overflow: 'hidden',
+              opacity: ctaRef.current && isVisible(ctaRef.current) ? 1 : 0,
+              transform: ctaRef.current && isVisible(ctaRef.current)
+                ? 'translateY(0)' : 'translateY(30px)',
+              transition: 'opacity 0.7s ease-out, transform 0.7s ease-out',
             }}
           >
+            {/* Decorative corner circle */}
+            <Box
+              sx={{
+                position: 'absolute',
+                top: -40,
+                right: -40,
+                width: 120,
+                height: 120,
+                borderRadius: '50%',
+                background: 'rgba(255,255,255,0.06)',
+                pointerEvents: 'none',
+              }}
+            />
             <CardContent>
               <Typography
                 variant="h4"
@@ -686,8 +1150,15 @@ export default function Home() {
                   py: 1.5,
                   fontSize: '1rem',
                   fontWeight: 600,
+                  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
                   '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.9)',
+                    bgcolor: 'rgba(255, 255, 255, 0.95)',
+                    transform: 'translateY(-3px)',
+                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                  },
+                  '&:active': {
+                    transform: 'scale(0.98)',
                   },
                 }}
               >

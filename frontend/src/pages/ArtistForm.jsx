@@ -2,13 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { contentApi } from "../api/content";
 import { theme } from "../theme";
-
-function splitGenres(str) {
-  return str
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+import GenreChipInput from "../components/GenreChipInput";
 
 export default function ArtistForm({ mode = "create" }) {
   const isEdit = mode === "edit";
@@ -17,7 +11,7 @@ export default function ArtistForm({ mode = "create" }) {
 
   const [name, setName] = useState("");
   const [bio, setBio] = useState("");
-  const [genresText, setGenresText] = useState("");
+  const [genres, setGenres] = useState([]);
 
   const [loading, setLoading] = useState(false);
   const [status, setStatus] = useState({ type: "", message: "" });
@@ -34,8 +28,7 @@ export default function ArtistForm({ mode = "create" }) {
 
         setName(a?.name ?? "");
         setBio(a?.biography ?? a?.bio ?? "");
-        const g = a?.genres ?? [];
-        setGenresText(Array.isArray(g) ? g.join(", ") : "");
+        setGenres(Array.isArray(a?.genres) ? a.genres : []);
       } catch (err) {
         setStatus({ type: "error", message: err.message || "Greška pri učitavanju umetnika." });
       } finally {
@@ -56,7 +49,7 @@ export default function ArtistForm({ mode = "create" }) {
     const payload = {
       name: name.trim(),
       biography: bio.trim(),
-      genres: splitGenres(genresText),
+      genres,
     };
 
     try {
@@ -104,15 +97,7 @@ export default function ArtistForm({ mode = "create" }) {
             />
           </label>
 
-          <label style={styles.label}>
-            Žanrovi (odvojeni zarezom)
-            <input
-              value={genresText}
-              onChange={(e) => setGenresText(e.target.value)}
-              placeholder="npr. Rock, Pop, Jazz"
-              style={styles.input}
-            />
-          </label>
+          <GenreChipInput value={genres} onChange={setGenres} />
 
           <button disabled={loading} type="submit" style={styles.btn}>
             {loading ? "Čuvam..." : "Sačuvaj"}

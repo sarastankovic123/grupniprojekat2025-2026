@@ -2,13 +2,7 @@ import React, { useEffect, useMemo, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { contentApi } from "../api/content";
 import { theme } from "../theme";
-
-function splitGenres(str) {
-  return str
-    .split(",")
-    .map((s) => s.trim())
-    .filter(Boolean);
-}
+import GenreChipInput from "../components/GenreChipInput";
 
 export default function AlbumForm({ mode = "create" }) {
   const isEdit = mode === "edit";
@@ -17,7 +11,7 @@ export default function AlbumForm({ mode = "create" }) {
 
   const [title, setTitle] = useState("");
   const [releaseDate, setReleaseDate] = useState(""); // yyyy-mm-dd
-  const [genresText, setGenresText] = useState("");
+  const [genres, setGenres] = useState([]);
   const [albumArtistId, setAlbumArtistId] = useState(artistId || "");
 
   const [loading, setLoading] = useState(false);
@@ -35,8 +29,7 @@ export default function AlbumForm({ mode = "create" }) {
 
         setTitle(album?.title ?? "");
         setReleaseDate(album?.releaseDate ?? "");
-        const g = album?.genres ?? [];
-        setGenresText(Array.isArray(g) ? g.join(", ") : "");
+        setGenres(Array.isArray(album?.genres) ? album.genres : []);
         setAlbumArtistId(album?.artistId ?? "");
       } catch (err) {
         setStatus({ type: "error", message: err.message || "Greška pri učitavanju albuma." });
@@ -59,7 +52,7 @@ export default function AlbumForm({ mode = "create" }) {
       title: title.trim(),
       artistId: albumArtistId, // OBAVEZNO po backendu
       releaseDate: releaseDate ? releaseDate : undefined,
-      genres: splitGenres(genresText),
+      genres,
     };
 
     try {
@@ -107,15 +100,7 @@ export default function AlbumForm({ mode = "create" }) {
             />
           </label>
 
-          <label style={styles.label}>
-            Žanrovi (zarezom odvojeni, max 10)
-            <input
-              value={genresText}
-              onChange={(e) => setGenresText(e.target.value)}
-              placeholder="npr. Rock, Pop, Jazz"
-              style={styles.input}
-            />
-          </label>
+          <GenreChipInput value={genres} onChange={setGenres} />
 
           <button disabled={loading} type="submit" style={styles.btn}>
             {loading ? "Čuvam..." : "Sačuvaj"}
