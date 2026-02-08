@@ -5,6 +5,7 @@ import Home from "./pages/Home";
 import Artists from "./pages/Artists";
 import ArtistDetails from "./pages/ArtistDetails";
 import AlbumDetails from "./pages/AlbumDetails";
+import Genres from "./pages/Genres";
 
 import Login from "./pages/Login";
 import VerifyOtp from "./pages/VerifyOtp";
@@ -32,6 +33,7 @@ export default function App() {
       <Route path="/artists" element={<Artists />} />
       <Route path="/artists/:id" element={<ArtistDetails />} />
       <Route path="/albums/:id" element={<AlbumDetails />} />
+      <Route path="/genres" element={<Genres />} />
 
       <Route path="/login" element={<Login />} />
       <Route path="/verify-otp" element={<VerifyOtp />} />

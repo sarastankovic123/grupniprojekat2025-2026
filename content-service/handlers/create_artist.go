@@ -1,12 +1,9 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 
-	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
 	"shared-utils/validation"
@@ -42,20 +39,27 @@ func CreateArtist(c *gin.Context) {
 		"message": "Artist created",
 	})
 
-	// Notify admin about new artist (async, non-blocking)
+	// Notify genre subscribers about new artist (async, non-blocking)
+	// Note: Artist has no subscribers yet (just created), so only notify genre subscribers
 	go func() {
-		userID, exists := c.Get("userID")
-		if exists {
-			// SECURITY FIX: HTML escape name to prevent XSS
-			sanitizedName := validation.SanitizeForHTML(req.Name)
-			notifBody, _ := json.Marshal(map[string]string{
-				"userId":  userID.(string),
-				"message": fmt.Sprintf("New artist created: %s", sanitizedName),
-			})
-			req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
-			http.DefaultClient.Do(req)
+		// Collect unique subscriber user IDs from genre subscriptions
+		subscriberMap := make(map[string]bool)
+
+		for _, genre := range req.Genres {
+			genreSubs, err := repository.GetGenreSubscribers(genre)
+			if err == nil {
+				for _, userID := range genreSubs {
+					subscriberMap[userID.Hex()] = true
+				}
+			}
+		}
+
+		// Send notification to each unique subscriber
+		sanitizedName := validation.SanitizeForHTML(req.Name)
+		message := fmt.Sprintf("New artist added: %s", sanitizedName)
+
+		for userIDHex := range subscriberMap {
+			sendNotification(userIDHex, message)
 		}
 	}()
 }

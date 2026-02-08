@@ -1,8 +1,6 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,7 +8,6 @@ import (
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
 
-	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
 	"shared-utils/validation"
@@ -75,20 +72,38 @@ func CreateAlbum(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, created)
 
-	// Notify admin about new album (async, non-blocking)
+	// Notify subscribers about new album (async, non-blocking)
 	go func() {
-		userID, exists := c.Get("userID")
-		if exists {
-			// SECURITY FIX: HTML escape title to prevent XSS
-			sanitizedTitle := validation.SanitizeForHTML(req.Title)
-			notifBody, _ := json.Marshal(map[string]string{
-				"userId":  userID.(string),
-				"message": fmt.Sprintf("New album created: %s", sanitizedTitle),
-			})
-			req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
-			http.DefaultClient.Do(req)
+		artist, err := repository.GetArtistByID(created.ArtistID.Hex())
+		if err != nil {
+			return
+		}
+
+		subscriberMap := make(map[string]bool)
+
+		artistSubs, err := repository.GetArtistSubscribers(created.ArtistID)
+		if err == nil {
+			for _, userID := range artistSubs {
+				subscriberMap[userID.Hex()] = true
+			}
+		}
+
+		allGenres := append(created.Genres, artist.Genres...)
+		for _, genre := range allGenres {
+			genreSubs, err := repository.GetGenreSubscribers(genre)
+			if err == nil {
+				for _, userID := range genreSubs {
+					subscriberMap[userID.Hex()] = true
+				}
+			}
+		}
+
+		sanitizedTitle := validation.SanitizeForHTML(created.Title)
+		sanitizedArtist := validation.SanitizeForHTML(artist.Name)
+		message := fmt.Sprintf("New album: %s by %s", sanitizedTitle, sanitizedArtist)
+
+		for userIDHex := range subscriberMap {
+			sendNotification(userIDHex, message)
 		}
 	}()
 }
@@ -143,18 +158,40 @@ func CreateAlbumForArtist(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, created)
 
+	// Notify subscribers about new album (async, non-blocking)
 	go func() {
-		userID, exists := c.Get("userID")
-		if exists {
-			sanitizedTitle := validation.SanitizeForHTML(req.Title)
-			notifBody, _ := json.Marshal(map[string]string{
-				"userId":  userID.(string),
-				"message": fmt.Sprintf("New album created: %s", sanitizedTitle),
-			})
-			req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
-			http.DefaultClient.Do(req)
+		// Get artist details
+		artist, err := repository.GetArtistByID(created.ArtistID.Hex())
+		if err != nil {
+			return
+		}
+
+		// Collect unique subscriber user IDs
+		subscriberMap := make(map[string]bool)
+
+		artistSubs, err := repository.GetArtistSubscribers(created.ArtistID)
+		if err == nil {
+			for _, userID := range artistSubs {
+				subscriberMap[userID.Hex()] = true
+			}
+		}
+
+		allGenres := append(created.Genres, artist.Genres...)
+		for _, genre := range allGenres {
+			genreSubs, err := repository.GetGenreSubscribers(genre)
+			if err == nil {
+				for _, userID := range genreSubs {
+					subscriberMap[userID.Hex()] = true
+				}
+			}
+		}
+
+		sanitizedTitle := validation.SanitizeForHTML(created.Title)
+		sanitizedArtist := validation.SanitizeForHTML(artist.Name)
+		message := fmt.Sprintf("New album: %s by %s", sanitizedTitle, sanitizedArtist)
+
+		for userIDHex := range subscriberMap {
+			sendNotification(userIDHex, message)
 		}
 	}()
 }

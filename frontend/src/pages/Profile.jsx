@@ -3,6 +3,7 @@ import { Link as RouterLink } from "react-router-dom";
 import { useAuth } from "../auth/AuthContext";
 import { fetchNotifications, markAsRead, markAsUnread } from "../api/notifications";
 import { apiFetch } from "../api/apiFetch";
+import { contentApi } from "../api/content";
 
 // Material UI Components
 import {
@@ -118,6 +119,12 @@ export default function Profile() {
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingIds, setUpdatingIds] = useState(new Set());
+
+  // Subscriptions state
+  const [artistSubscriptions, setArtistSubscriptions] = useState([]);
+  const [genreSubscriptions, setGenreSubscriptions] = useState([]);
+  const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
+  const [unsubscribingIds, setUnsubscribingIds] = useState(new Set());
 
   // Tab state
   const [activeTab, setActiveTab] = useState(0);
@@ -275,6 +282,71 @@ export default function Profile() {
       });
     } finally {
       setProfileSaving(false);
+    }
+  }
+
+  // Load subscriptions when Subscriptions tab is active
+  useEffect(() => {
+    if (activeTab !== 2) return; // Only load when Subscriptions tab is active
+
+    let alive = true;
+
+    async function loadSubscriptions() {
+      setSubscriptionsLoading(true);
+      try {
+        const [artists, genres] = await Promise.all([
+          contentApi.getUserArtistSubscriptions(),
+          contentApi.getUserGenreSubscriptions(),
+        ]);
+        if (!alive) return;
+        setArtistSubscriptions(Array.isArray(artists) ? artists : []);
+        setGenreSubscriptions(Array.isArray(genres) ? genres : []);
+      } catch (err) {
+        if (!alive) return;
+        console.error("Failed to load subscriptions:", err);
+      } finally {
+        if (!alive) return;
+        setSubscriptionsLoading(false);
+      }
+    }
+
+    loadSubscriptions();
+    return () => {
+      alive = false;
+    };
+  }, [activeTab]);
+
+  // Unsubscribe from artist
+  async function handleUnsubscribeArtist(artistId) {
+    setUnsubscribingIds((prev) => new Set(prev).add(artistId));
+    try {
+      await contentApi.unsubscribeFromArtist(artistId);
+      setArtistSubscriptions((prev) => prev.filter((s) => s.artistId !== artistId));
+    } catch (err) {
+      alert(err.message || "Failed to unsubscribe");
+    } finally {
+      setUnsubscribingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(artistId);
+        return next;
+      });
+    }
+  }
+
+  // Unsubscribe from genre
+  async function handleUnsubscribeGenre(genre) {
+    setUnsubscribingIds((prev) => new Set(prev).add(genre));
+    try {
+      await contentApi.unsubscribeFromGenre(genre);
+      setGenreSubscriptions((prev) => prev.filter((s) => s.genre !== genre));
+    } catch (err) {
+      alert(err.message || "Failed to unsubscribe");
+    } finally {
+      setUnsubscribingIds((prev) => {
+        const next = new Set(prev);
+        next.delete(genre);
+        return next;
+      });
     }
   }
 
@@ -490,6 +562,15 @@ export default function Profile() {
               <Tabs value={activeTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
                 <Tab icon={<EditIcon />} iconPosition="start" label="Edit Profile" />
                 <Tab icon={<NotificationsIcon />} iconPosition="start" label="Notifications" />
+                <Tab
+                  icon={
+                    <Badge badgeContent={artistSubscriptions.length + genreSubscriptions.length} color="primary">
+                      <NotificationsIcon />
+                    </Badge>
+                  }
+                  iconPosition="start"
+                  label="Subscriptions"
+                />
                 <Tab icon={<SettingsIcon />} iconPosition="start" label="Settings" />
               </Tabs>
 
@@ -629,8 +710,118 @@ export default function Profile() {
                 )}
               </TabPanel>
 
-              {/* Tab 3: Settings */}
+              {/* Tab 3: Subscriptions */}
               <TabPanel value={activeTab} index={2}>
+                <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
+                  My Subscriptions
+                </Typography>
+
+                {subscriptionsLoading ? (
+                  <Box sx={{ display: "flex", justifyContent: "center", py: 4 }}>
+                    <Typography>Loading subscriptions...</Typography>
+                  </Box>
+                ) : (
+                  <>
+                    {/* Artist Subscriptions */}
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                      Artist Subscriptions ({artistSubscriptions.length})
+                    </Typography>
+
+                    {artistSubscriptions.length === 0 ? (
+                      <Paper sx={{ p: 3, textAlign: "center", mb: 4, bgcolor: "grey.50" }}>
+                        <Typography color="text.secondary">
+                          You are not subscribed to any artists yet.
+                        </Typography>
+                        <Button component={RouterLink} to="/" variant="contained" sx={{ mt: 2 }}>
+                          Browse Artists
+                        </Button>
+                      </Paper>
+                    ) : (
+                      <List sx={{ mb: 4 }}>
+                        {artistSubscriptions.map((sub) => (
+                          <ListItem
+                            key={sub.id || sub.artistId}
+                            secondaryAction={
+                              <LoadingButton
+                                loading={unsubscribingIds.has(sub.artistId)}
+                                variant="outlined"
+                                color="error"
+                                size="small"
+                                onClick={() => handleUnsubscribeArtist(sub.artistId)}
+                              >
+                                Unsubscribe
+                              </LoadingButton>
+                            }
+                            sx={{
+                              bgcolor: "background.paper",
+                              mb: 1,
+                              borderRadius: 1,
+                              border: "1px solid",
+                              borderColor: "divider",
+                            }}
+                          >
+                            <ListItemButton component={RouterLink} to={`/artists/${sub.artistId}`}>
+                              <ListItemIcon>
+                                <PersonIcon />
+                              </ListItemIcon>
+                              <ListItemText
+                                primary={sub.artistName || "Unknown Artist"}
+                                secondary={
+                                  <>
+                                    {sub.artistGenres && sub.artistGenres.length > 0 && (
+                                      <Box
+                                        component="span"
+                                        sx={{ display: "flex", gap: 0.5, mt: 0.5, flexWrap: "wrap" }}
+                                      >
+                                        {sub.artistGenres.slice(0, 3).map((genre, idx) => (
+                                          <Chip key={idx} label={genre} size="small" />
+                                        ))}
+                                      </Box>
+                                    )}
+                                    <Typography variant="caption" display="block" sx={{ mt: 0.5 }}>
+                                      Subscribed {new Date(sub.createdAt).toLocaleDateString()}
+                                    </Typography>
+                                  </>
+                                }
+                              />
+                            </ListItemButton>
+                          </ListItem>
+                        ))}
+                      </List>
+                    )}
+
+                    {/* Genre Subscriptions */}
+                    <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
+                      Genre Subscriptions ({genreSubscriptions.length})
+                    </Typography>
+
+                    {genreSubscriptions.length === 0 ? (
+                      <Paper sx={{ p: 3, textAlign: "center", bgcolor: "grey.50" }}>
+                        <Typography color="text.secondary">
+                          You are not subscribed to any genres yet.
+                        </Typography>
+                      </Paper>
+                    ) : (
+                      <Box sx={{ display: "flex", flexWrap: "wrap", gap: 1 }}>
+                        {genreSubscriptions.map((sub) => (
+                          <Chip
+                            key={sub.id || sub.genre}
+                            label={sub.genre}
+                            onDelete={() => handleUnsubscribeGenre(sub.genre)}
+                            deleteIcon={unsubscribingIds.has(sub.genre) ? <span>...</span> : undefined}
+                            color="primary"
+                            variant="outlined"
+                            sx={{ py: 2.5, fontSize: "0.9rem" }}
+                          />
+                        ))}
+                      </Box>
+                    )}
+                  </>
+                )}
+              </TabPanel>
+
+              {/* Tab 4: Settings */}
+              <TabPanel value={activeTab} index={3}>
                 <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
                   <SettingsIcon sx={{ fontSize: 64, opacity: 0.3, mb: 2 }} />
                   <Typography variant="h6" gutterBottom>

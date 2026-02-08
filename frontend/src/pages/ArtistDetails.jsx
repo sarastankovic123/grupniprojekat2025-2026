@@ -25,6 +25,10 @@ export default function ArtistDetails() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
+  const [isSubscribed, setIsSubscribed] = useState(false);
+  const [subscribing, setSubscribing] = useState(false);
+  const [checkingSubscription, setCheckingSubscription] = useState(true);
+
   useEffect(() => {
     let alive = true;
 
@@ -38,6 +42,25 @@ export default function ArtistDetails() {
         if (!alive) return;
         setArtist(a);
         setAlbums(Array.isArray(al) ? al : al?.items || []);
+
+        // Check subscription status if authenticated
+        if (isAuthenticated) {
+          setCheckingSubscription(true);
+          try {
+            const status = await contentApi.getArtistSubscriptionStatus(id);
+            if (!alive) return;
+            setIsSubscribed(status?.isSubscribed || false);
+          } catch (err) {
+            // Ignore errors (user may not be authenticated)
+            if (!alive) return;
+            setIsSubscribed(false);
+          } finally {
+            if (!alive) return;
+            setCheckingSubscription(false);
+          }
+        } else {
+          setCheckingSubscription(false);
+        }
       } catch (e) {
         if (!alive) return;
         setErr(e.message || "Failed to load artist");
@@ -51,7 +74,7 @@ export default function ArtistDetails() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, isAuthenticated]);
 
   async function handleDeleteArtist() {
     if (!window.confirm(`Delete artist "${artist?.name || 'this artist'}"? This will fail if albums exist.`)) {
@@ -63,6 +86,28 @@ export default function ArtistDetails() {
       navigate("/", { replace: true });
     } catch (err) {
       alert(err.message || "Failed to delete artist");
+    }
+  }
+
+  async function handleToggleSubscription() {
+    if (!isAuthenticated) {
+      alert("Please login to subscribe");
+      return;
+    }
+
+    setSubscribing(true);
+    try {
+      if (isSubscribed) {
+        await contentApi.unsubscribeFromArtist(id);
+        setIsSubscribed(false);
+      } else {
+        await contentApi.subscribeToArtist(id);
+        setIsSubscribed(true);
+      }
+    } catch (err) {
+      alert(err.message || "Failed to update subscription");
+    } finally {
+      setSubscribing(false);
     }
   }
 
@@ -92,6 +137,24 @@ export default function ArtistDetails() {
           <div style={styles.countryText}>
             {artist.country}
           </div>
+        )}
+
+        {/* Subscribe Button */}
+        {isAuthenticated && !checkingSubscription && (
+          <button
+            onClick={handleToggleSubscription}
+            disabled={subscribing}
+            style={{
+              ...styles.actionBtn,
+              background: isSubscribed ? theme.colors.semantic.success : theme.colors.primary,
+              opacity: subscribing ? 0.6 : 1,
+              cursor: subscribing ? "not-allowed" : "pointer",
+              marginRight: theme.spacing.sm,
+              marginTop: theme.spacing.lg,
+            }}
+          >
+            {subscribing ? "..." : isSubscribed ? "✓ Subscribed" : "+ Subscribe"}
+          </button>
         )}
 
         {/* Admin Actions in Hero */}

@@ -1,16 +1,12 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
-	"fmt"
-	"net/http"
-	"strings"
-
-	"content-service/config"
 	"content-service/models"
 	"content-service/repository"
+	"fmt"
+	"net/http"
 	"shared-utils/validation"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -110,20 +106,48 @@ func CreateSong(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, created)
 
-	// Notify admin about new song (async, non-blocking)
+	// Notify subscribers about new song (async, non-blocking)
 	go func() {
-		userID, exists := c.Get("userID")
-		if exists {
-			// SECURITY FIX: HTML escape title to prevent XSS
-			sanitizedTitle := validation.SanitizeForHTML(created.Title)
-			notifBody, _ := json.Marshal(map[string]string{
-				"userId":  userID.(string),
-				"message": fmt.Sprintf("New song created: %s", sanitizedTitle),
-			})
-			req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
-			http.DefaultClient.Do(req)
+		// Get album and artist details
+		album, err := repository.GetAlbumByID(created.AlbumID.Hex())
+		if err != nil {
+			return
+		}
+
+		artist, err := repository.GetArtistByID(album.ArtistID.Hex())
+		if err != nil {
+			return
+		}
+
+		// Collect unique subscriber user IDs (deduplicate users subscribed to both artist and genre)
+		subscriberMap := make(map[string]bool)
+
+		// 1. Get artist subscribers
+		artistSubs, err := repository.GetArtistSubscribers(album.ArtistID)
+		if err == nil {
+			for _, userID := range artistSubs {
+				subscriberMap[userID.Hex()] = true
+			}
+		}
+
+		// 2. Get genre subscribers (check both album and artist genres)
+		allGenres := append(album.Genres, artist.Genres...)
+		for _, genre := range allGenres {
+			genreSubs, err := repository.GetGenreSubscribers(genre)
+			if err == nil {
+				for _, userID := range genreSubs {
+					subscriberMap[userID.Hex()] = true
+				}
+			}
+		}
+
+		// 3. Send notification to each unique subscriber
+		sanitizedTitle := validation.SanitizeForHTML(created.Title)
+		sanitizedArtist := validation.SanitizeForHTML(artist.Name)
+		message := fmt.Sprintf("New song: %s by %s", sanitizedTitle, sanitizedArtist)
+
+		for userIDHex := range subscriberMap {
+			sendNotification(userIDHex, message)
 		}
 	}()
 }
@@ -177,18 +201,48 @@ func CreateSongForAlbum(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, created)
 
+	// Notify subscribers about new song (async, non-blocking)
 	go func() {
-		userID, exists := c.Get("userID")
-		if exists {
-			sanitizedTitle := validation.SanitizeForHTML(created.Title)
-			notifBody, _ := json.Marshal(map[string]string{
-				"userId":  userID.(string),
-				"message": fmt.Sprintf("New song created: %s", sanitizedTitle),
-			})
-			req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
-			req.Header.Set("Content-Type", "application/json")
-			req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
-			http.DefaultClient.Do(req)
+		// Get album and artist details
+		album, err := repository.GetAlbumByID(created.AlbumID.Hex())
+		if err != nil {
+			return
+		}
+
+		artist, err := repository.GetArtistByID(album.ArtistID.Hex())
+		if err != nil {
+			return
+		}
+
+		// Collect unique subscriber user IDs (deduplicate users subscribed to both artist and genre)
+		subscriberMap := make(map[string]bool)
+
+		// 1. Get artist subscribers
+		artistSubs, err := repository.GetArtistSubscribers(album.ArtistID)
+		if err == nil {
+			for _, userID := range artistSubs {
+				subscriberMap[userID.Hex()] = true
+			}
+		}
+
+		// 2. Get genre subscribers (check both album and artist genres)
+		allGenres := append(album.Genres, artist.Genres...)
+		for _, genre := range allGenres {
+			genreSubs, err := repository.GetGenreSubscribers(genre)
+			if err == nil {
+				for _, userID := range genreSubs {
+					subscriberMap[userID.Hex()] = true
+				}
+			}
+		}
+
+		// 3. Send notification to each unique subscriber
+		sanitizedTitle := validation.SanitizeForHTML(created.Title)
+		sanitizedArtist := validation.SanitizeForHTML(artist.Name)
+		message := fmt.Sprintf("New song: %s by %s", sanitizedTitle, sanitizedArtist)
+
+		for userIDHex := range subscriberMap {
+			sendNotification(userIDHex, message)
 		}
 	}()
 }

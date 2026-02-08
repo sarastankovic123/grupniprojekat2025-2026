@@ -126,6 +126,26 @@ func main() {
 			songs.DELETE("/:id/rating", middleware.AuthMiddleware(), handlers.DeleteRating)
 			songs.GET("/:id/rating/average", handlers.GetAverageRating) // Public endpoint
 		}
+
+		// Subscription management endpoints
+		subscriptions := api.Group("/subscriptions", middleware.AuthMiddleware())
+		{
+			subscriptions.GET("/artists", handlers.GetUserArtistSubscriptions)
+			subscriptions.GET("/genres", handlers.GetUserGenreSubscriptions)
+		}
+
+		// Artist subscription endpoints
+		artists.POST("/:id/subscribe", middleware.AuthMiddleware(), handlers.SubscribeToArtist)
+		artists.DELETE("/:id/subscribe", middleware.AuthMiddleware(), handlers.UnsubscribeFromArtist)
+		artists.GET("/:id/subscription", middleware.AuthMiddleware(), handlers.GetArtistSubscriptionStatus)
+
+		// Genre subscription endpoints
+		genres := api.Group("/genres")
+		{
+			genres.POST("/:genre/subscribe", middleware.AuthMiddleware(), handlers.SubscribeToGenre)
+			genres.DELETE("/:genre/subscribe", middleware.AuthMiddleware(), handlers.UnsubscribeFromGenre)
+			genres.GET("/:genre/subscription", middleware.AuthMiddleware(), handlers.GetGenreSubscriptionStatus)
+		}
 	}
 
 	fmt.Printf("Content service running on port %s\n", config.Port)

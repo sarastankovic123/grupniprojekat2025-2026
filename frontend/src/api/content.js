@@ -80,4 +80,48 @@ export const contentApi = {
   getAverageRating(songId) {
     return apiFetch(`/api/content/songs/${songId}/rating/average`, { method: "GET" });
   },
+
+  // Artist Subscriptions
+  subscribeToArtist(artistId) {
+    return apiFetch(`/api/content/artists/${artistId}/subscribe`, {
+      method: "POST",
+    });
+  },
+  unsubscribeFromArtist(artistId) {
+    return apiFetch(`/api/content/artists/${artistId}/subscribe`, {
+      method: "DELETE",
+    });
+  },
+  getArtistSubscriptionStatus(artistId) {
+    return apiFetch(`/api/content/artists/${artistId}/subscription`, {
+      method: "GET",
+    });
+  },
+  getUserArtistSubscriptions() {
+    return apiFetch("/api/content/subscriptions/artists", {
+      method: "GET",
+    });
+  },
+
+  // Genre Subscriptions
+  subscribeToGenre(genre) {
+    return apiFetch(`/api/content/genres/${encodeURIComponent(genre)}/subscribe`, {
+      method: "POST",
+    });
+  },
+  unsubscribeFromGenre(genre) {
+    return apiFetch(`/api/content/genres/${encodeURIComponent(genre)}/subscribe`, {
+      method: "DELETE",
+    });
+  },
+  getGenreSubscriptionStatus(genre) {
+    return apiFetch(`/api/content/genres/${encodeURIComponent(genre)}/subscription`, {
+      method: "GET",
+    });
+  },
+  getUserGenreSubscriptions() {
+    return apiFetch("/api/content/subscriptions/genres", {
+      method: "GET",
+    });
+  },
 };

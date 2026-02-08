@@ -16,6 +16,8 @@ var ArtistsCollection *mongo.Collection
 var AlbumsCollection *mongo.Collection
 var SongsCollection *mongo.Collection
 var UserRatingsCollection *mongo.Collection
+var ArtistSubscriptionsCollection *mongo.Collection
+var GenreSubscriptionsCollection *mongo.Collection
 
 func ConnectMongo() {
 	const maxAttempts = 20
@@ -42,6 +44,8 @@ func ConnectMongo() {
 				AlbumsCollection = db.Collection("albums")
 				SongsCollection = db.Collection("songs")
 				UserRatingsCollection = db.Collection("user_ratings")
+				ArtistSubscriptionsCollection = db.Collection("artist_subscriptions")
+				GenreSubscriptionsCollection = db.Collection("genre_subscriptions")
 
 				fmt.Printf("Connected to MongoDB (content-service) after %d attempt(s)\n", attempt)
 				return

@@ -3,6 +3,7 @@ package repository
 import (
 	"context"
 	"fmt"
+	"sort"
 	"time"
 
 	"content-service/db"
@@ -148,34 +149,59 @@ func SearchAndFilterArtists(searchQuery string, genres []string) ([]models.Artis
 	return artists, nil
 }
 
-// GetAllGenres retrieves unique genres from all artists
+// GetAllGenres retrieves unique genres from both artists AND albums collections
 func GetAllGenres() ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
+	genreSet := make(map[string]bool)
+
 	pipeline := []bson.M{
 		{"$unwind": "$genres"},
 		{"$group": bson.M{"_id": "$genres"}},
-		{"$sort": bson.M{"_id": 1}},
 	}
 
+	// Get genres from artists
 	cursor, err := db.ArtistsCollection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(ctx)
-
 	var results []struct {
 		ID string `bson:"_id"`
 	}
 	if err := cursor.All(ctx, &results); err != nil {
+		cursor.Close(ctx)
 		return nil, err
 	}
-
-	genres := make([]string, len(results))
-	for i, result := range results {
-		genres[i] = result.ID
+	cursor.Close(ctx)
+	for _, r := range results {
+		genreSet[r.ID] = true
 	}
+
+	// Get genres from albums
+	cursor2, err := db.AlbumsCollection.Aggregate(ctx, pipeline)
+	if err != nil {
+		return nil, err
+	}
+	var results2 []struct {
+		ID string `bson:"_id"`
+	}
+	if err := cursor2.All(ctx, &results2); err != nil {
+		cursor2.Close(ctx)
+		return nil, err
+	}
+	cursor2.Close(ctx)
+	for _, r := range results2 {
+		genreSet[r.ID] = true
+	}
+
+	// Convert set to sorted slice
+	genres := make([]string, 0, len(genreSet))
+	for g := range genreSet {
+		genres = append(genres, g)
+	}
+	// Sort alphabetically
+	sort.Strings(genres)
 
 	return genres, nil
 }

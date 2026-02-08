@@ -9,6 +9,7 @@ export default defineConfig({
       cert: "../certs/localhost.crt",
     },
     proxy: {
+      // All API requests go through the API gateway (nginx → gateway → services)
       "/api": {
         target: "https://localhost:8443",
         changeOrigin: true,
