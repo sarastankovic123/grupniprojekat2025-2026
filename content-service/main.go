@@ -119,6 +119,12 @@ func main() {
 				middleware.RequireRole("ADMIN"),
 				handlers.DeleteSong,
 			)
+
+			// Rating endpoints
+			songs.GET("/:id/rating", middleware.AuthMiddleware(), handlers.GetUserRating)
+			songs.POST("/:id/rating", middleware.AuthMiddleware(), handlers.SetRating)
+			songs.DELETE("/:id/rating", middleware.AuthMiddleware(), handlers.DeleteRating)
+			songs.GET("/:id/rating/average", handlers.GetAverageRating) // Public endpoint
 		}
 	}
 

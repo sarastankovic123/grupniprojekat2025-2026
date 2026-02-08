@@ -63,4 +63,21 @@ export const contentApi = {
   deleteSong(id) {
     return apiFetch(`/api/content/songs/${id}`, { method: "DELETE" });
   },
+
+  // Ratings
+  getUserRating(songId) {
+    return apiFetch(`/api/content/songs/${songId}/rating`, { method: "GET" });
+  },
+  setRating(songId, rating) {
+    return apiFetch(`/api/content/songs/${songId}/rating`, {
+      method: "POST",
+      body: JSON.stringify({ rating }),
+    });
+  },
+  deleteRating(songId) {
+    return apiFetch(`/api/content/songs/${songId}/rating`, { method: "DELETE" });
+  },
+  getAverageRating(songId) {
+    return apiFetch(`/api/content/songs/${songId}/rating/average`, { method: "GET" });
+  },
 };

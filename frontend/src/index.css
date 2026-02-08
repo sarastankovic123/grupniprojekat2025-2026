@@ -150,8 +150,14 @@ select:focus {
 }
 
 @keyframes fadeIn {
-  from { opacity: 0; }
-  to { opacity: 1; }
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
 }
 
 @keyframes scaleIn {
@@ -179,4 +185,19 @@ select:focus {
 @keyframes float {
   0%, 100% { transform: translateY(0px); }
   50% { transform: translateY(-20px); }
+}
+
+/* Album and Song Card Hover Effects */
+.album-card:hover {
+  transform: translateY(-8px) scale(1.02) !important;
+  box-shadow: 0 12px 40px rgba(85, 107, 47, 0.3) !important;
+}
+
+.song-card:hover {
+  transform: translateY(-4px) !important;
+  box-shadow: 0 4px 12px rgba(85, 107, 47, 0.15) !important;
+}
+
+.song-card:hover .song-card-actions {
+  opacity: 1 !important;
 }
