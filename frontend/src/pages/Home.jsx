@@ -30,6 +30,11 @@ import NotificationsNoneIcon from '@mui/icons-material/NotificationsNone';
 import MusicNoteIcon from '@mui/icons-material/MusicNote';
 import AlbumIcon from '@mui/icons-material/Album';
 import PersonIcon from '@mui/icons-material/Person';
+import AutoAwesomeIcon from '@mui/icons-material/AutoAwesome';
+import ExploreIcon from '@mui/icons-material/Explore';
+import QueueMusicIcon from '@mui/icons-material/QueueMusic';
+import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
+import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
 // ── Utility Hooks ──────────────────────────────────────────────
 
@@ -141,6 +146,10 @@ export default function Home() {
   const [subscribingGenres, setSubscribingGenres] = useState(new Set());
   const [artistSubscriptions, setArtistSubscriptions] = useState([]);
   const [subscribingArtists, setSubscribingArtists] = useState(new Set());
+  const [subscribedRecs, setSubscribedRecs] = useState([]);
+  const [discoverRecs, setDiscoverRecs] = useState([]);
+  const [recsLoading, setRecsLoading] = useState(false);
+  const [activeRecTab, setActiveRecTab] = useState('forYou');
 
   // Scroll reveal
   const { observe, isVisible } = useScrollReveal(0.12);
@@ -151,6 +160,7 @@ export default function Home() {
   const statsSectionRef = useRef(null);
   const artistHeadingRef = useRef(null);
   const genreHeadingRef = useRef(null);
+  const carouselRef = useRef(null);
   const ctaRef = useRef(null);
 
   const [statsVisible, setStatsVisible] = useState(false);
@@ -206,9 +216,21 @@ export default function Home() {
           }
         })
         .catch(err => console.warn('Failed to load artist subscriptions:', err));
+
+      // Fetch recommendations
+      setRecsLoading(true);
+      contentApi.getRecommendations()
+        .then(data => {
+          setSubscribedRecs(Array.isArray(data.subscribedGenreSongs) ? data.subscribedGenreSongs : []);
+          setDiscoverRecs(Array.isArray(data.discoverNewSongs) ? data.discoverNewSongs : []);
+        })
+        .catch(err => console.warn('Failed to load recommendations:', err))
+        .finally(() => setRecsLoading(false));
     } else {
       setGenreSubscriptions([]);
       setArtistSubscriptions([]);
+      setSubscribedRecs([]);
+      setDiscoverRecs([]);
     }
   }, [isAuthenticated]);
 
@@ -524,101 +546,406 @@ export default function Home() {
         </Box>
 
         {/* ── Hero Content ── */}
-        <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
-          <Box sx={{ textAlign: 'center' }}>
-            <Typography
-              variant="h1"
-              sx={{
-                fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
-                fontWeight: 'bold',
-                color: 'white',
-                mb: 2,
-                textShadow: '0 2px 10px rgba(0,0,0,0.3)',
-                lineHeight: 1.2,
-                opacity: 0,
-                animation: 'fadeInUp 0.8s ease-out 0.2s forwards',
-              }}
-            >
-              Discover Your Sound
-            </Typography>
-            <Typography
-              variant="h5"
-              sx={{
-                fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
-                color: 'rgba(255, 255, 255, 0.9)',
-                mb: 4,
-                maxWidth: '700px',
-                mx: 'auto',
-                lineHeight: 1.6,
-                opacity: 0,
-                animation: 'fadeInUp 0.8s ease-out 0.5s forwards',
-              }}
-            >
-              Explore thousands of artists, albums, and songs in our curated music catalog
-            </Typography>
-            <Box
-              sx={{
-                display: 'flex',
-                justifyContent: 'center',
-                gap: 2,
-                opacity: 0,
-                animation: 'fadeInUp 0.8s ease-out 0.8s forwards',
-              }}
-            >
-              <Button
-                component={RouterLink}
-                to="/artists"
-                variant="contained"
-                size="large"
+        {isAuthenticated ? (
+          /* ── Authenticated Hero: Personalized Recommendations ── */
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ textAlign: 'center' }}>
+              {/* Greeting */}
+              <Box
                 sx={{
-                  bgcolor: 'white',
-                  color: 'primary.main',
-                  px: 4,
-                  py: 1.5,
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:hover': {
-                    bgcolor: 'rgba(255, 255, 255, 0.95)',
-                    transform: 'translateY(-3px) scale(1.05)',
-                    boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
-                  },
-                  '&:active': {
-                    transform: 'scale(0.98)',
-                  },
+                  display: 'flex',
+                  alignItems: 'center',
+                  justifyContent: 'center',
+                  gap: 1,
+                  mb: 2,
                 }}
               >
-                Browse Artists
-              </Button>
-              <Button
-                component={RouterLink}
-                to="/genres"
-                variant="outlined"
-                size="large"
+                <AutoAwesomeIcon sx={{ color: 'rgba(255,255,255,0.85)', fontSize: 28 }} />
+                <Typography
+                  variant="h4"
+                  sx={{
+                    color: 'white',
+                    fontWeight: 700,
+                    fontSize: { xs: '1.5rem', sm: '1.75rem', md: '2rem' },
+                    textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                  }}
+                >
+                  Welcome back, {user?.username || 'Music Lover'}
+                </Typography>
+              </Box>
+
+              {/* Tab pills */}
+              <Box
                 sx={{
-                  color: 'white',
-                  borderColor: 'rgba(255,255,255,0.6)',
-                  px: 4,
-                  py: 1.5,
-                  fontSize: '1rem',
-                  fontWeight: 600,
-                  transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
-                  '&:hover': {
-                    borderColor: 'white',
-                    bgcolor: 'rgba(255,255,255,0.1)',
-                    transform: 'translateY(-3px)',
-                  },
-                  '&:active': {
-                    transform: 'scale(0.98)',
-                  },
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 0.5,
+                  mb: 4,
                 }}
               >
-                Browse Genres
-              </Button>
+                <Button
+                  onClick={() => setActiveRecTab('forYou')}
+                  startIcon={<QueueMusicIcon />}
+                  sx={{
+                    px: 3,
+                    py: 1,
+                    borderRadius: '50px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    textTransform: 'none',
+                    transition: 'all 0.3s ease',
+                    ...(activeRecTab === 'forYou'
+                      ? {
+                          bgcolor: 'rgba(255,255,255,0.2)',
+                          color: 'white',
+                          backdropFilter: 'blur(12px)',
+                          border: '1px solid rgba(255,255,255,0.3)',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+                        }
+                      : {
+                          bgcolor: 'transparent',
+                          color: 'rgba(255,255,255,0.6)',
+                          border: '1px solid transparent',
+                          '&:hover': {
+                            bgcolor: 'rgba(255,255,255,0.08)',
+                            color: 'rgba(255,255,255,0.9)',
+                          },
+                        }),
+                  }}
+                >
+                  For You
+                </Button>
+                <Button
+                  onClick={() => setActiveRecTab('discover')}
+                  startIcon={<ExploreIcon />}
+                  sx={{
+                    px: 3,
+                    py: 1,
+                    borderRadius: '50px',
+                    fontWeight: 600,
+                    fontSize: '0.9rem',
+                    textTransform: 'none',
+                    transition: 'all 0.3s ease',
+                    ...(activeRecTab === 'discover'
+                      ? {
+                          bgcolor: 'rgba(255,255,255,0.2)',
+                          color: 'white',
+                          backdropFilter: 'blur(12px)',
+                          border: '1px solid rgba(255,255,255,0.3)',
+                          boxShadow: '0 4px 15px rgba(0,0,0,0.15)',
+                        }
+                      : {
+                          bgcolor: 'transparent',
+                          color: 'rgba(255,255,255,0.6)',
+                          border: '1px solid transparent',
+                          '&:hover': {
+                            bgcolor: 'rgba(255,255,255,0.08)',
+                            color: 'rgba(255,255,255,0.9)',
+                          },
+                        }),
+                  }}
+                >
+                  Discover
+                </Button>
+              </Box>
+
+              {/* Carousel area */}
+              <Box>
+                {recsLoading ? (
+                  /* Skeleton loading */
+                  <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', overflow: 'hidden' }}>
+                    {[0, 1, 2, 3, 4].map((i) => (
+                      <Box
+                        key={i}
+                        sx={{
+                          minWidth: 220,
+                          height: 120,
+                          borderRadius: 3,
+                          background: 'rgba(255,255,255,0.08)',
+                          animation: 'shimmerPulse 1.5s ease-in-out infinite',
+                          animationDelay: `${i * 0.15}s`,
+                        }}
+                      />
+                    ))}
+                  </Box>
+                ) : (activeRecTab === 'forYou' ? subscribedRecs : discoverRecs).length > 0 ? (
+                  /* Card carousel */
+                  <Box sx={{ position: 'relative', mx: { xs: 0, md: 4 } }}>
+                    {/* Left arrow */}
+                    <IconButton
+                      onClick={() => {
+                        if (carouselRef.current) {
+                          carouselRef.current.scrollBy({ left: -240, behavior: 'smooth' });
+                        }
+                      }}
+                      sx={{
+                        position: 'absolute',
+                        left: { xs: -8, md: -44 },
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 2,
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        color: 'white',
+                        backdropFilter: 'blur(8px)',
+                        display: { xs: 'none', sm: 'flex' },
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                      }}
+                    >
+                      <ChevronLeftIcon />
+                    </IconButton>
+
+                    {/* Scroll container — keyed by tab to re-trigger animations */}
+                    <Box
+                      key={activeRecTab}
+                      ref={carouselRef}
+                      sx={{
+                        display: 'flex',
+                        gap: 2,
+                        overflowX: 'auto',
+                        scrollSnapType: 'x mandatory',
+                        scrollBehavior: 'smooth',
+                        justifyContent: 'center',
+                        pb: 1,
+                        px: 1,
+                        '&::-webkit-scrollbar': { display: 'none' },
+                        scrollbarWidth: 'none',
+                      }}
+                    >
+                      {(activeRecTab === 'forYou' ? subscribedRecs : discoverRecs).map((song, index) => (
+                        <Box
+                          component={RouterLink}
+                          to={`/albums/${song.albumId}`}
+                          key={`${activeRecTab}-${song.id}-${index}`}
+                          sx={{
+                            minWidth: 220,
+                            maxWidth: 220,
+                            flexShrink: 0,
+                            scrollSnapAlign: 'start',
+                            background: 'rgba(255, 255, 255, 0.1)',
+                            backdropFilter: 'blur(12px)',
+                            borderRadius: 3,
+                            border: '1px solid rgba(255, 255, 255, 0.15)',
+                            p: 2.5,
+                            textDecoration: 'none',
+                            animation: `cardSlideIn 0.4s ease-out ${index * 0.06}s both`,
+                            transition: 'background 0.3s ease, transform 0.3s ease, box-shadow 0.3s ease',
+                            cursor: 'pointer',
+                            '&:hover': {
+                              background: 'rgba(255, 255, 255, 0.18)',
+                              transform: 'translateY(-4px)',
+                              boxShadow: '0 8px 32px rgba(0, 0, 0, 0.2)',
+                            },
+                          }}
+                        >
+                          <Box sx={{ display: 'flex', alignItems: 'center', gap: 1.5, mb: 1.5 }}>
+                            <Box
+                              sx={{
+                                width: 40,
+                                height: 40,
+                                borderRadius: '50%',
+                                bgcolor: 'rgba(255, 255, 255, 0.15)',
+                                display: 'flex',
+                                alignItems: 'center',
+                                justifyContent: 'center',
+                                flexShrink: 0,
+                              }}
+                            >
+                              <MusicNoteIcon sx={{ color: 'white', fontSize: 20 }} />
+                            </Box>
+                            <Box sx={{ minWidth: 0 }}>
+                              <Typography
+                                sx={{
+                                  fontWeight: 600,
+                                  color: 'white',
+                                  fontSize: '0.95rem',
+                                  overflow: 'hidden',
+                                  textOverflow: 'ellipsis',
+                                  whiteSpace: 'nowrap',
+                                }}
+                              >
+                                {song.title}
+                              </Typography>
+                              <Typography sx={{ color: 'rgba(255, 255, 255, 0.7)', fontSize: '0.75rem' }}>
+                                {song.duration} {song.trackNo > 0 ? `· Track ${song.trackNo}` : ''}
+                              </Typography>
+                            </Box>
+                          </Box>
+                          <Chip
+                            label={song.genre}
+                            size="small"
+                            sx={{
+                              bgcolor: 'rgba(255, 255, 255, 0.15)',
+                              color: 'white',
+                              fontWeight: 500,
+                              fontSize: '0.7rem',
+                              border: '1px solid rgba(255, 255, 255, 0.2)',
+                            }}
+                          />
+                        </Box>
+                      ))}
+                    </Box>
+
+                    {/* Right arrow */}
+                    <IconButton
+                      onClick={() => {
+                        if (carouselRef.current) {
+                          carouselRef.current.scrollBy({ left: 240, behavior: 'smooth' });
+                        }
+                      }}
+                      sx={{
+                        position: 'absolute',
+                        right: { xs: -8, md: -44 },
+                        top: '50%',
+                        transform: 'translateY(-50%)',
+                        zIndex: 2,
+                        bgcolor: 'rgba(255,255,255,0.15)',
+                        color: 'white',
+                        backdropFilter: 'blur(8px)',
+                        display: { xs: 'none', sm: 'flex' },
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.25)' },
+                      }}
+                    >
+                      <ChevronRightIcon />
+                    </IconButton>
+                  </Box>
+                ) : (
+                  /* Empty state */
+                  <Box
+                    sx={{
+                      py: 4,
+                      px: 3,
+                      borderRadius: 3,
+                      background: 'rgba(255, 255, 255, 0.08)',
+                      backdropFilter: 'blur(8px)',
+                      border: '1px solid rgba(255, 255, 255, 0.1)',
+                      maxWidth: 480,
+                      mx: 'auto',
+                    }}
+                  >
+                    <Typography sx={{ color: 'rgba(255,255,255,0.85)', mb: 2, fontSize: '1rem' }}>
+                      {activeRecTab === 'forYou'
+                        ? 'Subscribe to genres to get personalized recommendations'
+                        : 'No new genres to discover right now — check back soon!'}
+                    </Typography>
+                    <Button
+                      component={RouterLink}
+                      to="/genres"
+                      variant="contained"
+                      sx={{
+                        bgcolor: 'rgba(255,255,255,0.2)',
+                        color: 'white',
+                        backdropFilter: 'blur(8px)',
+                        border: '1px solid rgba(255,255,255,0.25)',
+                        textTransform: 'none',
+                        fontWeight: 600,
+                        '&:hover': { bgcolor: 'rgba(255,255,255,0.3)' },
+                      }}
+                    >
+                      Browse Genres
+                    </Button>
+                  </Box>
+                )}
+              </Box>
             </Box>
-          </Box>
-        </Container>
+          </Container>
+        ) : (
+          /* ── Guest Hero: Original "Discover Your Sound" ── */
+          <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
+            <Box sx={{ textAlign: 'center' }}>
+              <Typography
+                variant="h1"
+                sx={{
+                  fontSize: { xs: '2.5rem', sm: '3rem', md: '3.5rem' },
+                  fontWeight: 'bold',
+                  color: 'white',
+                  mb: 2,
+                  textShadow: '0 2px 10px rgba(0,0,0,0.3)',
+                  lineHeight: 1.2,
+                  opacity: 0,
+                  animation: 'fadeInUp 0.8s ease-out 0.2s forwards',
+                }}
+              >
+                Discover Your Sound
+              </Typography>
+              <Typography
+                variant="h5"
+                sx={{
+                  fontSize: { xs: '1rem', sm: '1.125rem', md: '1.25rem' },
+                  color: 'rgba(255, 255, 255, 0.9)',
+                  mb: 4,
+                  maxWidth: '700px',
+                  mx: 'auto',
+                  lineHeight: 1.6,
+                  opacity: 0,
+                  animation: 'fadeInUp 0.8s ease-out 0.5s forwards',
+                }}
+              >
+                Explore thousands of artists, albums, and songs in our curated music catalog
+              </Typography>
+              <Box
+                sx={{
+                  display: 'flex',
+                  justifyContent: 'center',
+                  gap: 2,
+                  opacity: 0,
+                  animation: 'fadeInUp 0.8s ease-out 0.8s forwards',
+                }}
+              >
+                <Button
+                  component={RouterLink}
+                  to="/artists"
+                  variant="contained"
+                  size="large"
+                  sx={{
+                    bgcolor: 'white',
+                    color: 'primary.main',
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    boxShadow: '0 4px 20px rgba(0,0,0,0.2)',
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      bgcolor: 'rgba(255, 255, 255, 0.95)',
+                      transform: 'translateY(-3px) scale(1.05)',
+                      boxShadow: '0 8px 30px rgba(0,0,0,0.25)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.98)',
+                    },
+                  }}
+                >
+                  Browse Artists
+                </Button>
+                <Button
+                  component={RouterLink}
+                  to="/genres"
+                  variant="outlined"
+                  size="large"
+                  sx={{
+                    color: 'white',
+                    borderColor: 'rgba(255,255,255,0.6)',
+                    px: 4,
+                    py: 1.5,
+                    fontSize: '1rem',
+                    fontWeight: 600,
+                    transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)',
+                    '&:hover': {
+                      borderColor: 'white',
+                      bgcolor: 'rgba(255,255,255,0.1)',
+                      transform: 'translateY(-3px)',
+                    },
+                    '&:active': {
+                      transform: 'scale(0.98)',
+                    },
+                  }}
+                >
+                  Browse Genres
+                </Button>
+              </Box>
+            </Box>
+          </Container>
+        )}
       </Box>
 
       {/* ── Featured Artists Section ──────────────────────── */}

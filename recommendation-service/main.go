@@ -1,0 +1,85 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+
+	"recommendation-service/config"
+	"recommendation-service/db"
+	"recommendation-service/handlers"
+	"recommendation-service/middleware"
+	"recommendation-service/sync"
+
+	"github.com/gin-gonic/gin"
+	"shared-utils/logging"
+)
+
+var logger *logging.Logger
+
+func main() {
+	// Load configuration
+	config.LoadConfig()
+
+	// Initialize logger
+	var err error
+	isDev := os.Getenv("ENV") == "development"
+	logger, err = logging.NewLogger(logging.LogConfig{
+		ServiceName:   "recommendation-service",
+		LogDir:        "./logs",
+		MaxSize:       50,
+		MaxBackups:    30,
+		MaxAge:        90,
+		Compress:      true,
+		ConsoleOutput: isDev,
+	})
+	if err != nil {
+		log.Fatal("Failed to initialize logger:", err)
+	}
+	logger.Application.Info().Msg("Recommendation service starting...")
+
+	// Set logger for handlers and middleware packages
+	handlers.SetLogger(logger)
+	middleware.SetLogger(logger)
+
+	// Connect to databases
+	db.ConnectMongo()
+	db.ConnectNeo4j()
+	defer db.CloseNeo4j()
+
+	// Sync MongoDB data to Neo4j
+	sync.SyncAll()
+
+	r := gin.Default()
+
+	// Add request ID middleware
+	r.Use(logging.RequestIDMiddleware())
+
+	// Global rate limiting
+	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
+	r.Use(apiLimiter.RateLimitByUser())
+
+	r.GET("/health", func(c *gin.Context) {
+		c.JSON(200, gin.H{
+			"status": "recommendation-service up",
+		})
+	})
+
+	api := r.Group("/api/recommendations")
+	{
+		api.GET("", middleware.AuthMiddleware(), handlers.GetRecommendations)
+	}
+
+	fmt.Printf("Recommendation service running on port %s\n", config.Port)
+	if os.Getenv("TLS_ENABLED") == "true" {
+		certFile := os.Getenv("TLS_CERT_FILE")
+		keyFile := os.Getenv("TLS_KEY_FILE")
+		if certFile == "" || keyFile == "" {
+			log.Fatal("TLS is enabled but TLS_CERT_FILE or TLS_KEY_FILE is missing")
+		}
+		log.Printf("TLS enabled (recommendation-service): %s\n", certFile)
+		r.RunTLS(":"+config.Port, certFile, keyFile)
+	} else {
+		r.Run(":" + config.Port)
+	}
+}

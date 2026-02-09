@@ -203,6 +203,16 @@ select:focus {
   100% { transform: translateX(-50%); }
 }
 
+@keyframes cardSlideIn {
+  from { opacity: 0; transform: translateY(20px) scale(0.95); }
+  to   { opacity: 1; transform: translateY(0) scale(1); }
+}
+
+@keyframes shimmerPulse {
+  0%, 100% { opacity: 0.08; }
+  50% { opacity: 0.15; }
+}
+
 /* Album and Song Card Hover Effects */
 .album-card:hover {
   transform: translateY(-8px) scale(1.02) !important;

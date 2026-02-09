@@ -124,4 +124,9 @@ export const contentApi = {
       method: "GET",
     });
   },
+
+  // Recommendations
+  getRecommendations() {
+    return apiFetch("/api/recommendations", { method: "GET" });
+  },
 };

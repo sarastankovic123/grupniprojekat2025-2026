@@ -20,6 +20,9 @@ const CONTENT_SERVICE_URL =
 const NOTIFICATIONS_SERVICE_URL =
     process.env.NOTIFICATIONS_SERVICE_URL || 'http://notification-service:8003';
 
+const RECOMMENDATION_SERVICE_URL =
+    process.env.RECOMMENDATION_SERVICE_URL || 'https://recommendation-service:8004';
+
 const JWT_SECRET =
     process.env.JWT_SECRET || 'dev-secret-min-32-chars';
 
@@ -119,6 +122,11 @@ app.use('/api/content', authMiddleware, (req, res) =>
 // Notifications
 app.use('/api/notifications', authMiddleware, (req, res) =>
     proxy(req, res, NOTIFICATIONS_SERVICE_URL)
+);
+
+// Recommendations
+app.use('/api/recommendations', authMiddleware, (req, res) =>
+    proxy(req, res, RECOMMENDATION_SERVICE_URL)
 );
 
 // =========================
