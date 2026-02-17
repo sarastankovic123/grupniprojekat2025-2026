@@ -111,11 +111,8 @@ func Register(c *gin.Context) {
 	}
 
 	// 👇 CONFIRMATION LINK
-	confirmURL := fmt.Sprintf(
-		"%s/confirm?token=%s",
-		config.FrontendURL,
-		tokenValue,
-	)
+	frontendURL := strings.TrimRight(config.FrontendURL, "/")
+	confirmURL := fmt.Sprintf("%s/confirm?token=%s", frontendURL, tokenValue)
 
 	// Send email confirmation
 	if err := utils.SendEmailConfirmationEmail(user.Email, confirmURL); err != nil {

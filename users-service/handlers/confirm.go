@@ -43,15 +43,13 @@ func ConfirmEmail(c *gin.Context) {
 
 	emailToken, err := repository.FindEmailToken(token)
 	if err != nil {
-		// Idempotent confirmation: token may already be consumed/deleted (e.g. user refreshes page).
-		// Do not leak token validity.
-		c.JSON(http.StatusOK, gin.H{"message": "Account confirmed successfully"})
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired confirmation link"})
 		return
 	}
 
 	if time.Now().After(emailToken.ExpiresAt) {
-		// Idempotent + do not leak token validity.
-		c.JSON(http.StatusOK, gin.H{"message": "Account confirmed successfully"})
+		_ = repository.DeleteEmailToken(token)
+		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid or expired confirmation link"})
 		return
 	}
 
