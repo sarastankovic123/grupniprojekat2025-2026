@@ -2,12 +2,16 @@ const TOKEN_KEY = "accessToken";
 
 export function setToken(token) {
   localStorage.setItem(TOKEN_KEY, token);
+  // Also set as cookie so browser-initiated requests (e.g. <audio src>)
+  // send the token automatically via the access_token cookie.
+  document.cookie = `access_token=${encodeURIComponent(token)}; path=/; SameSite=Strict; Secure`;
 }
 export function getToken() {
   return localStorage.getItem(TOKEN_KEY);
 }
 export function clearToken() {
   localStorage.removeItem(TOKEN_KEY);
+  document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; Secure";
 }
 
 async function request(path, options = {}) {

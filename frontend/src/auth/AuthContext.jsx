@@ -40,9 +40,12 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (accessToken) {
       localStorage.setItem(STORAGE_TOKEN_KEY, accessToken);
+      // Set cookie so browser-initiated requests (e.g. <audio src>) include auth
+      document.cookie = `access_token=${encodeURIComponent(accessToken)}; path=/; SameSite=Strict; Secure`;
       setUser(decodeToken(accessToken));
     } else {
       localStorage.removeItem(STORAGE_TOKEN_KEY);
+      document.cookie = "access_token=; path=/; expires=Thu, 01 Jan 1970 00:00:00 GMT; SameSite=Strict; Secure";
       setUser(null);
     }
   }, [accessToken]);

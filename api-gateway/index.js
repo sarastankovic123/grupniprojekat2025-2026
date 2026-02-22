@@ -41,7 +41,13 @@ try {
 // =========================
 // Middleware
 // =========================
-app.use(express.json());
+// Parse JSON bodies, but skip multipart requests so the raw stream
+// stays intact for proxying file uploads.
+app.use((req, res, next) => {
+    const ct = String(req.headers['content-type'] || '');
+    if (ct.startsWith('multipart/form-data')) return next();
+    express.json()(req, res, next);
+});
 
 function readCookie(req, name) {
     const cookieHeader = req.headers['cookie'];
@@ -136,14 +142,33 @@ async function proxy(req, res, targetUrl) {
             return;
         }
 
+        // For multipart uploads, pipe the raw request stream directly to upstream.
+        if (isMultipart) {
+            const response = await axios({
+                method: req.method,
+                url,
+                headers: req.headers,
+                data: req,
+                maxBodyLength: Infinity,
+                maxContentLength: Infinity,
+                validateStatus: () => true,
+                ...(isHttps ? { httpsAgent } : {}),
+            });
+
+            if (response.headers['set-cookie']) {
+                res.setHeader('set-cookie', response.headers['set-cookie']);
+            }
+            return res.status(response.status).json(response.data);
+        }
+
         const response = await axios({
             method: req.method,
             url,
             headers: req.headers,
-            data: isMultipart ? req : req.body,
+            data: req.body,
             maxBodyLength: Infinity,
             maxContentLength: Infinity,
-            ...(isHttps ? { httpsAgent } : null),
+            ...(isHttps ? { httpsAgent } : {}),
         });
 
         if (response.headers['set-cookie']) {
@@ -152,6 +177,7 @@ async function proxy(req, res, targetUrl) {
 
         res.status(response.status).json(response.data);
     } catch (error) {
+        console.error('Proxy error:', req.method, req.originalUrl, error.message);
         res
             .status(error.response?.status || 500)
             .json(error.response?.data || { message: 'Gateway error' });
