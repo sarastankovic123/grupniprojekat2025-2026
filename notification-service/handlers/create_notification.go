@@ -9,7 +9,6 @@ import (
 	"shared-utils/validation"
 
 	"github.com/gin-gonic/gin"
-	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CreateNotificationRequest struct {
@@ -39,14 +38,8 @@ func CreateNotification(c *gin.Context) {
 		return
 	}
 
-	userObjID, err := primitive.ObjectIDFromHex(req.UserID)
-	if err != nil {
-		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid userId"})
-		return
-	}
-
 	notification := models.Notification{
-		UserID:  userObjID,
+		UserID:  req.UserID,
 		Message: req.Message,
 		IsRead:  false,
 	}

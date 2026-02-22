@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/joho/godotenv"
@@ -14,7 +15,11 @@ var (
 	ServiceAPIKey      string
 	RateLimitAPIReqs   int
 	RateLimitAPIWindow time.Duration
-	MongoURI           string
+	CassandraHosts     []string
+	CassandraPort      int
+	CassandraKeyspace  string
+	CassandraUsername  string
+	CassandraPassword  string
 	Port               string
 )
 
@@ -48,8 +53,19 @@ func LoadConfig() {
 		log.Fatal("Invalid RATE_LIMIT_API_WINDOW format:", err)
 	}
 
-	// MongoDB
-	MongoURI = getEnv("MONGO_URI", "mongodb://localhost:27017")
+	// Cassandra (notifications DB)
+	hosts := strings.TrimSpace(getEnv("CASSANDRA_HOSTS", "localhost"))
+	if hosts == "" {
+		hosts = "localhost"
+	}
+	CassandraHosts = splitAndTrim(hosts, ",")
+	CassandraPort = getEnvAsInt("CASSANDRA_PORT", 9042)
+	CassandraKeyspace = strings.TrimSpace(getEnv("CASSANDRA_KEYSPACE", "notifications"))
+	if CassandraKeyspace == "" {
+		CassandraKeyspace = "notifications"
+	}
+	CassandraUsername = strings.TrimSpace(getEnv("CASSANDRA_USERNAME", ""))
+	CassandraPassword = strings.TrimSpace(getEnv("CASSANDRA_PASSWORD", ""))
 
 	// Server
 	Port = getEnv("PORT", "8003")
@@ -76,4 +92,16 @@ func getEnvAsInt(key string, defaultValue int) int {
 		return defaultValue
 	}
 	return value
+}
+
+func splitAndTrim(s string, sep string) []string {
+	parts := strings.Split(s, sep)
+	out := make([]string, 0, len(parts))
+	for _, p := range parts {
+		p = strings.TrimSpace(p)
+		if p != "" {
+			out = append(out, p)
+		}
+	}
+	return out
 }

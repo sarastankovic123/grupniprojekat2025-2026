@@ -34,7 +34,7 @@ func MarkAsUnread(c *gin.Context) {
 		return
 	}
 
-	if notification.UserID.Hex() != userIDStr {
+	if notification.UserID != userIDStr {
 		c.JSON(http.StatusForbidden, gin.H{"error": "Access denied"})
 		return
 	}
