@@ -2,3 +2,13 @@
 node_modules/
 .env
 certs/
+
+# Build artifacts
+*.exe
+*/logs/
+
+# Windows artifacts
+nul
+
+# Claude Code
+.claude/

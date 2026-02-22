@@ -12,7 +12,7 @@ export default function Confirm() {
 
   useEffect(() => {
     if (!token) {
-      setStatus("invalid");
+      setStatus("waiting");
       return;
     }
 
@@ -58,10 +58,16 @@ export default function Confirm() {
             </p>
           </div>
         )}
-        {status === "invalid" && (
-          <div style={styles.error}>
-            <h2 style={styles.title}>Invalid confirmation link ❌</h2>
-            <p style={styles.text}>The confirmation link is missing or malformed.</p>
+        {status === "waiting" && (
+          <div style={styles.waiting}>
+            <div style={{ fontSize: 48, marginBottom: theme.spacing.md }}>📧</div>
+            <h2 style={styles.title}>Confirmation link sent!</h2>
+            <p style={styles.text}>
+              We've sent a confirmation link to your email. Please check your inbox and click the link to activate your account.
+            </p>
+            <p style={{ ...styles.text, fontSize: theme.typography.fontSize.sm, color: theme.colors.text.light }}>
+              Don't see it? Check your spam folder.
+            </p>
           </div>
         )}
       </div>
@@ -100,6 +106,9 @@ const styles = {
   },
   error: {
     color: theme.colors.semantic.error,
+  },
+  waiting: {
+    color: theme.colors.text.primary,
   },
   title: {
     fontSize: theme.typography.fontSize["2xl"],
