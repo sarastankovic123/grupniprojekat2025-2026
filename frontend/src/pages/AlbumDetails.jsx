@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { contentApi } from "../api/content";
@@ -47,6 +47,10 @@ export default function AlbumDetails() {
 
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
+  const [audioErr, setAudioErr] = useState("");
+  const [nowPlaying, setNowPlaying] = useState(null); // { id, title }
+  const [audioSrc, setAudioSrc] = useState("");
+  const audioRef = useRef(null);
 
   // Rating state: map of songId -> rating (1-5)
   const [userRatings, setUserRatings] = useState({});
@@ -110,6 +114,17 @@ export default function AlbumDetails() {
       alive = false;
     };
   }, [id]);
+
+  useEffect(() => {
+    if (!audioSrc) return;
+    setAudioErr("");
+
+    const el = audioRef.current;
+    if (!el) return;
+
+    el.load();
+    el.play().catch(() => {});
+  }, [audioSrc]);
 
   async function handleDeleteAlbum() {
     if (!window.confirm(`Delete album "${album?.title || 'this album'}"? This will fail if songs exist.`)) {
@@ -199,6 +214,56 @@ export default function AlbumDetails() {
     }
   }
 
+  async function togglePlay(song) {
+    setAudioErr("");
+
+    if (!isAuthenticated) {
+      setErr("You must be logged in to play songs.");
+      return;
+    }
+
+    const songId = song.id || song._id || song.songId;
+    if (!songId) return;
+
+    if (!song.audioFile) {
+      setAudioErr("Audio is not available for this song yet.");
+      return;
+    }
+
+    const el = audioRef.current;
+    const isSame = nowPlaying?.id === songId;
+
+    if (!isSame) {
+      setNowPlaying({ id: songId, title: song.title || song.name || `Track ${songId}` });
+      setAudioSrc(`/api/content/songs/${songId}/audio`);
+      return;
+    }
+
+    if (!el) return;
+    if (el.paused) {
+      el.play().catch(() => {});
+    } else {
+      el.pause();
+    }
+  }
+
+  async function handleUploadAudio(songId, file) {
+    if (!file) return;
+    try {
+      await contentApi.uploadSongAudio(songId, file);
+      setSongs((prev) =>
+        prev.map((s) => {
+          const id = s.id || s._id || s.songId;
+          if (id !== songId) return s;
+          return { ...s, audioFile: s.audioFile || "uploaded" };
+        })
+      );
+      alert("Audio uploaded.");
+    } catch (e) {
+      alert(e.message || "Failed to upload audio");
+    }
+  }
+
   if (loading) return <div style={{ padding: 24 }}>Loading...</div>;
 
   if (err) {
@@ -272,6 +337,23 @@ export default function AlbumDetails() {
       <div style={styles.songsSection}>
         <h2 style={styles.sectionTitle}>Songs</h2>
 
+        {audioErr && <div style={styles.audioError}>{audioErr}</div>}
+
+        {nowPlaying && (
+          <div style={styles.playerBar}>
+            <div style={styles.playerTitle}>
+              Now playing: <strong>{nowPlaying.title}</strong>
+            </div>
+            <audio
+              ref={audioRef}
+              src={audioSrc}
+              controls
+              preload="metadata"
+              onError={() => setAudioErr("Failed to load audio. Try again or upload audio for this song.")}
+            />
+          </div>
+        )}
+
         {songs.length === 0 ? (
           <div style={styles.emptyState}>No songs yet</div>
         ) : (
@@ -279,6 +361,8 @@ export default function AlbumDetails() {
             {songs.map((s, index) => {
               const songId = s.id || s._id || s.songId;
               const trackNo = s.trackNo || index + 1;
+              const canPlay = Boolean(s.audioFile);
+              const isCurrent = nowPlaying?.id === songId;
 
               return (
                 <div
@@ -296,13 +380,14 @@ export default function AlbumDetails() {
                     {String(trackNo).padStart(2, '0')}
                   </div>
 
-                  {/* Play Button Placeholder */}
+                  {/* Play Button */}
                   <button
-                    style={styles.playButton}
-                    disabled
-                    title="Audio playback coming soon"
+                    style={canPlay ? styles.playButton : styles.playButtonDisabled}
+                    disabled={!canPlay}
+                    title={canPlay ? (isCurrent ? "Play / pause" : "Play") : "No audio uploaded"}
+                    onClick={() => togglePlay(s)}
                   >
-                    ▶
+                    {isCurrent ? "⏯" : "▶"}
                   </button>
 
                   {/* Song Title */}
@@ -360,6 +445,15 @@ export default function AlbumDetails() {
                       <Link to={`/admin/songs/${songId}/edit`} style={styles.editBtnSmall}>
                         Edit
                       </Link>
+                      <label style={styles.uploadBtnSmall}>
+                        Upload audio
+                        <input
+                          type="file"
+                          accept="audio/*"
+                          style={{ display: "none" }}
+                          onChange={(e) => handleUploadAudio(songId, e.target.files?.[0])}
+                        />
+                      </label>
                       <button onClick={() => handleDeleteSong(songId, s.title)} style={styles.deleteBtnSmall}>
                         Delete
                       </button>
@@ -510,6 +604,31 @@ const styles = {
     color: theme.colors.text.primary,
     marginBottom: theme.spacing.lg,
   },
+  playerBar: {
+    display: "flex",
+    gap: theme.spacing.md,
+    alignItems: "center",
+    justifyContent: "space-between",
+    flexWrap: "wrap",
+    padding: theme.spacing.md,
+    marginBottom: theme.spacing.lg,
+    border: `1px solid ${theme.colors.border}`,
+    borderRadius: theme.radius.lg,
+    background: theme.colors.surface,
+    boxShadow: theme.shadows.sm,
+  },
+  playerTitle: {
+    color: theme.colors.text.primary,
+    fontSize: theme.typography.fontSize.md,
+  },
+  audioError: {
+    marginBottom: theme.spacing.md,
+    padding: theme.spacing.md,
+    borderRadius: theme.radius.md,
+    border: "1px solid rgba(168, 72, 66, 0.35)",
+    background: "rgba(168, 72, 66, 0.08)",
+    color: theme.colors.text.primary,
+  },
   emptyState: {
     padding: theme.spacing['2xl'],
     textAlign: 'center',
@@ -556,6 +675,22 @@ const styles = {
     background: 'rgba(85, 107, 47, 0.1)',
     border: `2px solid ${theme.colors.primary}`,
     color: theme.colors.primary,
+    fontSize: '16px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    cursor: 'pointer',
+    opacity: 1,
+    transition: theme.transitions.base,
+    marginBottom: theme.spacing.md,
+  },
+  playButtonDisabled: {
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    background: 'rgba(85, 107, 47, 0.06)',
+    border: `2px solid ${theme.colors.border}`,
+    color: theme.colors.text.light,
     fontSize: '16px',
     display: 'flex',
     alignItems: 'center',
@@ -627,6 +762,12 @@ const styles = {
     ...theme.components.button('secondary'),
     padding: '6px 12px',
     fontSize: theme.typography.fontSize.sm,
+  },
+  uploadBtnSmall: {
+    ...theme.components.button('secondary'),
+    padding: '6px 12px',
+    fontSize: theme.typography.fontSize.sm,
+    cursor: 'pointer',
   },
   deleteBtnSmall: {
     ...theme.components.button('danger'),

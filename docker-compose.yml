@@ -68,6 +68,7 @@ services:
       - "${CONTENT_SERVICE_PORT}"
     volumes:
       - tls_certs:/certs:ro
+      - content_storage:/app/storage
     networks:
       - app-network
 
@@ -188,6 +189,7 @@ volumes:
   cassandra_data:
   neo4j_data:
   tls_certs:
+  content_storage:
 
 networks:
   app-network:
