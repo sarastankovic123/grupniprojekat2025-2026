@@ -44,7 +44,8 @@ func main() {
 	// Set logger for handlers package
 	handlers.SetLogger(logger)
 
-	db.ConnectMongo()
+	db.ConnectCassandra()
+	defer db.Close()
 
 	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {

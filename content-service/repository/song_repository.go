@@ -66,6 +66,29 @@ func GetSongByID(id string) (*models.Song, error) {
 	return &song, nil
 }
 
+func SetSongAudioFile(id string, audioFile string) error {
+	objID, err := primitive.ObjectIDFromHex(id)
+	if err != nil {
+		return err
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	result, err := db.SongsCollection.UpdateOne(
+		ctx,
+		bson.M{"_id": objID},
+		bson.M{"$set": bson.M{"audioFile": audioFile}},
+	)
+	if err != nil {
+		return err
+	}
+	if result.MatchedCount == 0 {
+		return fmt.Errorf("song not found")
+	}
+	return nil
+}
+
 func UpdateSong(id string, song models.Song) error {
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {

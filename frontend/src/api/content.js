@@ -63,6 +63,15 @@ export const contentApi = {
   deleteSong(id) {
     return apiFetch(`/api/content/songs/${id}`, { method: "DELETE" });
   },
+  uploadSongAudio(songId, file) {
+    const form = new FormData();
+    form.append("file", file);
+
+    return apiFetch(`/api/content/songs/${songId}/audio`, {
+      method: "POST",
+      body: form,
+    });
+  },
 
   // Ratings
   getUserRating(songId) {

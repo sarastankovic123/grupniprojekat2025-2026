@@ -98,12 +98,20 @@ func main() {
 		{
 			songs.GET("", handlers.GetSongs)
 			songs.GET("/:id", handlers.GetSongByID)
+			songs.GET("/:id/audio", middleware.AuthMiddleware(), handlers.StreamSongAudio)
 
 			songs.POST(
 				"",
 				middleware.AuthMiddleware(),
 				middleware.RequireRole("ADMIN"),
 				handlers.CreateSong,
+			)
+
+			songs.POST(
+				"/:id/audio",
+				middleware.AuthMiddleware(),
+				middleware.RequireRole("ADMIN"),
+				handlers.UploadSongAudio,
 			)
 
 			songs.PUT(

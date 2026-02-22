@@ -10,6 +10,22 @@ services:
     networks:
       - app-network
 
+  cassandra:
+    image: cassandra:4.1
+    container_name: cassandra
+    restart: unless-stopped
+    environment:
+      - CASSANDRA_CLUSTER_NAME=grupni-projekat
+      - CASSANDRA_DC=dc1
+      - CASSANDRA_RACK=rack1
+      - CASSANDRA_ENDPOINT_SNITCH=GossipingPropertyFileSnitch
+    volumes:
+      - cassandra_data:/var/lib/cassandra
+    ports:
+      - "9042:9042"
+    networks:
+      - app-network
+
   users-service:
     build:
       context: .
@@ -52,6 +68,7 @@ services:
       - "${CONTENT_SERVICE_PORT}"
     volumes:
       - tls_certs:/certs:ro
+      - content_storage:/app/storage
     networks:
       - app-network
 
@@ -65,11 +82,16 @@ services:
       - .env
     environment:
       - PORT=${NOTIFICATION_SERVICE_PORT}
+      - CASSANDRA_HOSTS=${CASSANDRA_HOSTS:-cassandra}
+      - CASSANDRA_PORT=${CASSANDRA_PORT:-9042}
+      - CASSANDRA_KEYSPACE=${CASSANDRA_KEYSPACE:-notifications}
+      - CASSANDRA_USERNAME=${CASSANDRA_USERNAME:-}
+      - CASSANDRA_PASSWORD=${CASSANDRA_PASSWORD:-}
       - TLS_ENABLED=${TLS_ENABLED:-true}
       - TLS_CERT_FILE=/certs/tls.crt
       - TLS_KEY_FILE=/certs/tls.key
     depends_on:
-      - mongo
+      - cassandra
     expose:
       - "${NOTIFICATION_SERVICE_PORT}"
     volumes:
@@ -164,8 +186,10 @@ services:
 
 volumes:
   mongo_data:
+  cassandra_data:
   neo4j_data:
   tls_certs:
+  content_storage:
 
 networks:
   app-network:

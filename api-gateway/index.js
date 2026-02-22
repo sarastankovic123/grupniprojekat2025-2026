@@ -43,19 +43,36 @@ try {
 // =========================
 app.use(express.json());
 
+function readCookie(req, name) {
+    const cookieHeader = req.headers['cookie'];
+    if (!cookieHeader) return null;
+
+    const parts = cookieHeader.split(';');
+    for (const part of parts) {
+        const [k, ...rest] = part.trim().split('=');
+        if (k === name) {
+            return decodeURIComponent(rest.join('=') || '');
+        }
+    }
+    return null;
+}
+
 function authMiddleware(req, res, next) {
     const authHeader = req.headers['authorization'];
+    let token = null;
 
-    if (!authHeader) {
-        return res.status(401).json({ message: 'Authorization token is missing' });
+    if (authHeader) {
+        const parts = authHeader.split(' ');
+        if (parts.length !== 2 || parts[0] !== 'Bearer') {
+            return res.status(401).json({ message: 'Invalid Authorization format' });
+        }
+        token = parts[1];
+    } else {
+        token = readCookie(req, 'access_token');
+        if (!token) {
+            return res.status(401).json({ message: 'Authorization token is missing' });
+        }
     }
-
-    const parts = authHeader.split(' ');
-    if (parts.length !== 2 || parts[0] !== 'Bearer') {
-        return res.status(401).json({ message: 'Invalid Authorization format' });
-    }
-
-    const token = parts[1];
 
     jwt.verify(token, JWT_SECRET, (err, decoded) => {
         if (err) {
@@ -84,13 +101,54 @@ app.get('/health', (req, res) => {
 async function proxy(req, res, targetUrl) {
     try {
         const isHttps = String(targetUrl || '').startsWith('https://');
+        const url = `${targetUrl}${req.originalUrl}`;
+        const wantsStream =
+            req.method === 'GET' &&
+            /^\/api\/content\/songs\/[^/]+\/audio$/.test(req.originalUrl);
+
+        // For multipart uploads, forward raw request stream (express.json won't parse it).
+        const contentType = String(req.headers['content-type'] || '');
+        const isMultipart = contentType.startsWith('multipart/form-data');
+
+        if (wantsStream) {
+            const upstream = await axios({
+                method: req.method,
+                url,
+                headers: req.headers,
+                responseType: 'stream',
+                validateStatus: () => true,
+                ...(isHttps ? { httpsAgent } : null),
+            });
+
+            if (upstream.headers['set-cookie']) {
+                res.setHeader('set-cookie', upstream.headers['set-cookie']);
+            }
+
+            res.status(upstream.status);
+            for (const [k, v] of Object.entries(upstream.headers || {})) {
+                const key = String(k).toLowerCase();
+                if (key === 'transfer-encoding') continue;
+                if (key === 'content-encoding') continue;
+                res.setHeader(k, v);
+            }
+
+            upstream.data.pipe(res);
+            return;
+        }
+
         const response = await axios({
             method: req.method,
-            url: `${targetUrl}${req.originalUrl}`,
+            url,
             headers: req.headers,
-            data: req.body,
+            data: isMultipart ? req : req.body,
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
             ...(isHttps ? { httpsAgent } : null),
         });
+
+        if (response.headers['set-cookie']) {
+            res.setHeader('set-cookie', response.headers['set-cookie']);
+        }
 
         res.status(response.status).json(response.data);
     } catch (error) {
