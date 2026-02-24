@@ -3,7 +3,9 @@ package main
 import (
 	"fmt"
 	"log"
+	"net/http"
 	"os"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"github.com/gin-gonic/gin/binding"
@@ -95,6 +97,14 @@ func main() {
 	r.PATCH("/api/auth/me", middleware.AuthMiddleware(), handlers.UpdateMe)
 
 	fmt.Printf("Users service running on port %s\n", config.Port)
+	srv := &http.Server{
+		Addr:              ":" + config.Port,
+		Handler:           r,
+		ReadHeaderTimeout: 5 * time.Second,
+		ReadTimeout:       10 * time.Second,
+		WriteTimeout:      15 * time.Second,
+		IdleTimeout:       60 * time.Second,
+	}
 	if os.Getenv("TLS_ENABLED") == "true" {
 		certFile := os.Getenv("TLS_CERT_FILE")
 		keyFile := os.Getenv("TLS_KEY_FILE")
@@ -102,8 +112,8 @@ func main() {
 			log.Fatal("TLS is enabled but TLS_CERT_FILE or TLS_KEY_FILE is missing")
 		}
 		log.Printf("TLS enabled (users-service): %s\n", certFile)
-		r.RunTLS(":"+config.Port, certFile, keyFile)
+		log.Fatal(srv.ListenAndServeTLS(certFile, keyFile))
 	} else {
-		r.Run(":" + config.Port)
+		log.Fatal(srv.ListenAndServe())
 	}
 }

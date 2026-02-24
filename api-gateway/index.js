@@ -1,6 +1,7 @@
 const express = require('express');
 const axios = require('axios');
 const jwt = require('jsonwebtoken');
+const http = require('http');
 const https = require('https');
 const fs = require('fs');
 
@@ -27,15 +28,83 @@ const JWT_SECRET =
     process.env.JWT_SECRET || 'dev-secret-min-32-chars';
 
 const TLS_CA_FILE = process.env.TLS_CA_FILE || '/certs/tls.crt';
+const UPSTREAM_TIMEOUT_MS = Number.parseInt(process.env.UPSTREAM_TIMEOUT_MS || '3000', 10);
+const USER_RESPONSE_TIMEOUT_MS = Number.parseInt(process.env.USER_RESPONSE_TIMEOUT_MS || '5000', 10);
+const CIRCUIT_OPEN_MS = Number.parseInt(process.env.CIRCUIT_OPEN_MS || '15000', 10);
+const CIRCUIT_FAILURE_THRESHOLD = Number.parseInt(process.env.CIRCUIT_FAILURE_THRESHOLD || '3', 10);
+const RETRY_MAX_ATTEMPTS = Number.parseInt(process.env.RETRY_MAX_ATTEMPTS || '2', 10);
+const RETRY_BASE_DELAY_MS = Number.parseInt(process.env.RETRY_BASE_DELAY_MS || '100', 10);
+
+const httpAgent = new http.Agent({ keepAlive: true });
 let httpsAgent = null;
 try {
     const ca = fs.readFileSync(TLS_CA_FILE);
-    httpsAgent = new https.Agent({ ca });
+    httpsAgent = new https.Agent({ ca, keepAlive: true });
     console.log(`API Gateway: loaded TLS CA from ${TLS_CA_FILE}`);
 } catch (e) {
     // Fallback: still allow HTTPS (encrypted), but without cert verification (dev-only).
-    httpsAgent = new https.Agent({ rejectUnauthorized: false });
+    httpsAgent = new https.Agent({ rejectUnauthorized: false, keepAlive: true });
     console.warn(`API Gateway: failed to read TLS CA at ${TLS_CA_FILE}, using rejectUnauthorized=false`);
+}
+
+// =========================
+// Resilience helpers
+// =========================
+class CircuitBreaker {
+    constructor({ failureThreshold, openMs }) {
+        this.failureThreshold = failureThreshold;
+        this.openMs = openMs;
+        this.consecutiveFailures = 0;
+        this.openUntil = 0;
+    }
+
+    isOpen() {
+        return Date.now() < this.openUntil;
+    }
+
+    success() {
+        this.consecutiveFailures = 0;
+        this.openUntil = 0;
+    }
+
+    failure() {
+        this.consecutiveFailures += 1;
+        if (this.consecutiveFailures >= this.failureThreshold) {
+            this.openUntil = Date.now() + this.openMs;
+        }
+    }
+}
+
+const breakers = new Map();
+function getBreaker(key) {
+    if (!breakers.has(key)) {
+        breakers.set(
+            key,
+            new CircuitBreaker({
+                failureThreshold: CIRCUIT_FAILURE_THRESHOLD,
+                openMs: CIRCUIT_OPEN_MS,
+            })
+        );
+    }
+    return breakers.get(key);
+}
+
+function sleep(ms) {
+    return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function isRetryableAxiosError(err) {
+    const code = err && err.code;
+    const status = err && err.response && err.response.status;
+    if (status && status >= 500) return true;
+    return (
+        code === 'ECONNABORTED' ||
+        code === 'ECONNRESET' ||
+        code === 'ETIMEDOUT' ||
+        code === 'EAI_AGAIN' ||
+        code === 'ENOTFOUND' ||
+        code === 'ECONNREFUSED'
+    );
 }
 
 // =========================
@@ -105,9 +174,22 @@ app.get('/health', (req, res) => {
 // Proxy helper
 // =========================
 async function proxy(req, res, targetUrl) {
+    // Explicit response timeout for the caller.
+    res.setTimeout(USER_RESPONSE_TIMEOUT_MS);
+
     try {
         const isHttps = String(targetUrl || '').startsWith('https://');
         const url = `${targetUrl}${req.originalUrl}`;
+        const breakerKey = targetUrl;
+        const breaker = getBreaker(breakerKey);
+
+        if (breaker.isOpen()) {
+            if (req.method === 'GET' && req.originalUrl.startsWith('/api/recommendations')) {
+                return res.status(200).json([]);
+            }
+            return res.status(503).json({ message: 'Upstream temporarily unavailable (circuit open)' });
+        }
+
         const wantsStream =
             req.method === 'GET' &&
             /^\/api\/content\/songs\/[^/]+\/audio$/.test(req.originalUrl);
@@ -116,68 +198,98 @@ async function proxy(req, res, targetUrl) {
         const contentType = String(req.headers['content-type'] || '');
         const isMultipart = contentType.startsWith('multipart/form-data');
 
-        if (wantsStream) {
-            const upstream = await axios({
-                method: req.method,
-                url,
-                headers: req.headers,
-                responseType: 'stream',
-                validateStatus: () => true,
-                ...(isHttps ? { httpsAgent } : null),
-            });
+        const controller = new AbortController();
+        const userTimeout = setTimeout(() => controller.abort(), USER_RESPONSE_TIMEOUT_MS);
 
-            if (upstream.headers['set-cookie']) {
-                res.setHeader('set-cookie', upstream.headers['set-cookie']);
+        const baseAxiosConfig = {
+            method: req.method,
+            url,
+            headers: req.headers,
+            timeout: UPSTREAM_TIMEOUT_MS,
+            signal: controller.signal,
+            maxBodyLength: Infinity,
+            maxContentLength: Infinity,
+            validateStatus: () => true,
+            ...(isHttps ? { httpsAgent } : { httpAgent }),
+        };
+
+        try {
+            if (wantsStream) {
+                const upstream = await axios({
+                    ...baseAxiosConfig,
+                    responseType: 'stream',
+                });
+
+                if (upstream.headers['set-cookie']) {
+                    res.setHeader('set-cookie', upstream.headers['set-cookie']);
+                }
+
+                res.status(upstream.status);
+                for (const [k, v] of Object.entries(upstream.headers || {})) {
+                    const key = String(k).toLowerCase();
+                    if (key === 'transfer-encoding') continue;
+                    if (key === 'content-encoding') continue;
+                    res.setHeader(k, v);
+                }
+
+                upstream.data.pipe(res);
+                breaker.success();
+                return;
             }
 
-            res.status(upstream.status);
-            for (const [k, v] of Object.entries(upstream.headers || {})) {
-                const key = String(k).toLowerCase();
-                if (key === 'transfer-encoding') continue;
-                if (key === 'content-encoding') continue;
-                res.setHeader(k, v);
+            // For multipart uploads, pipe the raw request stream directly to upstream.
+            if (isMultipart) {
+                const response = await axios({
+                    ...baseAxiosConfig,
+                    data: req,
+                });
+
+                if (response.headers['set-cookie']) {
+                    res.setHeader('set-cookie', response.headers['set-cookie']);
+                }
+                breaker.success();
+                return res.status(response.status).json(response.data);
             }
 
-            upstream.data.pipe(res);
-            return;
-        }
-
-        // For multipart uploads, pipe the raw request stream directly to upstream.
-        if (isMultipart) {
-            const response = await axios({
-                method: req.method,
-                url,
-                headers: req.headers,
-                data: req,
-                maxBodyLength: Infinity,
-                maxContentLength: Infinity,
-                validateStatus: () => true,
-                ...(isHttps ? { httpsAgent } : {}),
-            });
+            // Retry only for idempotent reads to avoid duplicating writes.
+            const canRetry = req.method === 'GET' || req.method === 'HEAD';
+            let response = null;
+            let lastErr = null;
+            const attempts = canRetry ? Math.max(1, RETRY_MAX_ATTEMPTS) : 1;
+            for (let i = 1; i <= attempts; i++) {
+                try {
+                    response = await axios({
+                        ...baseAxiosConfig,
+                        data: req.body,
+                    });
+                    lastErr = null;
+                    break;
+                } catch (err) {
+                    lastErr = err;
+                    if (!canRetry || i === attempts || !isRetryableAxiosError(err)) break;
+                    const delay = RETRY_BASE_DELAY_MS * Math.pow(2, i - 1);
+                    await sleep(delay);
+                }
+            }
+            if (lastErr) throw lastErr;
 
             if (response.headers['set-cookie']) {
                 res.setHeader('set-cookie', response.headers['set-cookie']);
             }
-            return res.status(response.status).json(response.data);
+
+            breaker.success();
+            res.status(response.status).json(response.data);
+        } finally {
+            clearTimeout(userTimeout);
         }
-
-        const response = await axios({
-            method: req.method,
-            url,
-            headers: req.headers,
-            data: req.body,
-            maxBodyLength: Infinity,
-            maxContentLength: Infinity,
-            ...(isHttps ? { httpsAgent } : {}),
-        });
-
-        if (response.headers['set-cookie']) {
-            res.setHeader('set-cookie', response.headers['set-cookie']);
-        }
-
-        res.status(response.status).json(response.data);
     } catch (error) {
         console.error('Proxy error:', req.method, req.originalUrl, error.message);
+        const breaker = getBreaker(targetUrl);
+        breaker.failure();
+
+        if ((req.method === 'GET' || req.method === 'HEAD') && req.originalUrl.startsWith('/api/recommendations')) {
+            return res.status(200).json([]);
+        }
         res
             .status(error.response?.status || 500)
             .json(error.response?.data || { message: 'Gateway error' });

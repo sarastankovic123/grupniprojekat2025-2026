@@ -1,14 +1,14 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"time"
 
 	"github.com/gin-gonic/gin"
 
+	"shared-utils/httpclient"
 	"shared-utils/logging"
 	"users-service/config"
 	"users-service/models"
@@ -132,13 +132,30 @@ func VerifyOTP(c *gin.Context) {
 
 	// Send login success notification (async, non-blocking)
 	go func() {
-		notifBody, _ := json.Marshal(map[string]string{
+		if NotificationsClient == nil {
+			return
+		}
+
+		payload := map[string]string{
 			"userId":  user.ID.Hex(),
 			"message": fmt.Sprintf("Login successful at %s", time.Now().Format("2006-01-02 15:04:05")),
-		})
-		req, _ := http.NewRequest("POST", "https://localhost:8003/api/notifications", bytes.NewBuffer(notifBody))
-		req.Header.Set("Content-Type", "application/json")
+		}
+
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
+
+		req, err := httpclient.NewJSONRequest(ctx, "POST", config.NotificationsServiceURL+"/api/notifications", payload)
+		if err != nil {
+			return
+		}
 		req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
-		http.DefaultClient.Do(req)
+
+		resp, err := NotificationsClient.Do(ctx, req)
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+		if err != nil {
+			Logger.Application.Warn().Err(err).Msg("Failed to send notification (verify otp)")
+		}
 	}()
 }

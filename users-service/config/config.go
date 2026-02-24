@@ -41,10 +41,11 @@ var (
 	SMTPUseTLS   bool
 
 	// Email Settings
-	EmailTemplatesDir  string
-	EmailRetryAttempts int
-	EmailTimeout       time.Duration
-	FrontendURL        string
+	EmailTemplatesDir       string
+	EmailRetryAttempts      int
+	EmailTimeout            time.Duration
+	FrontendURL             string
+	NotificationsServiceURL string
 )
 
 func LoadConfig() {
@@ -146,6 +147,7 @@ func LoadConfig() {
 		log.Fatal("Invalid EMAIL_TIMEOUT format:", err)
 	}
 	FrontendURL = getEnv("FRONTEND_URL", "http://localhost:5173")
+	NotificationsServiceURL = getEnv("NOTIFICATIONS_SERVICE_URL", "https://localhost:8003")
 
 	// Validate email configuration
 	if EmailProvider == "smtp" && !EmailDevMode {

@@ -1,36 +1,44 @@
 package handlers
 
 import (
-	"bytes"
-	"crypto/tls"
-	"encoding/json"
-	"net/http"
+	"context"
+	"time"
 
 	"content-service/config"
+	"shared-utils/httpclient"
 )
 
-// HTTP client that skips TLS verification for inter-service communication (self-signed certs)
-var internalHTTPClient = &http.Client{
-	Transport: &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: true},
-	},
-}
+var notificationsClient = httpclient.NewResilientClient(httpclient.ResilientClientOptions{
+	HTTPClient:            httpclient.GetClient(),
+	DefaultRequestTimeout: 2 * time.Second,
+	Retry:                 httpclient.RetryPolicy{MaxAttempts: 3, BaseBackoff: 100 * time.Millisecond, MaxBackoff: 500 * time.Millisecond},
+	BreakerName:           "notification-service",
+})
 
 // sendNotification sends a notification to a user via the notification service
 func sendNotification(userID, message string) {
-	notifBody, _ := json.Marshal(map[string]string{
+	if notificationsClient == nil {
+		return
+	}
+
+	payload := map[string]string{
 		"userId":  userID,
 		"message": message,
-	})
-	req, err := http.NewRequest(
-		"POST",
-		config.NotificationsServiceURL+"/api/notifications",
-		bytes.NewBuffer(notifBody),
-	)
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	defer cancel()
+
+	req, err := httpclient.NewJSONRequest(ctx, "POST", config.NotificationsServiceURL+"/api/notifications", payload)
 	if err != nil {
 		return
 	}
-	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
-	internalHTTPClient.Do(req)
+	resp, err := notificationsClient.Do(ctx, req)
+	if resp != nil && resp.Body != nil {
+		_ = resp.Body.Close()
+	}
+	if err != nil && Logger != nil {
+		Logger.Application.Warn().Err(err).Msg("Failed to send notification (content-service)")
+	}
 }

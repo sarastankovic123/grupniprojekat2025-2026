@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -11,6 +10,7 @@ import (
 	"github.com/gin-gonic/gin"
 
 	"shared-utils/auth"
+	"shared-utils/httpclient"
 	"shared-utils/logging"
 	"shared-utils/validation"
 	"users-service/config"
@@ -132,20 +132,30 @@ func Register(c *gin.Context) {
 	})
 
 	go func() {
-		notifBody, _ := json.Marshal(map[string]string{
+		if NotificationsClient == nil {
+			return
+		}
+
+		payload := map[string]string{
 			"userId":  user.ID.Hex(),
 			"message": "Welcome! Please confirm your email: " + confirmURL,
-		})
+		}
 
-		req, _ := http.NewRequest(
-			"POST",
-			"https://localhost:8003/api/notifications",
-			bytes.NewBuffer(notifBody),
-		)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
 
-		req.Header.Set("Content-Type", "application/json")
+		req, err := httpclient.NewJSONRequest(ctx, "POST", config.NotificationsServiceURL+"/api/notifications", payload)
+		if err != nil {
+			return
+		}
 		req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
 
-		http.DefaultClient.Do(req)
+		resp, err := NotificationsClient.Do(ctx, req)
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+		if err != nil {
+			Logger.Application.Warn().Err(err).Msg("Failed to send notification (register)")
+		}
 	}()
 }

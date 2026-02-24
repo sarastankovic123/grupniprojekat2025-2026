@@ -1,8 +1,7 @@
 package handlers
 
 import (
-	"bytes"
-	"encoding/json"
+	"context"
 	"fmt"
 	"net/http"
 	"strings"
@@ -10,6 +9,7 @@ import (
 
 	"github.com/gin-gonic/gin"
 
+	"shared-utils/httpclient"
 	"users-service/config"
 	"users-service/models"
 	"users-service/repository"
@@ -70,21 +70,31 @@ func ResendConfirmation(c *gin.Context) {
 	}
 
 	go func() {
-		notifBody, _ := json.Marshal(map[string]string{
+		if NotificationsClient == nil {
+			return
+		}
+
+		payload := map[string]string{
 			"userId":  user.ID.Hex(),
 			"message": "Confirm your account: " + confirmURL,
-		})
+		}
 
-		req, _ := http.NewRequest(
-			"POST",
-			"https://localhost:8003/api/notifications",
-			bytes.NewBuffer(notifBody),
-		)
+		ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+		defer cancel()
 
-		req.Header.Set("Content-Type", "application/json")
+		req, err := httpclient.NewJSONRequest(ctx, "POST", config.NotificationsServiceURL+"/api/notifications", payload)
+		if err != nil {
+			return
+		}
 		req.Header.Set("X-Service-API-Key", config.ServiceAPIKey)
 
-		http.DefaultClient.Do(req)
+		resp, err := NotificationsClient.Do(ctx, req)
+		if resp != nil && resp.Body != nil {
+			_ = resp.Body.Close()
+		}
+		if err != nil {
+			Logger.Application.Warn().Err(err).Msg("Failed to send notification (resend confirmation)")
+		}
 	}()
 
 	c.JSON(http.StatusOK, gin.H{"message": "Confirmation email resent"})

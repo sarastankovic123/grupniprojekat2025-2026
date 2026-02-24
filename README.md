@@ -122,3 +122,15 @@ Ovaj repozitorijum implementira mikroservisnu aplikaciju sa API gateway-em i zaj
   - `users_db`, `content_db`, `notifications_db`
 - Time se logički odvaja model podataka po servisu (svaki servis “poseduje” svoju bazu/entitete).
 
+# 2.7 Otpornost na parcijalne otkaze
+
+Implementirano (minimum za vežbe):
+- Konfigurisan HTTP klijent (keep-alive + dial/TLS timeouts) u `shared-utils/httpclient` i u gateway-u.
+- Timeout na nivou downstream poziva (`axios` timeout u `api-gateway`, `context.WithTimeout` u Go servisima).
+- Fallback kada upstream ne odgovori (gateway vraća prazan rezultat za `GET /api/recommendations`).
+- Circuit breaker + retry za downstream pozive (gateway i Go klijent za notifikacije).
+- Eksplicitni timeout za vraćanje odgovora korisniku (net/http server timeouts u svim Go servisima + `res.setTimeout` u gateway-u).
+- Upstream odustaje od obrade nakon isteka timeout-a (otkazivanje preko `context`/`AbortController`).
+
+Gateway env var-ovi (opciono): `UPSTREAM_TIMEOUT_MS`, `USER_RESPONSE_TIMEOUT_MS`, `RETRY_MAX_ATTEMPTS`, `CIRCUIT_FAILURE_THRESHOLD`, `CIRCUIT_OPEN_MS` (vidi `.env.example`).
+
