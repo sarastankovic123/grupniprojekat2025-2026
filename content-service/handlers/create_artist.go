@@ -1,14 +1,13 @@
 package handlers
 
 import (
-	"fmt"
 	"net/http"
 
 	"content-service/models"
 	"content-service/repository"
-	"shared-utils/validation"
 
 	"github.com/gin-gonic/gin"
+	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
 type CreateArtistRequest struct {
@@ -25,6 +24,7 @@ func CreateArtist(c *gin.Context) {
 	}
 
 	artist := models.Artist{
+		ID:        primitive.NewObjectID(),
 		Name:      req.Name,
 		Biography: req.Biography,
 		Genres:    req.Genres,
@@ -39,27 +39,14 @@ func CreateArtist(c *gin.Context) {
 		"message": "Artist created",
 	})
 
-	// Notify genre subscribers about new artist (async, non-blocking)
-	// Note: Artist has no subscribers yet (just created), so only notify genre subscribers
-	go func() {
-		// Collect unique subscriber user IDs from genre subscriptions
-		subscriberMap := make(map[string]bool)
-
-		for _, genre := range req.Genres {
-			genreSubs, err := repository.GetGenreSubscribers(genre)
-			if err == nil {
-				for _, userID := range genreSubs {
-					subscriberMap[userID.Hex()] = true
-				}
-			}
-		}
-
-		// Send notification to each unique subscriber
-		sanitizedName := validation.SanitizeForHTML(req.Name)
-		message := fmt.Sprintf("New artist added: %s", sanitizedName)
-
-		for userIDHex := range subscriberMap {
-			sendNotification(userIDHex, message)
-		}
-	}()
+	emitRecommendationEvent("artist.created", map[string]interface{}{
+		"artistId": artist.ID.Hex(),
+		"name":     artist.Name,
+		"genres":   artist.Genres,
+	})
+	emitSubscriptionEvent("artist.created", map[string]interface{}{
+		"artistId": artist.ID.Hex(),
+		"name":     artist.Name,
+		"genres":   artist.Genres,
+	})
 }

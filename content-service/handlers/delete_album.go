@@ -37,5 +37,9 @@ func DeleteAlbum(c *gin.Context) {
 		return
 	}
 
+	emitRecommendationEvent("album.deleted", map[string]interface{}{
+		"albumId": id,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Album deleted"})
 }

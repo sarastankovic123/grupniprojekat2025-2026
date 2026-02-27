@@ -72,6 +72,13 @@ func CreateAlbum(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, created)
 
+	emitRecommendationEvent("album.created", map[string]interface{}{
+		"albumId":  created.ID.Hex(),
+		"artistId": created.ArtistID.Hex(),
+		"title":    created.Title,
+		"genres":   created.Genres,
+	})
+
 	// Notify subscribers about new album (async, non-blocking)
 	go func() {
 		artist, err := repository.GetArtistByID(created.ArtistID.Hex())
@@ -157,6 +164,13 @@ func CreateAlbumForArtist(c *gin.Context) {
 	}
 
 	c.JSON(http.StatusCreated, created)
+
+	emitRecommendationEvent("album.created", map[string]interface{}{
+		"albumId":  created.ID.Hex(),
+		"artistId": created.ArtistID.Hex(),
+		"title":    created.Title,
+		"genres":   created.Genres,
+	})
 
 	// Notify subscribers about new album (async, non-blocking)
 	go func() {

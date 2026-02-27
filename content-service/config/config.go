@@ -10,15 +10,17 @@ import (
 )
 
 var (
-	JWTSecret               []byte
-	ServiceAPIKey           string
-	RateLimitAPIReqs        int
-	RateLimitAPIWindow      time.Duration
-	MongoURI                string
-	Port                    string
-	ContentDBName           string
-	NotificationsServiceURL string
-	UsersServiceURL         string
+	JWTSecret                []byte
+	ServiceAPIKey            string
+	RateLimitAPIReqs         int
+	RateLimitAPIWindow       time.Duration
+	MongoURI                 string
+	Port                     string
+	ContentDBName            string
+	ContentServiceURL        string
+	NotificationsServiceURL  string
+	UsersServiceURL          string
+	RecommendationServiceURL string
 )
 
 func LoadConfig() {
@@ -57,10 +59,12 @@ func LoadConfig() {
 
 	// Server
 	Port = getEnv("PORT", "8002")
+	ContentServiceURL = getEnv("CONTENT_SERVICE_URL", "https://content-service:8002")
 
 	// Notifications Service URL (Docker: https://notification-service:8003, Local: https://localhost:8003)
 	NotificationsServiceURL = getEnv("NOTIFICATIONS_SERVICE_URL", "https://localhost:8003")
 	UsersServiceURL = getEnv("USERS_SERVICE_URL", "https://users-service:8001")
+	RecommendationServiceURL = getEnv("RECOMMENDATION_SERVICE_URL", "https://recommendation-service:8004")
 
 	log.Println("Configuration loaded successfully")
 }

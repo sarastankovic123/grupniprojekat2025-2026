@@ -124,6 +124,12 @@ func SetRating(c *gin.Context) {
 		return
 	}
 
+	emitRecommendationEvent("song.rating.created_or_updated", map[string]interface{}{
+		"userId": userID.Hex(),
+		"songId": songID.Hex(),
+		"rating": req.Rating,
+	})
+
 	c.JSON(http.StatusOK, rating)
 }
 
@@ -165,6 +171,11 @@ func DeleteRating(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to delete rating"})
 		return
 	}
+
+	emitRecommendationEvent("song.rating.deleted", map[string]interface{}{
+		"userId": userID.Hex(),
+		"songId": songID.Hex(),
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Rating deleted successfully"})
 }

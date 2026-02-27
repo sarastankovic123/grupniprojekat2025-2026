@@ -158,6 +158,12 @@ func main() {
 		}
 	}
 
+	internal := r.Group("/api/internal")
+	internal.Use(middleware.ServiceAuthMiddleware())
+	{
+		internal.POST("/subscription-events", handlers.HandleSubscriptionAsyncEvent)
+	}
+
 	fmt.Printf("Content service running on port %s\n", config.Port)
 	srv := &http.Server{
 		Addr:              ":" + config.Port,

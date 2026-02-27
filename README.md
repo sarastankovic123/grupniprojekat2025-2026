@@ -122,6 +122,40 @@ Ovaj repozitorijum implementira mikroservisnu aplikaciju sa API gateway-em i zaj
   - `users_db`, `content_db`, `notifications_db`
 - Time se logički odvaja model podataka po servisu (svaki servis “poseduje” svoju bazu/entitete).
 
+# 2.6 Asinhrona komunikacija između servisa
+
+Implementirano:
+
+- `recommendation-service` reaguje na događaje drugih servisa preko internog endpoint-a:
+  - `POST /api/internal/events`
+  - zaštita: `X-Service-API-Key`
+  - obrada: događaj se prihvata odmah (`202 Accepted`), a osvežavanje grafa ide asinhrono (`queued async refresh`).
+
+- Događaje ka recommendation servisu emituju:
+  - `users-service`: `user.created`
+  - `content-service`:
+    - `artist.created`, `artist.updated`, `artist.deleted`
+    - `album.created`, `album.updated`, `album.deleted`
+    - `song.created`, `song.deleted`
+    - `artist.subscription.created`, `artist.subscription.deleted`
+    - `genre.subscription.created`, `genre.subscription.deleted`
+    - `song.rating.created_or_updated`, `song.rating.deleted`
+
+- Za zahtev da na novi umetnik/pesma reaguje i servis pretplata:
+  - uveden je interni subscription async event tok u `content-service`:
+    - `POST /api/internal/subscription-events` (service-auth, async accept)
+  - publisher:
+    - posle `artist.created` emituje se `artist.created` subscription event
+    - posle `song.created` emituje se `song.created` subscription event
+  - consumer logika:
+    - na `artist.created`: pronalazi korisnike pretplaćene na žanrove umetnika i šalje notifikacije
+    - na `song.created`: pronalazi korisnike pretplaćene na izvođača i/ili relevantne žanrove i šalje notifikacije
+  - slanje notifikacija ostaje asinhrono i ne blokira korisnički request.
+
+- Dodatno asinhrono gde je adekvatno:
+  - emitovanje inter-service događaja radi se u pozadini (goroutine + timeout + retry + circuit breaker)
+  - user-facing write rute ne čekaju završetak downstream obrade događaja/notifikacija.
+
 # 2.7 Otpornost na parcijalne otkaze
 
 Implementirano (minimum za vežbe):

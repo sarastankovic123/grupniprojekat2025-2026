@@ -49,5 +49,11 @@ func UpdateArtist(c *gin.Context) {
 		return
 	}
 
+	emitRecommendationEvent("artist.updated", map[string]interface{}{
+		"artistId": id,
+		"name":     req.Name,
+		"genres":   req.Genres,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Artist updated"})
 }

@@ -41,11 +41,12 @@ var (
 	SMTPUseTLS   bool
 
 	// Email Settings
-	EmailTemplatesDir       string
-	EmailRetryAttempts      int
-	EmailTimeout            time.Duration
-	FrontendURL             string
-	NotificationsServiceURL string
+	EmailTemplatesDir        string
+	EmailRetryAttempts       int
+	EmailTimeout             time.Duration
+	FrontendURL              string
+	NotificationsServiceURL  string
+	RecommendationServiceURL string
 )
 
 func LoadConfig() {
@@ -148,6 +149,7 @@ func LoadConfig() {
 	}
 	FrontendURL = getEnv("FRONTEND_URL", "http://localhost:5173")
 	NotificationsServiceURL = getEnv("NOTIFICATIONS_SERVICE_URL", "https://localhost:8003")
+	RecommendationServiceURL = getEnv("RECOMMENDATION_SERVICE_URL", "https://recommendation-service:8004")
 
 	// Validate email configuration
 	if EmailProvider == "smtp" && !EmailDevMode {

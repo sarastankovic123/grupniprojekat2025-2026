@@ -5,7 +5,6 @@ import (
 	"content-service/repository"
 	"fmt"
 	"net/http"
-	"shared-utils/validation"
 	"strings"
 
 	"github.com/gin-gonic/gin"
@@ -106,50 +105,15 @@ func CreateSong(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, created)
 
-	// Notify subscribers about new song (async, non-blocking)
-	go func() {
-		// Get album and artist details
-		album, err := repository.GetAlbumByID(created.AlbumID.Hex())
-		if err != nil {
-			return
-		}
-
-		artist, err := repository.GetArtistByID(album.ArtistID.Hex())
-		if err != nil {
-			return
-		}
-
-		// Collect unique subscriber user IDs (deduplicate users subscribed to both artist and genre)
-		subscriberMap := make(map[string]bool)
-
-		// 1. Get artist subscribers
-		artistSubs, err := repository.GetArtistSubscribers(album.ArtistID)
-		if err == nil {
-			for _, userID := range artistSubs {
-				subscriberMap[userID.Hex()] = true
-			}
-		}
-
-		// 2. Get genre subscribers (check both album and artist genres)
-		allGenres := append(album.Genres, artist.Genres...)
-		for _, genre := range allGenres {
-			genreSubs, err := repository.GetGenreSubscribers(genre)
-			if err == nil {
-				for _, userID := range genreSubs {
-					subscriberMap[userID.Hex()] = true
-				}
-			}
-		}
-
-		// 3. Send notification to each unique subscriber
-		sanitizedTitle := validation.SanitizeForHTML(created.Title)
-		sanitizedArtist := validation.SanitizeForHTML(artist.Name)
-		message := fmt.Sprintf("New song: %s by %s", sanitizedTitle, sanitizedArtist)
-
-		for userIDHex := range subscriberMap {
-			sendNotification(userIDHex, message)
-		}
-	}()
+	emitRecommendationEvent("song.created", map[string]interface{}{
+		"songId":   created.ID.Hex(),
+		"title":    created.Title,
+		"albumId":  created.AlbumID.Hex(),
+		"duration": created.Duration,
+	})
+	emitSubscriptionEvent("song.created", map[string]interface{}{
+		"songId": created.ID.Hex(),
+	})
 }
 
 func CreateSongForAlbum(c *gin.Context) {
@@ -201,50 +165,15 @@ func CreateSongForAlbum(c *gin.Context) {
 
 	c.JSON(http.StatusCreated, created)
 
-	// Notify subscribers about new song (async, non-blocking)
-	go func() {
-		// Get album and artist details
-		album, err := repository.GetAlbumByID(created.AlbumID.Hex())
-		if err != nil {
-			return
-		}
-
-		artist, err := repository.GetArtistByID(album.ArtistID.Hex())
-		if err != nil {
-			return
-		}
-
-		// Collect unique subscriber user IDs (deduplicate users subscribed to both artist and genre)
-		subscriberMap := make(map[string]bool)
-
-		// 1. Get artist subscribers
-		artistSubs, err := repository.GetArtistSubscribers(album.ArtistID)
-		if err == nil {
-			for _, userID := range artistSubs {
-				subscriberMap[userID.Hex()] = true
-			}
-		}
-
-		// 2. Get genre subscribers (check both album and artist genres)
-		allGenres := append(album.Genres, artist.Genres...)
-		for _, genre := range allGenres {
-			genreSubs, err := repository.GetGenreSubscribers(genre)
-			if err == nil {
-				for _, userID := range genreSubs {
-					subscriberMap[userID.Hex()] = true
-				}
-			}
-		}
-
-		// 3. Send notification to each unique subscriber
-		sanitizedTitle := validation.SanitizeForHTML(created.Title)
-		sanitizedArtist := validation.SanitizeForHTML(artist.Name)
-		message := fmt.Sprintf("New song: %s by %s", sanitizedTitle, sanitizedArtist)
-
-		for userIDHex := range subscriberMap {
-			sendNotification(userIDHex, message)
-		}
-	}()
+	emitRecommendationEvent("song.created", map[string]interface{}{
+		"songId":   created.ID.Hex(),
+		"title":    created.Title,
+		"albumId":  created.AlbumID.Hex(),
+		"duration": created.Duration,
+	})
+	emitSubscriptionEvent("song.created", map[string]interface{}{
+		"songId": created.ID.Hex(),
+	})
 }
 
 func UpdateSong(c *gin.Context) {
@@ -302,6 +231,10 @@ func DeleteSong(c *gin.Context) {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return
 	}
+
+	emitRecommendationEvent("song.deleted", map[string]interface{}{
+		"songId": id,
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Song deleted"})
 }

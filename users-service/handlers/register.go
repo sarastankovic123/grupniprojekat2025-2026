@@ -131,6 +131,11 @@ func Register(c *gin.Context) {
 		"message": "Registration successful. Please confirm your email.",
 	})
 
+	emitRecommendationEvent("user.created", map[string]interface{}{
+		"userId": user.ID.Hex(),
+		"email":  user.Email,
+	})
+
 	go func() {
 		if NotificationsClient == nil {
 			return

@@ -37,5 +37,9 @@ func DeleteArtist(c *gin.Context) {
 		return
 	}
 
+	emitRecommendationEvent("artist.deleted", map[string]interface{}{
+		"artistId": id,
+	})
+
 	c.JSON(http.StatusOK, gin.H{"message": "Artist deleted"})
 }

@@ -61,6 +61,11 @@ func SubscribeToArtist(c *gin.Context) {
 		return
 	}
 
+	emitRecommendationEvent("artist.subscription.created", map[string]interface{}{
+		"userId":   userID.Hex(),
+		"artistId": artistObjID.Hex(),
+	})
+
 	c.JSON(http.StatusOK, subscription)
 }
 
@@ -85,6 +90,11 @@ func UnsubscribeFromArtist(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unsubscribe"})
 		return
 	}
+
+	emitRecommendationEvent("artist.subscription.deleted", map[string]interface{}{
+		"userId":   userID.Hex(),
+		"artistId": artistObjID.Hex(),
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Unsubscribed successfully"})
 }
@@ -161,6 +171,11 @@ func SubscribeToGenre(c *gin.Context) {
 		return
 	}
 
+	emitRecommendationEvent("genre.subscription.created", map[string]interface{}{
+		"userId": userID.Hex(),
+		"genre":  genre,
+	})
+
 	c.JSON(http.StatusOK, subscription)
 }
 
@@ -184,6 +199,11 @@ func UnsubscribeFromGenre(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to unsubscribe"})
 		return
 	}
+
+	emitRecommendationEvent("genre.subscription.deleted", map[string]interface{}{
+		"userId": userID.Hex(),
+		"genre":  genre,
+	})
 
 	c.JSON(http.StatusOK, gin.H{"message": "Unsubscribed successfully"})
 }

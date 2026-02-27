@@ -72,6 +72,12 @@ func main() {
 		api.GET("", middleware.AuthMiddleware(), handlers.GetRecommendations)
 	}
 
+	internal := r.Group("/api/internal")
+	internal.Use(middleware.ServiceAuthMiddleware())
+	{
+		internal.POST("/events", handlers.HandleAsyncEvent)
+	}
+
 	fmt.Printf("Recommendation service running on port %s\n", config.Port)
 	srv := &http.Server{
 		Addr:              ":" + config.Port,
