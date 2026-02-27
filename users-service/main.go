@@ -96,6 +96,12 @@ func main() {
 	r.GET("/api/auth/me", middleware.AuthMiddleware(), handlers.GetMe)
 	r.PATCH("/api/auth/me", middleware.AuthMiddleware(), handlers.UpdateMe)
 
+	// Internal service-to-service routes
+	internal := r.Group("/api/internal", middleware.ServiceAuthMiddleware())
+	{
+		internal.GET("/users/:id/exists", handlers.InternalUserExists)
+	}
+
 	fmt.Printf("Users service running on port %s\n", config.Port)
 	srv := &http.Server{
 		Addr:              ":" + config.Port,

@@ -18,6 +18,7 @@ var (
 	Port                    string
 	ContentDBName           string
 	NotificationsServiceURL string
+	UsersServiceURL         string
 )
 
 func LoadConfig() {
@@ -59,6 +60,7 @@ func LoadConfig() {
 
 	// Notifications Service URL (Docker: https://notification-service:8003, Local: https://localhost:8003)
 	NotificationsServiceURL = getEnv("NOTIFICATIONS_SERVICE_URL", "https://localhost:8003")
+	UsersServiceURL = getEnv("USERS_SERVICE_URL", "https://users-service:8001")
 
 	log.Println("Configuration loaded successfully")
 }

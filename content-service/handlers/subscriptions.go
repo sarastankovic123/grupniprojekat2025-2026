@@ -1,8 +1,11 @@
 package handlers
 
 import (
+	"context"
+	"errors"
 	"net/http"
 	"strings"
+	"time"
 
 	"content-service/models"
 	"content-service/repository"
@@ -28,6 +31,22 @@ func SubscribeToArtist(c *gin.Context) {
 		return
 	}
 	userID, _ := primitive.ObjectIDFromHex(userIDStr.(string))
+
+	// Synchronous service-to-service check: user must exist in users-service.
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+	defer cancel()
+	if err := ensureUserExists(ctx, userIDStr.(string)); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Timed out while verifying user"})
+			return
+		}
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to verify user"})
+		return
+	}
 
 	// Verify artist exists before allowing subscription
 	artist, err := repository.GetArtistByID(artistObjID.Hex())

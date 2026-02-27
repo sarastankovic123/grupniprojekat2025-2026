@@ -2,8 +2,11 @@ package handlers
 
 import (
 	"content-service/repository"
+	"context"
+	"errors"
 	"net/http"
 	"strconv"
+	"time"
 
 	"github.com/gin-gonic/gin"
 	"go.mongodb.org/mongo-driver/bson/primitive"
@@ -81,6 +84,22 @@ func SetRating(c *gin.Context) {
 		return
 	}
 
+	// Synchronous service-to-service check: user must exist in users-service.
+	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
+	defer cancel()
+	if err := ensureUserExists(ctx, userIDStr); err != nil {
+		if errors.Is(err, context.DeadlineExceeded) {
+			c.JSON(http.StatusGatewayTimeout, gin.H{"error": "Timed out while verifying user"})
+			return
+		}
+		if err.Error() == "user not found" {
+			c.JSON(http.StatusNotFound, gin.H{"error": "User not found"})
+			return
+		}
+		c.JSON(http.StatusBadGateway, gin.H{"error": "Failed to verify user"})
+		return
+	}
+
 	// Parse request body
 	var req struct {
 		Rating int `json:"rating" binding:"required,min=1,max=5"`
@@ -88,6 +107,13 @@ func SetRating(c *gin.Context) {
 
 	if err := c.ShouldBindJSON(&req); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Rating must be between 1 and 5"})
+		return
+	}
+
+	// Validate that song exists before rating.
+	song, err := repository.GetSongByID(songID.Hex())
+	if err != nil || song == nil {
+		c.JSON(http.StatusNotFound, gin.H{"error": "Song not found"})
 		return
 	}
 

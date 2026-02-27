@@ -52,9 +52,8 @@ export default defineConfig(({ mode }) => {
       proxy: {
         // All API requests go through the API gateway (nginx -> gateway -> services)
         "/api": {
-          target: "https://localhost:8443",
+          target: "http://localhost:8080",
           changeOrigin: true,
-          secure: false,
         },
       },
     },

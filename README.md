@@ -134,3 +134,20 @@ Implementirano (minimum za vežbe):
 
 Gateway env var-ovi (opciono): `UPSTREAM_TIMEOUT_MS`, `USER_RESPONSE_TIMEOUT_MS`, `RETRY_MAX_ATTEMPTS`, `CIRCUIT_FAILURE_THRESHOLD`, `CIRCUIT_OPEN_MS` (vidi `.env.example`).
 
+# Brzi oporavak (Loading... zaglavljivanje)
+
+Ako frontend ostane na `Loading...` jer gateway/zavisni servis visi, pokreni:
+
+```powershell
+cd C:\dev\grupniprojekat2025-2026
+powershell -ExecutionPolicy Bypass -File .\scripts\fix-gateway-hang.ps1
+```
+
+Skripta proverava:
+- da li `http://localhost:8080/api/content/artists` odgovara brzo
+- da li `api-gateway` vidi `users-service` preko Docker DNS-a
+
+Ako provera padne, skripta automatski recreat-uje:
+- `users-service`
+- `api-gateway`
+- `nginx`
