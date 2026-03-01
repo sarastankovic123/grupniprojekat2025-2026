@@ -13,22 +13,34 @@ import (
 )
 
 func GetAlbumsByArtistID(artistID string) ([]models.Album, error) {
+	return SearchAlbumsByArtistID(artistID, "")
+}
+
+func SearchAlbumsByArtistID(artistID string, searchQuery string) ([]models.Album, error) {
 	objID, err := primitive.ObjectIDFromHex(artistID)
 	if err != nil {
 		return nil, err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{"artistId": objID}
+	if searchQuery != "" {
+		filter["title"] = bson.M{"$regex": searchQuery, "$options": "i"}
+	}
+
 	cursor, err := db.AlbumsCollection.Find(
-		context.Background(),
-		bson.M{"artistId": objID},
+		ctx,
+		filter,
 	)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(context.Background())
+	defer cursor.Close(ctx)
 
 	var albums []models.Album
-	if err := cursor.All(context.Background(), &albums); err != nil {
+	if err := cursor.All(ctx, &albums); err != nil {
 		return nil, err
 	}
 

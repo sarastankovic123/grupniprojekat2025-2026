@@ -3,6 +3,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
+import SearchBar from "../components/SearchBar";
 import { theme } from "../theme";
 
 const getInitials = (text) => {
@@ -20,8 +21,10 @@ export default function ArtistDetails() {
 
   const [artist, setArtist] = useState(null);
   const [albums, setAlbums] = useState([]);
+  const [albumSearch, setAlbumSearch] = useState("");
 
   const [loading, setLoading] = useState(true);
+  const [albumsLoading, setAlbumsLoading] = useState(false);
   const [err, setErr] = useState("");
 
   const [isSubscribed, setIsSubscribed] = useState(false);
@@ -33,41 +36,70 @@ export default function ArtistDetails() {
 
     async function load() {
       setErr("");
-      setLoading(true);
+      const currentArtistID = artist?.id || artist?._id || artist?.artistId;
+      const shouldFetchArtist = !artist || currentArtistID !== id;
+
+      if (shouldFetchArtist) {
+        setLoading(true);
+      } else {
+        setAlbumsLoading(true);
+      }
+
       try {
-        const a = await apiFetch(`/api/content/artists/${id}`);
-        const al = await apiFetch(`/api/content/artists/${id}/albums`);
+        const albumsUrl = `/api/content/artists/${id}/albums${albumSearch ? `?search=${encodeURIComponent(albumSearch)}` : ""}`;
+        let a = artist;
+        if (shouldFetchArtist) {
+          a = await apiFetch(`/api/content/artists/${id}`);
+          if (!alive) return;
+          setArtist(a);
+        }
+
+        const al = await apiFetch(albumsUrl);
 
         if (!alive) return;
-        setArtist(a);
         setAlbums(Array.isArray(al) ? al : al?.items || []);
 
-        if (isAuthenticated) {
-          setCheckingSubscription(true);
-          try {
-            const status = await contentApi.getArtistSubscriptionStatus(id);
-            if (!alive) return;
-            setIsSubscribed(status?.isSubscribed || false);
-          } catch (err) {
-            if (!alive) return;
-            setIsSubscribed(false);
-          } finally {
-            if (!alive) return;
-            setCheckingSubscription(false);
-          }
-        } else {
-          setCheckingSubscription(false);
-        }
       } catch (e) {
         if (!alive) return;
         setErr(e.message || "Failed to load artist");
       } finally {
         if (!alive) return;
         setLoading(false);
+        setAlbumsLoading(false);
       }
     }
 
     load();
+    return () => {
+      alive = false;
+    };
+  }, [id, albumSearch]);
+
+  useEffect(() => {
+    let alive = true;
+
+    async function loadSubscriptionStatus() {
+      if (!isAuthenticated) {
+        setCheckingSubscription(false);
+        setIsSubscribed(false);
+        return;
+      }
+
+      setCheckingSubscription(true);
+      try {
+        const status = await contentApi.getArtistSubscriptionStatus(id);
+        if (!alive) return;
+        setIsSubscribed(status?.isSubscribed || false);
+      } catch {
+        if (!alive) return;
+        setIsSubscribed(false);
+      } finally {
+        if (!alive) return;
+        setCheckingSubscription(false);
+      }
+    }
+
+    loadSubscriptionStatus();
     return () => {
       alive = false;
     };
@@ -169,6 +201,14 @@ export default function ArtistDetails() {
 
       <div style={styles.albumsSection}>
         <h2 style={styles.sectionTitle}>Albums</h2>
+        <div style={styles.searchRow}>
+          <SearchBar
+            value={albumSearch}
+            onChange={setAlbumSearch}
+            placeholder="Search albums by title..."
+          />
+        </div>
+        {albumsLoading && <div style={styles.inlineLoading}>Filtering albums...</div>}
 
         {albums.length === 0 ? (
           <div style={styles.emptyState}>No albums yet</div>
@@ -313,6 +353,16 @@ const styles = {
   },
   albumsSection: {
     padding: `0 ${theme.spacing.xl} ${theme.spacing.xl}`,
+  },
+  searchRow: {
+    maxWidth: "420px",
+    marginBottom: theme.spacing.lg,
+  },
+  inlineLoading: {
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
+    marginTop: `-${theme.spacing.md}`,
+    marginBottom: theme.spacing.md,
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.xl,

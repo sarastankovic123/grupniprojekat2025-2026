@@ -3,6 +3,7 @@ import { Link, useLocation, useNavigate, useParams } from "react-router-dom";
 import { apiFetch } from "../api/apiFetch";
 import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
+import SearchBar from "../components/SearchBar";
 import { theme } from "../theme";
 
 const getInitials = (text) => {
@@ -42,8 +43,10 @@ export default function AlbumDetails() {
   const [album, setAlbum] = useState(loc.state?.album || null);
   const [songs, setSongs] = useState([]);
   const [artist, setArtist] = useState(null);
+  const [songSearch, setSongSearch] = useState("");
 
   const [loading, setLoading] = useState(true);
+  const [songsLoading, setSongsLoading] = useState(false);
   const [err, setErr] = useState("");
   const [audioErr, setAudioErr] = useState("");
   const [nowPlaying, setNowPlaying] = useState(null); // { id, title }
@@ -62,24 +65,39 @@ export default function AlbumDetails() {
 
     async function load() {
       setErr("");
-      setLoading(true);
+      const currentAlbumID = album?.id || album?._id || album?.albumId;
+      const shouldFetchAlbum = !album || currentAlbumID !== id;
+
+      if (shouldFetchAlbum) {
+        setLoading(true);
+      } else {
+        setSongsLoading(true);
+      }
 
       try {
-        const [a, s] = await Promise.all([
-          apiFetch(`/api/content/albums/${id}`),
-          apiFetch(`/api/content/albums/${id}/songs`),
-        ]);
+        const songsUrl = `/api/content/albums/${id}/songs${songSearch ? `?search=${encodeURIComponent(songSearch)}` : ""}`;
+
+        let a = album;
+        if (shouldFetchAlbum) {
+          a = await apiFetch(`/api/content/albums/${id}`);
+          if (!alive) return;
+          setAlbum(a);
+        }
+
+        const s = await apiFetch(songsUrl);
 
         if (!alive) return;
-        setAlbum(a);
+
         const songsArray = Array.isArray(s) ? s : [];
         setSongs(songsArray);
 
         if (isAuthenticated && songsArray.length > 0) {
           loadUserRatings(songsArray);
+        } else if (!isAuthenticated || songsArray.length === 0) {
+          setUserRatings({});
         }
 
-        if (a.artistId || a.artist_id) {
+        if (shouldFetchAlbum && (a.artistId || a.artist_id)) {
           try {
             const artistData = await apiFetch(`/api/content/artists/${a.artistId || a.artist_id}`);
             if (alive) setArtist(artistData);
@@ -100,6 +118,7 @@ export default function AlbumDetails() {
       } finally {
         if (!alive) return;
         setLoading(false);
+        setSongsLoading(false);
       }
     }
 
@@ -107,7 +126,7 @@ export default function AlbumDetails() {
     return () => {
       alive = false;
     };
-  }, [id]);
+  }, [id, songSearch, isAuthenticated]);
 
   useEffect(() => {
     if (!audioSrc) return;
@@ -140,7 +159,8 @@ export default function AlbumDetails() {
 
     try {
       await contentApi.deleteSong(songId);
-      const updatedSongs = await apiFetch(`/api/content/albums/${id}/songs`);
+      const songsUrl = `/api/content/albums/${id}/songs${songSearch ? `?search=${encodeURIComponent(songSearch)}` : ""}`;
+      const updatedSongs = await apiFetch(songsUrl);
       setSongs(Array.isArray(updatedSongs) ? updatedSongs : []);
     } catch (err) {
       alert(err.message || "Failed to delete song");
@@ -321,6 +341,14 @@ export default function AlbumDetails() {
 
       <div style={styles.songsSection}>
         <h2 style={styles.sectionTitle}>Songs</h2>
+        <div style={styles.searchRow}>
+          <SearchBar
+            value={songSearch}
+            onChange={setSongSearch}
+            placeholder="Search songs by title..."
+          />
+        </div>
+        {songsLoading && <div style={styles.inlineLoading}>Filtering songs...</div>}
 
         {audioErr && <div style={styles.audioError}>{audioErr}</div>}
 
@@ -576,6 +604,16 @@ const styles = {
   },
   songsSection: {
     padding: `0 ${theme.spacing.xl} ${theme.spacing.xl}`,
+  },
+  searchRow: {
+    maxWidth: "420px",
+    marginBottom: theme.spacing.lg,
+  },
+  inlineLoading: {
+    color: theme.colors.text.secondary,
+    fontSize: theme.typography.fontSize.sm,
+    marginTop: `-${theme.spacing.md}`,
+    marginBottom: theme.spacing.md,
   },
   sectionTitle: {
     fontSize: theme.typography.fontSize.xl,

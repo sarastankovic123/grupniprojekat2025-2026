@@ -148,25 +148,37 @@ func DeleteSong(id string) error {
 }
 
 func GetSongsByAlbumID(albumID string) ([]models.Song, error) {
+	return SearchSongsByAlbumID(albumID, "")
+}
+
+func SearchSongsByAlbumID(albumID string, searchQuery string) ([]models.Song, error) {
 	objID, err := primitive.ObjectIDFromHex(albumID)
 	if err != nil {
 		return nil, err
 	}
 
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+
+	filter := bson.M{"albumId": objID}
+	if searchQuery != "" {
+		filter["title"] = bson.M{"$regex": searchQuery, "$options": "i"}
+	}
+
 	opts := options.Find().SetSort(bson.M{"trackNo": 1})
 
 	cursor, err := db.SongsCollection.Find(
-		context.Background(),
-		bson.M{"albumId": objID},
+		ctx,
+		filter,
 		opts,
 	)
 	if err != nil {
 		return nil, err
 	}
-	defer cursor.Close(context.Background())
+	defer cursor.Close(ctx)
 
 	var songs []models.Song
-	if err := cursor.All(context.Background(), &songs); err != nil {
+	if err := cursor.All(ctx, &songs); err != nil {
 		return nil, err
 	}
 
