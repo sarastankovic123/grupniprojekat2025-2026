@@ -14,6 +14,7 @@ import (
 var MongoClient *mongo.Client
 var SongsCollection *mongo.Collection
 var AlbumsCollection *mongo.Collection
+var ArtistsCollection *mongo.Collection
 var UserRatingsCollection *mongo.Collection
 var GenreSubscriptionsCollection *mongo.Collection
 
@@ -40,6 +41,7 @@ func ConnectMongo() {
 
 				SongsCollection = db.Collection("songs")
 				AlbumsCollection = db.Collection("albums")
+				ArtistsCollection = db.Collection("artists")
 				UserRatingsCollection = db.Collection("user_ratings")
 				GenreSubscriptionsCollection = db.Collection("genre_subscriptions")
 

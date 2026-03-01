@@ -69,6 +69,8 @@ func main() {
 	internal.Use(middleware.ServiceAuthMiddleware())
 	{
 		internal.POST("/events", handlers.HandleAsyncEvent)
+		internal.GET("/songs/:id/exists", handlers.InternalSongExists)
+		internal.GET("/artists/:id/exists", handlers.InternalArtistExists)
 	}
 
 	fmt.Printf("Recommendation service running on port %s\n", config.Port)

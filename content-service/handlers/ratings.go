@@ -94,6 +94,18 @@ func SetRating(c *gin.Context) {
 		return
 	}
 
+	remoteSongMissing := false
+	recCtx, recCancel := context.WithTimeout(c.Request.Context(), 1200*time.Millisecond)
+	remoteSongExists, recErr := checkSongExistsViaRecommendation(recCtx, songIDStr)
+	recCancel()
+	if recErr != nil {
+		if Logger != nil {
+			Logger.Application.Warn().Err(recErr).Str("song_id", songIDStr).Msg("Recommendation song existence check failed; falling back to local validation")
+		}
+	} else if !remoteSongExists {
+		remoteSongMissing = true
+	}
+
 	var req struct {
 		Rating int `json:"rating" binding:"required,min=1,max=5"`
 	}
@@ -107,6 +119,10 @@ func SetRating(c *gin.Context) {
 	if err != nil || song == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Song not found"})
 		return
+	}
+
+	if remoteSongMissing && Logger != nil {
+		Logger.Application.Info().Str("song_id", songIDStr).Msg("Recommendation reported missing song; local authoritative check passed")
 	}
 
 	rating, err := repository.UpsertRating(userID, songID, req.Rating)

@@ -14,7 +14,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-
 func SubscribeToArtist(c *gin.Context) {
 	artistID := strings.TrimSpace(c.Param("id"))
 	artistObjID, err := primitive.ObjectIDFromHex(artistID)
@@ -45,10 +44,26 @@ func SubscribeToArtist(c *gin.Context) {
 		return
 	}
 
+	remoteArtistMissing := false
+	recCtx, recCancel := context.WithTimeout(c.Request.Context(), 1200*time.Millisecond)
+	remoteArtistExists, recErr := checkArtistExistsViaRecommendation(recCtx, artistID)
+	recCancel()
+	if recErr != nil {
+		if Logger != nil {
+			Logger.Application.Warn().Err(recErr).Str("artist_id", artistID).Msg("Recommendation artist existence check failed; falling back to local validation")
+		}
+	} else if !remoteArtistExists {
+		remoteArtistMissing = true
+	}
+
 	artist, err := repository.GetArtistByID(artistObjID.Hex())
 	if err != nil || artist == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Artist not found"})
 		return
+	}
+
+	if remoteArtistMissing && Logger != nil {
+		Logger.Application.Info().Str("artist_id", artistID).Msg("Recommendation reported missing artist; local authoritative check passed")
 	}
 
 	subscription, err := repository.SubscribeToArtist(userID, artistObjID)
@@ -138,7 +153,6 @@ func GetUserArtistSubscriptions(c *gin.Context) {
 
 	c.JSON(http.StatusOK, subscriptions)
 }
-
 
 func SubscribeToGenre(c *gin.Context) {
 	genre := strings.TrimSpace(c.Param("genre"))
