@@ -11,7 +11,6 @@ import (
 )
 
 func GetArtists(c *gin.Context) {
-	// Parse query parameters
 	searchQuery := strings.TrimSpace(c.Query("search"))
 	genresParam := strings.TrimSpace(c.Query("genres"))
 
@@ -23,7 +22,6 @@ func GetArtists(c *gin.Context) {
 		}
 	}
 
-	// Use search/filter if any parameters provided, otherwise get all
 	var artists []models.Artist
 	var err error
 

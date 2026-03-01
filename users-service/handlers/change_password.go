@@ -52,7 +52,6 @@ func ChangePassword(c *gin.Context) {
 		return
 	}
 
-	// Min password age: must be at least 1 day old to change.
 	if config.PasswordMinAge > 0 && time.Since(user.PasswordChangedAt) < config.PasswordMinAge {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Password is too new to be changed yet"})
 		return

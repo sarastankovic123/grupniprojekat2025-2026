@@ -6,7 +6,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// ArtistSubscription represents a user's subscription to an artist
 type ArtistSubscription struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID    primitive.ObjectID `bson:"userId" json:"userId"`
@@ -14,7 +13,6 @@ type ArtistSubscription struct {
 	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
 }
 
-// GenreSubscription represents a user's subscription to a genre
 type GenreSubscription struct {
 	ID        primitive.ObjectID `bson:"_id,omitempty" json:"id"`
 	UserID    primitive.ObjectID `bson:"userId" json:"userId"`
@@ -22,8 +20,6 @@ type GenreSubscription struct {
 	CreatedAt time.Time          `bson:"createdAt" json:"createdAt"`
 }
 
-// ArtistSubscriptionDetail represents enriched artist subscription data
-// with artist information joined from the artists collection
 type ArtistSubscriptionDetail struct {
 	ID           primitive.ObjectID `json:"id"`
 	UserID       primitive.ObjectID `json:"userId"`

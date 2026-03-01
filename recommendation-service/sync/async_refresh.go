@@ -10,8 +10,6 @@ var (
 	refreshQueued     bool
 )
 
-// TriggerAsyncRefresh schedules graph refresh without blocking callers.
-// If refresh is already running, it queues exactly one additional run.
 func TriggerAsyncRefresh() {
 	refreshMu.Lock()
 	if refreshInProgress {

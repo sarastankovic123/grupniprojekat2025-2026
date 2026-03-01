@@ -15,7 +15,6 @@ var notificationsClient = httpclient.NewResilientClient(httpclient.ResilientClie
 	BreakerName:           "notification-service",
 })
 
-// sendNotification sends a notification to a user via the notification service
 func sendNotification(userID, message string) {
 	if notificationsClient == nil {
 		return

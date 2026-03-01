@@ -38,7 +38,6 @@ function readHttpsConfig(env) {
     }
   }
 
-  // No certs found; fall back to HTTP for local dev instead of crashing.
   return false;
 }
 
@@ -50,7 +49,6 @@ export default defineConfig(({ mode }) => {
     server: {
       https: readHttpsConfig(env),
       proxy: {
-        // All API requests go through the API gateway (nginx -> gateway -> services)
         "/api": {
           target: "https://127.0.0.1:8443",
           changeOrigin: true,

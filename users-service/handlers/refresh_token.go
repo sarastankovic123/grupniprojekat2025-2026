@@ -12,10 +12,8 @@ import (
 )
 
 func RefreshToken(c *gin.Context) {
-	// Try to get refresh token from cookie
 	refreshTokenString, err := c.Cookie("refresh_token")
 	if err != nil {
-		// Fall back to request body for backward compatibility
 		var req struct {
 			RefreshToken string `json:"refresh_token"`
 		}
@@ -26,53 +24,45 @@ func RefreshToken(c *gin.Context) {
 		refreshTokenString = req.RefreshToken
 	}
 
-	// Find refresh token in database
 	storedToken, err := repository.FindRefreshTokenByToken(refreshTokenString)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid refresh token"})
 		return
 	}
 
-	// Check if token is revoked
 	if storedToken.IsRevoked {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token has been revoked"})
 		return
 	}
 
-	// Check if token is expired
 	if time.Now().After(storedToken.ExpiresAt) {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Refresh token has expired"})
 		return
 	}
 
-	// Get user from database
 	user, err := repository.FindUserByID(storedToken.UserID)
 	if err != nil {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not found"})
 		return
 	}
 
-	// Generate new access token
 	accessToken, err := utils.GenerateJWT(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return
 	}
 
-	// Optional: Rotate refresh token for better security
 	newRefreshTokenString, err := utils.GenerateRefreshToken()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
 		return
 	}
 
-	// Revoke old refresh token
 	if err := repository.RevokeRefreshToken(refreshTokenString); err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to revoke old token"})
 		return
 	}
 
-	// Store new refresh token
 	newRefreshToken := &models.RefreshToken{
 		UserID:    user.ID,
 		Token:     newRefreshTokenString,
@@ -83,7 +73,6 @@ func RefreshToken(c *gin.Context) {
 		return
 	}
 
-	// Set cookies
 	c.SetCookie(
 		"access_token",
 		accessToken,

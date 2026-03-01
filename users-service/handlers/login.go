@@ -26,7 +26,6 @@ type LoginRequest struct {
 func Login(c *gin.Context) {
 	var req LoginRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		// Log validation failure
 		ctx := logging.NewSecurityEventContext(c)
 		Logger.LogValidationFailure(ctx, "login_request", map[string]string{
 			"error": validation.FormatValidationError(err),
@@ -35,10 +34,8 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Trim email input
 	req.Email = strings.TrimSpace(req.Email)
 
-	// Additional email validation before database query
 	if !utils.IsValidEmail(req.Email) {
 		ctx := logging.NewSecurityEventContext(c)
 		Logger.LogValidationFailure(ctx, "email_format", map[string]string{
@@ -50,7 +47,6 @@ func Login(c *gin.Context) {
 
 	user, err := repository.FindUserByEmail(req.Email)
 	if err != nil {
-		// Log failed login attempt (user not found)
 		ctx := logging.NewSecurityEventContext(c)
 		Logger.LogLoginAttempt(ctx, req.Email, false, "user not found")
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid credentials"})
@@ -58,7 +54,6 @@ func Login(c *gin.Context) {
 	}
 
 	if !utils.CheckPassword(req.Password, user.PasswordHash) {
-		// Log failed login attempt (wrong password)
 		ctx := logging.NewSecurityEventContext(c)
 		c.Set("user_id", user.ID.Hex())
 		c.Set("email", user.Email)
@@ -69,7 +64,6 @@ func Login(c *gin.Context) {
 	}
 
 	if !user.IsConfirmed {
-		// Log failed login attempt (email not confirmed)
 		ctx := logging.NewSecurityEventContext(c)
 		c.Set("user_id", user.ID.Hex())
 		c.Set("email", user.Email)
@@ -81,7 +75,6 @@ func Login(c *gin.Context) {
 
 	now := time.Now()
 
-	// If account is temporarily locked (e.g., after password expiry), deny login.
 	if user.PasswordLockUntil != nil && now.Before(*user.PasswordLockUntil) {
 		c.JSON(http.StatusForbidden, gin.H{
 			"error":       "Login temporarily disabled. Please try again later.",
@@ -90,12 +83,10 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Enforce password max age (default 60 days). After expiry, lock login for a short period.
 	if config.PasswordMaxAge > 0 && now.After(user.PasswordChangedAt.Add(config.PasswordMaxAge)) {
 		expiredAt := user.PasswordChangedAt.Add(config.PasswordMaxAge)
 		lockUntil := expiredAt.Add(config.PasswordExpiryLock)
 
-		// Persist lockUntil for auditability; do not shorten an existing lock.
 		if user.PasswordLockUntil == nil || user.PasswordLockUntil.Before(lockUntil) {
 			_, _ = db.UsersCollection.UpdateOne(
 				c.Request.Context(),
@@ -138,7 +129,6 @@ func Login(c *gin.Context) {
 		return
 	}
 
-	// Log successful OTP generation and sending
 	ctx := logging.NewSecurityEventContext(c)
 	c.Set("user_id", user.ID.Hex())
 	c.Set("email", user.Email)

@@ -5,7 +5,6 @@ import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
 import { theme } from "../theme";
 
-// Helper function to generate initials from album title
 const getInitials = (text) => {
   if (!text) return '🎵';
   const words = text.trim().split(' ');
@@ -43,7 +42,6 @@ export default function ArtistDetails() {
         setArtist(a);
         setAlbums(Array.isArray(al) ? al : al?.items || []);
 
-        // Check subscription status if authenticated
         if (isAuthenticated) {
           setCheckingSubscription(true);
           try {
@@ -51,7 +49,6 @@ export default function ArtistDetails() {
             if (!alive) return;
             setIsSubscribed(status?.isSubscribed || false);
           } catch (err) {
-            // Ignore errors (user may not be authenticated)
             if (!alive) return;
             setIsSubscribed(false);
           } finally {
@@ -119,7 +116,6 @@ export default function ArtistDetails() {
 
   return (
     <div style={styles.page}>
-      {/* Hero Section */}
       <div style={styles.hero}>
         <Link to="/" style={styles.backLink}>← Back to Artists</Link>
 
@@ -139,7 +135,6 @@ export default function ArtistDetails() {
           </div>
         )}
 
-        {/* Subscribe Button */}
         {isAuthenticated && !checkingSubscription && (
           <button
             onClick={handleToggleSubscription}
@@ -157,7 +152,6 @@ export default function ArtistDetails() {
           </button>
         )}
 
-        {/* Admin Actions in Hero */}
         {isAdmin && (
           <div style={styles.heroActions}>
             <Link to={`/admin/artists/${id}/edit`} style={styles.heroActionBtn}>
@@ -173,7 +167,6 @@ export default function ArtistDetails() {
         )}
       </div>
 
-      {/* Albums Section */}
       <div style={styles.albumsSection}>
         <h2 style={styles.sectionTitle}>Albums</h2>
 
@@ -199,12 +192,10 @@ export default function ArtistDetails() {
                     animationFillMode: 'both'
                   }}
                 >
-                  {/* Card Background with Initials */}
                   <div style={styles.cardBackground}>
                     <div style={styles.cardInitials}>{initials}</div>
                   </div>
 
-                  {/* Card Overlay with Info */}
                   <div style={styles.cardOverlay}>
                     <div style={styles.cardTitle}>{al.title || al.name || "Untitled Album"}</div>
 

@@ -21,8 +21,6 @@ func HandleAsyncEvent(c *gin.Context) {
 		return
 	}
 
-	// Recommendation graph must react to domain events from other services.
-	// We run a queued async refresh to keep write path non-blocking.
 	sync.TriggerAsyncRefresh()
 
 	if Logger != nil {

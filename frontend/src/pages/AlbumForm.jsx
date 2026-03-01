@@ -32,7 +32,7 @@ export default function AlbumForm({ mode = "create" }) {
         setGenres(Array.isArray(album?.genres) ? album.genres : []);
         setAlbumArtistId(album?.artistId ?? "");
       } catch (err) {
-        setStatus({ type: "error", message: err.message || "Greška pri učitavanju albuma." });
+        setStatus({ type: "error", message: err.message || "GreÅ¡ka pri uÄitavanju albuma." });
       } finally {
         setLoading(false);
       }
@@ -69,7 +69,7 @@ export default function AlbumForm({ mode = "create" }) {
         navigate(newAlbumId ? `/albums/${newAlbumId}` : `/artists/${artistId}`, { replace: true });
       }
     } catch (err) {
-      setStatus({ type: "error", message: err.message || "Greška pri čuvanju." });
+      setStatus({ type: "error", message: err.message || "GreÅ¡ka pri Äuvanju." });
     } finally {
       setLoading(false);
     }
@@ -103,7 +103,7 @@ export default function AlbumForm({ mode = "create" }) {
           <GenreChipInput value={genres} onChange={setGenres} />
 
           <button disabled={loading} type="submit" style={styles.btn}>
-            {loading ? "Čuvam..." : "Sačuvaj"}
+            {loading ? "ÄŒuvam..." : "SaÄuvaj"}
           </button>
 
           {status.message && (

@@ -1,6 +1,5 @@
 import { createTheme } from '@mui/material/styles';
 
-// Material UI theme configuration mapping the olive green brand colors
 export const muiTheme = createTheme({
   palette: {
     mode: 'light',

@@ -153,7 +153,6 @@ func GetSongsByAlbumID(albumID string) ([]models.Song, error) {
 		return nil, err
 	}
 
-	// Sort po trackNo rastuce (frontend očekuje redosled pesama)
 	opts := options.Find().SetSort(bson.M{"trackNo": 1})
 
 	cursor, err := db.SongsCollection.Find(
@@ -189,14 +188,12 @@ func AlbumExistsByID(id primitive.ObjectID) (bool, error) {
 	return count > 0, nil
 }
 
-// SearchSongs searches songs by title
 func SearchSongs(searchQuery string) ([]models.Song, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	filter := bson.M{}
 
-	// Add title search if provided
 	if searchQuery != "" {
 		filter["title"] = bson.M{"$regex": searchQuery, "$options": "i"}
 	}

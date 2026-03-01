@@ -57,8 +57,6 @@ func EnsureAdminFromEnv() {
 	if err == nil && existing != nil {
 		normalized := auth.NormalizeRole(existing.Role)
 
-		// If user is effectively admin but stored in legacy format (e.g. "A"),
-		// normalize it in DB so all environments behave consistently.
 		if normalized == auth.RoleAdmin && existing.Role == auth.RoleAdmin {
 			log.Printf("Bootstrap admin exists: %s\n", email)
 			return
@@ -90,7 +88,6 @@ func EnsureAdminFromEnv() {
 		return
 	}
 
-	// Ensure username is unique.
 	if _, err := repository.FindUserByUsername(username); err == nil {
 		username = fmt.Sprintf("%s_%d", username, time.Now().Unix())
 	}

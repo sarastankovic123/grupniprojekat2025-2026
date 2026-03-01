@@ -8,8 +8,6 @@ import (
 )
 
 var (
-	// InsecureClient is an HTTP client that skips TLS verification
-	// Use only for local development with self-signed certificates
 	InsecureClient *http.Client
 )
 
@@ -34,10 +32,6 @@ func init() {
 	}
 }
 
-// GetClient returns the appropriate HTTP client based on environment
-// For local development with self-signed certificates, use the insecure client
 func GetClient() *http.Client {
-	// In production, you should use http.DefaultClient or a client with proper cert validation
-	// For now, always use InsecureClient for local development
 	return InsecureClient
 }

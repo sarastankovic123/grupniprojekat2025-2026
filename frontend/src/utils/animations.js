@@ -1,4 +1,3 @@
-// Animation utilities for modern home page
 
 export const animations = {
   fadeInUp: {

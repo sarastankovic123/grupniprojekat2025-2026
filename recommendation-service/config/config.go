@@ -27,7 +27,6 @@ func LoadConfig() {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// JWT Configuration
 	JWTSecret = []byte(getEnv("JWT_SECRET", ""))
 	if len(JWTSecret) == 0 {
 		log.Fatal("JWT_SECRET environment variable is required")
@@ -36,13 +35,11 @@ func LoadConfig() {
 		log.Fatal("JWT_SECRET must be at least 32 characters long")
 	}
 
-	// Service Authentication
 	ServiceAPIKey = getEnv("SERVICE_API_KEY", "")
 	if ServiceAPIKey == "" {
 		log.Fatal("SERVICE_API_KEY environment variable is required")
 	}
 
-	// Rate Limiting
 	RateLimitAPIReqs = getEnvAsInt("RATE_LIMIT_API_REQUESTS", 100)
 	apiWindowStr := getEnv("RATE_LIMIT_API_WINDOW", "1m")
 	var err error
@@ -51,11 +48,9 @@ func LoadConfig() {
 		log.Fatal("Invalid RATE_LIMIT_API_WINDOW format:", err)
 	}
 
-	// MongoDB (read-only, for syncing data)
 	MongoURI = getEnv("MONGO_URI", "mongodb://localhost:27017")
 	ContentDBName = getEnv("CONTENT_DB_NAME", "content_db")
 
-	// Neo4j
 	Neo4jURI = getEnv("NEO4J_URI", "bolt://localhost:7687")
 	Neo4jUser = getEnv("NEO4J_USER", "neo4j")
 	Neo4jPassword = getEnv("NEO4J_PASSWORD", "")
@@ -63,7 +58,6 @@ func LoadConfig() {
 		log.Fatal("NEO4J_PASSWORD environment variable is required")
 	}
 
-	// Server
 	Port = getEnv("PORT", "8004")
 
 	log.Println("Configuration loaded successfully")

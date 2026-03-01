@@ -26,7 +26,6 @@ func GetRecommendations(c *gin.Context) {
 
 	ctx := c.Request.Context()
 
-	// Query 1: Songs from subscribed genres
 	subscribedSongs, err := repository.GetSubscribedGenreSongs(ctx, userIDStr, defaultLimit)
 	if err != nil {
 		Logger.Application.Error().Err(err).Msg("Failed to get subscribed genre recommendations")
@@ -34,7 +33,6 @@ func GetRecommendations(c *gin.Context) {
 		return
 	}
 
-	// Query 2: Songs from non-subscribed genres (discover)
 	discoverSongs, err := repository.GetDiscoverNewSongs(ctx, userIDStr, defaultLimit)
 	if err != nil {
 		Logger.Application.Error().Err(err).Msg("Failed to get discover recommendations")
@@ -42,7 +40,6 @@ func GetRecommendations(c *gin.Context) {
 		return
 	}
 
-	// Return empty arrays instead of null
 	if subscribedSongs == nil {
 		subscribedSongs = []models.RecommendedSong{}
 	}

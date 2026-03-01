@@ -12,7 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/bson/primitive"
 )
 
-// MongoDB document types for reading
 type mongoAlbum struct {
 	ID       primitive.ObjectID `bson:"_id"`
 	Title    string             `bson:"title"`
@@ -39,7 +38,6 @@ type mongoGenreSubscription struct {
 	Genre  string             `bson:"genre"`
 }
 
-// songData holds a song plus its resolved genres for Neo4j sync
 type songData struct {
 	MongoID  string   `json:"mongoId"`
 	Title    string   `json:"title"`
@@ -66,16 +64,12 @@ func SyncAll() {
 
 	ctx := context.Background()
 
-	// Create constraints
 	createConstraints(ctx)
 
-	// Sync songs + genres
 	syncSongsAndGenres(ctx)
 
-	// Sync genre subscriptions
 	syncGenreSubscriptions(ctx)
 
-	// Sync ratings
 	syncRatings(ctx)
 
 	fmt.Printf("Data sync completed in %v\n", time.Since(start))
@@ -102,7 +96,6 @@ func createConstraints(ctx context.Context) {
 }
 
 func syncSongsAndGenres(ctx context.Context) {
-	// 1. Fetch all albums from MongoDB, build albumID -> genres map
 	albumCursor, err := db.AlbumsCollection.Find(ctx, bson.M{})
 	if err != nil {
 		fmt.Printf("Error fetching albums: %v\n", err)
@@ -119,7 +112,6 @@ func syncSongsAndGenres(ctx context.Context) {
 		albumGenres[album.ID.Hex()] = album.Genres
 	}
 
-	// 2. Fetch all songs, resolve genres from album
 	songCursor, err := db.SongsCollection.Find(ctx, bson.M{})
 	if err != nil {
 		fmt.Printf("Error fetching songs: %v\n", err)
@@ -154,7 +146,6 @@ func syncSongsAndGenres(ctx context.Context) {
 		return
 	}
 
-	// 3. Batch upsert into Neo4j
 	session := db.Neo4jDriver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeWrite})
 	defer session.Close(ctx)
 

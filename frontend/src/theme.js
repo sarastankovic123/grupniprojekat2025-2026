@@ -1,28 +1,22 @@
 33// Olive Green Theme Configuration (Darker Shades)
-// Main brand color: #556B2F (DarkOliveGreen)
 
 export const theme = {
-  // ===== COLOR PALETTE =====
   colors: {
-    // Primary Olive Colors
     primary: '#556B2F',           // Dark olive green (main brand color)
     primaryDark: '#3D4B1F',       // Very dark olive (headers, dark accents)
     primaryMedium: '#6B8E23',     // Medium olive (hover states, highlights)
     primaryLight: '#D8E4C0',      // Pale olive (subtle backgrounds)
 
-    // Base Colors
     background: '#F5F2ED',        // Cream (page backgrounds)
     surface: '#FAFAF7',           // Warm white (card backgrounds)
     border: '#C9C9C0',            // Soft gray (borders)
 
-    // Text Colors
     text: {
       primary: '#1F2B14',         // Very dark olive-gray (main text)
       secondary: '#4A5940',       // Medium-dark olive-gray (secondary text)
       light: '#6B7566',           // Olive gray (meta info, light text)
     },
 
-    // Semantic Colors
     semantic: {
       success: '#556B2F',         // Primary olive (success states)
       error: '#A84842',           // Darker muted red (errors)
@@ -31,7 +25,6 @@ export const theme = {
     },
   },
 
-  // ===== SPACING SCALE (8px base) =====
   spacing: {
     xs: '4px',
     sm: '8px',
@@ -42,28 +35,24 @@ export const theme = {
     '3xl': '48px',
   },
 
-  // ===== BORDER RADIUS =====
   radius: {
     sm: '6px',      // Small elements, badges
     md: '10px',     // Buttons, inputs
     lg: '14px',     // Cards, containers
   },
 
-  // ===== SHADOWS (with olive tint) =====
   shadows: {
     sm: '0 1px 3px rgba(85, 107, 47, 0.1)',
     md: '0 4px 12px rgba(85, 107, 47, 0.15)',
     lg: '0 8px 24px rgba(85, 107, 47, 0.2)',
   },
 
-  // ===== TRANSITIONS =====
   transitions: {
     fast: '0.15s ease',
     base: '0.2s ease',
     slow: '0.3s ease',
   },
 
-  // ===== TYPOGRAPHY =====
   typography: {
     fontSize: {
       xs: '11px',
@@ -82,9 +71,7 @@ export const theme = {
     },
   },
 
-  // ===== REUSABLE COMPONENT STYLES =====
   components: {
-    // Button variants
     button: (variant = 'primary') => {
       const base = {
         padding: '10px 16px',
@@ -118,7 +105,6 @@ export const theme = {
       return { ...base, ...variants[variant] };
     },
 
-    // Input field
     input: () => ({
       padding: '10px 12px',
       borderRadius: '10px',
@@ -131,7 +117,6 @@ export const theme = {
       color: '#1F2B14',
     }),
 
-    // Card container
     card: () => ({
       background: '#FAFAF7',
       borderRadius: '14px',
@@ -141,14 +126,12 @@ export const theme = {
       transition: '0.2s ease',
     }),
 
-    // Link
     link: () => ({
       color: '#556B2F',
       textDecoration: 'none',
       transition: '0.2s ease',
     }),
 
-    // Badge
     badge: (variant = 'primary') => {
       const base = {
         padding: '4px 12px',
@@ -176,7 +159,6 @@ export const theme = {
       return { ...base, ...variants[variant] };
     },
 
-    // Form label
     label: () => ({
       display: 'flex',
       flexDirection: 'column',
@@ -186,14 +168,12 @@ export const theme = {
       color: '#1F2B14',
     }),
 
-    // Page container
     page: () => ({
       padding: '24px',
       background: '#F5F2ED',
       minHeight: '100vh',
     }),
 
-    // Topbar/Header
     topbar: () => ({
       display: 'flex',
       justifyContent: 'space-between',
@@ -207,7 +187,6 @@ export const theme = {
     }),
   },
 
-  // ===== GRADIENTS (for modern home page) =====
   gradients: {
     heroOlive: 'linear-gradient(135deg, #556B2F 0%, #3D4B1F 50%, #2A3416 100%)',
     cardOverlay: 'linear-gradient(180deg, transparent 0%, rgba(0,0,0,0.7) 100%)',
@@ -222,7 +201,6 @@ export const theme = {
     statCard: 'linear-gradient(135deg, #D8E4C0 0%, #C4D6A8 100%)',
   },
 
-  // ===== GLASSMORPHISM EFFECT =====
   glass: {
     background: 'rgba(255, 255, 255, 0.1)',
     backdropFilter: 'blur(10px)',
@@ -231,7 +209,6 @@ export const theme = {
     boxShadow: '0 8px 32px rgba(85, 107, 47, 0.15)',
   },
 
-  // ===== ANIMATION EFFECTS =====
   animations: {
     hoverLift: {
       transform: 'translateY(-8px) scale(1.02)',
@@ -243,7 +220,6 @@ export const theme = {
   },
 };
 
-// ===== HOVER/FOCUS STATE GENERATORS =====
 export const hoverState = {
   button: {
     primary: {

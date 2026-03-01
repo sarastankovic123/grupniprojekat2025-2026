@@ -4,7 +4,6 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-// SecurityEventContext holds common fields for security event logging
 type SecurityEventContext struct {
 	RequestID  string
 	UserID     string
@@ -15,7 +14,6 @@ type SecurityEventContext struct {
 	StatusCode int
 }
 
-// NewSecurityEventContext creates a SecurityEventContext from Gin context
 func NewSecurityEventContext(c *gin.Context) SecurityEventContext {
 	return SecurityEventContext{
 		RequestID:  GetRequestID(c),
@@ -28,7 +26,6 @@ func NewSecurityEventContext(c *gin.Context) SecurityEventContext {
 	}
 }
 
-// LogLoginAttempt logs a login attempt (success or failure)
 func (l *Logger) LogLoginAttempt(ctx SecurityEventContext, email string, success bool, reason string) {
 	event := l.Security.With().
 		Str("event_type", "auth_login_attempt").
@@ -52,7 +49,6 @@ func (l *Logger) LogLoginAttempt(ctx SecurityEventContext, email string, success
 	}
 }
 
-// LogOTPEvent logs OTP generation, verification, or failure
 func (l *Logger) LogOTPEvent(ctx SecurityEventContext, eventType string, success bool, reason string) {
 	event := l.Security.With().
 		Str("event_type", eventType). // "auth_otp_sent", "auth_otp_verified", "auth_otp_failed"
@@ -75,7 +71,6 @@ func (l *Logger) LogOTPEvent(ctx SecurityEventContext, eventType string, success
 	}
 }
 
-// LogAuthTokenEvent logs token validation events (invalid, expired, missing)
 func (l *Logger) LogAuthTokenEvent(ctx SecurityEventContext, eventType string, reason string) {
 	l.Security.Warn().
 		Str("event_type", eventType). // "auth_token_invalid", "auth_token_expired", "auth_token_missing"
@@ -88,7 +83,6 @@ func (l *Logger) LogAuthTokenEvent(ctx SecurityEventContext, eventType string, r
 		Msg("Authentication token error")
 }
 
-// LogAuthzFailure logs authorization failures (insufficient permissions)
 func (l *Logger) LogAuthzFailure(ctx SecurityEventContext, requiredRole, actualRole string) {
 	l.Security.Warn().
 		Str("event_type", "authz_forbidden").
@@ -104,7 +98,6 @@ func (l *Logger) LogAuthzFailure(ctx SecurityEventContext, requiredRole, actualR
 		Msg("Authorization denied: insufficient permissions")
 }
 
-// LogAdminAction logs admin CRUD operations (create, update, delete)
 func (l *Logger) LogAdminAction(ctx SecurityEventContext, action, resourceType, resourceID, resourceName string) {
 	l.Security.Info().
 		Str("event_type", "admin_action").
@@ -122,7 +115,6 @@ func (l *Logger) LogAdminAction(ctx SecurityEventContext, action, resourceType, 
 		Msg("Admin action performed")
 }
 
-// LogValidationFailure logs input validation errors
 func (l *Logger) LogValidationFailure(ctx SecurityEventContext, validationType string, fieldErrors map[string]string) {
 	event := l.Security.Warn().
 		Str("event_type", "validation_failure").
@@ -135,7 +127,6 @@ func (l *Logger) LogValidationFailure(ctx SecurityEventContext, validationType s
 		Int("status_code", ctx.StatusCode).
 		Str("validation_type", validationType)
 
-	// Add field errors (but don't log actual invalid values for security)
 	if len(fieldErrors) > 0 {
 		event = event.Interface("field_errors", fieldErrors)
 	}
@@ -143,7 +134,6 @@ func (l *Logger) LogValidationFailure(ctx SecurityEventContext, validationType s
 	event.Msg("Input validation failed")
 }
 
-// LogRateLimitExceeded logs rate limit violations
 func (l *Logger) LogRateLimitExceeded(ctx SecurityEventContext, limit int, window string) {
 	l.Security.Warn().
 		Str("event_type", "rate_limit_exceeded").
@@ -157,7 +147,6 @@ func (l *Logger) LogRateLimitExceeded(ctx SecurityEventContext, limit int, windo
 		Msg("Rate limit exceeded")
 }
 
-// LogUserRegistration logs new user registration
 func (l *Logger) LogUserRegistration(ctx SecurityEventContext, userID, email string, success bool, reason string) {
 	event := l.Security.With().
 		Str("event_type", "user_registration").
@@ -181,7 +170,6 @@ func (l *Logger) LogUserRegistration(ctx SecurityEventContext, userID, email str
 	}
 }
 
-// LogEmailConfirmation logs email confirmation attempts
 func (l *Logger) LogEmailConfirmation(ctx SecurityEventContext, email string, success bool, reason string) {
 	event := l.Security.With().
 		Str("event_type", "email_confirmation").
@@ -203,7 +191,6 @@ func (l *Logger) LogEmailConfirmation(ctx SecurityEventContext, email string, su
 	}
 }
 
-// LogPasswordChange logs password change events
 func (l *Logger) LogPasswordChange(ctx SecurityEventContext, eventType string, success bool, reason string) {
 	event := l.Security.With().
 		Str("event_type", eventType). // "password_change" or "password_reset"
@@ -226,7 +213,6 @@ func (l *Logger) LogPasswordChange(ctx SecurityEventContext, eventType string, s
 	}
 }
 
-// LogMagicLinkEvent logs magic link request and verification
 func (l *Logger) LogMagicLinkEvent(ctx SecurityEventContext, eventType string, email string, success bool, reason string) {
 	event := l.Security.With().
 		Str("event_type", eventType). // "magic_link_request" or "magic_link_verified"
@@ -248,7 +234,6 @@ func (l *Logger) LogMagicLinkEvent(ctx SecurityEventContext, eventType string, e
 	}
 }
 
-// LogAccessControlViolation logs when users try to access resources they don't own
 func (l *Logger) LogAccessControlViolation(ctx SecurityEventContext, resourceType, resourceID string) {
 	l.Security.Warn().
 		Str("event_type", "access_control_violation").

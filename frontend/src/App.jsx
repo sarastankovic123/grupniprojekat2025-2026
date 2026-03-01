@@ -28,7 +28,6 @@ import SongForm from "./pages/SongForm";
 export default function App() {
   return (
     <Routes>
-      {/* Public */}
       <Route path="/" element={<Home />} />
       <Route path="/artists" element={<Artists />} />
       <Route path="/artists/:id" element={<ArtistDetails />} />
@@ -46,7 +45,6 @@ export default function App() {
       <Route path="/recover" element={<MagicLinkRequest />} />
       <Route path="/magic-login" element={<MagicLogin />} />
 
-      {/* Authenticated (USER + ADMIN) */}
       <Route
         path="/profile"
         element={
@@ -64,7 +62,6 @@ export default function App() {
         }
       />
 
-      {/* Admin */}
       <Route
         path="/admin/artists/new"
         element={
@@ -114,7 +111,6 @@ export default function App() {
         }
       />
 
-      {/* Fallback */}
       <Route path="*" element={<Home />} />
     </Routes>
   );

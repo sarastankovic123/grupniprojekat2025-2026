@@ -19,7 +19,6 @@ func NewTemplateManager() (*TemplateManager, error) {
 		templates: make(map[string]*template.Template),
 	}
 
-	// Load all templates
 	templateNames := []string{
 		"otp.html",
 		"otp.txt",

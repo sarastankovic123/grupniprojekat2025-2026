@@ -79,7 +79,6 @@ func CreateAlbum(c *gin.Context) {
 		"genres":   created.Genres,
 	})
 
-	// Notify subscribers about new album (async, non-blocking)
 	go func() {
 		artist, err := repository.GetArtistByID(created.ArtistID.Hex())
 		if err != nil {
@@ -172,15 +171,12 @@ func CreateAlbumForArtist(c *gin.Context) {
 		"genres":   created.Genres,
 	})
 
-	// Notify subscribers about new album (async, non-blocking)
 	go func() {
-		// Get artist details
 		artist, err := repository.GetArtistByID(created.ArtistID.Hex())
 		if err != nil {
 			return
 		}
 
-		// Collect unique subscriber user IDs
 		subscriberMap := make(map[string]bool)
 
 		artistSubs, err := repository.GetArtistSubscribers(created.ArtistID)

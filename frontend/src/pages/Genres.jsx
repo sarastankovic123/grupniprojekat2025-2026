@@ -195,7 +195,6 @@ export default function Genres() {
                       {count} {count === 1 ? 'artist' : 'artists'}
                     </Typography>
                   </CardActionArea>
-                  {/* Subscribe Button */}
                   <Tooltip title={!isAuthenticated ? 'Login to subscribe' : isSubscribed ? 'Unsubscribe' : 'Subscribe to notifications'}>
                     <span style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
                       <IconButton

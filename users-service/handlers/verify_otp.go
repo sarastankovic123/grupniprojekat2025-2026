@@ -70,21 +70,18 @@ func VerifyOTP(c *gin.Context) {
 
 	_ = repository.DeleteEmailToken(req.OTP)
 
-	// Generate access token
 	accessToken, err := utils.GenerateJWT(user)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate access token"})
 		return
 	}
 
-	// Generate refresh token
 	refreshTokenString, err := utils.GenerateRefreshToken()
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to generate refresh token"})
 		return
 	}
 
-	// Store refresh token in database
 	refreshToken := &models.RefreshToken{
 		UserID:    user.ID,
 		Token:     refreshTokenString,
@@ -95,7 +92,6 @@ func VerifyOTP(c *gin.Context) {
 		return
 	}
 
-	// Set httpOnly cookies
 	c.SetCookie(
 		"access_token",
 		accessToken,
@@ -117,7 +113,6 @@ func VerifyOTP(c *gin.Context) {
 		true,  // httpOnly
 	)
 
-	// Log successful OTP verification
 	ctx := logging.NewSecurityEventContext(c)
 	c.Set("user_id", user.ID.Hex())
 	c.Set("email", user.Email)
@@ -130,7 +125,6 @@ func VerifyOTP(c *gin.Context) {
 		"refreshToken": refreshTokenString,
 	})
 
-	// Send login success notification (async, non-blocking)
 	go func() {
 		if NotificationsClient == nil {
 			return

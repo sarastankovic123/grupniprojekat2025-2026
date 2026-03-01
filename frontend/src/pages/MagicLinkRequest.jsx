@@ -52,7 +52,7 @@ export default function MagicLinkRequest() {
     } catch (err) {
       setStatus({
         type: "error",
-        message: err.message || "Greška pri slanju magic linka.",
+        message: err.message || "GreÅ¡ka pri slanju magic linka.",
       });
     } finally {
       setLoading(false);
@@ -115,7 +115,7 @@ export default function MagicLinkRequest() {
                       </InputAdornment>
                     ),
                   }}
-                  helperText="Poslaćemo ti link za trenutnu prijavu u tvoj inbox"
+                  helperText="PoslaÄ‡emo ti link za trenutnu prijavu u tvoj inbox"
                 />
 
                 {status.message && (
@@ -142,7 +142,7 @@ export default function MagicLinkRequest() {
                     fontSize: "1rem",
                   }}
                 >
-                  {loading ? "Šaljem..." : "Pošalji Magic Link"}
+                  {loading ? "Å aljem..." : "PoÅ¡alji Magic Link"}
                 </LoadingButton>
 
                 <Divider sx={{ my: 2 }}>

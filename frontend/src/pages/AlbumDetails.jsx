@@ -5,7 +5,6 @@ import { contentApi } from "../api/content";
 import { useAuth } from "../auth/AuthContext";
 import { theme } from "../theme";
 
-// Helper function to generate initials from album title
 const getInitials = (text) => {
   if (!text) return '🎵';
   const words = text.trim().split(' ');
@@ -13,7 +12,6 @@ const getInitials = (text) => {
   return (words[0][0] + words[1][0]).toUpperCase();
 };
 
-// Helper function to format duration (converts seconds to MM:SS or HH:MM:SS)
 const formatDuration = (durationStr) => {
   if (!durationStr) return '--:--';
 
@@ -52,7 +50,6 @@ export default function AlbumDetails() {
   const [audioSrc, setAudioSrc] = useState("");
   const audioRef = useRef(null);
 
-  // Rating state: map of songId -> rating (1-5)
   const [userRatings, setUserRatings] = useState({});
   const [hoverRatings, setHoverRatings] = useState({});
 
@@ -78,18 +75,15 @@ export default function AlbumDetails() {
         const songsArray = Array.isArray(s) ? s : [];
         setSongs(songsArray);
 
-        // Load user ratings for all songs (if authenticated)
         if (isAuthenticated && songsArray.length > 0) {
           loadUserRatings(songsArray);
         }
 
-        // Fetch artist info if we have artistId
         if (a.artistId || a.artist_id) {
           try {
             const artistData = await apiFetch(`/api/content/artists/${a.artistId || a.artist_id}`);
             if (alive) setArtist(artistData);
           } catch (e) {
-            // Artist fetch is optional, don't fail the whole page
             console.log('Could not fetch artist:', e);
           }
         }
@@ -153,7 +147,6 @@ export default function AlbumDetails() {
     }
   }
 
-  // Load user ratings for all songs
   async function loadUserRatings(songsArray) {
     const ratingsMap = {};
 
@@ -168,7 +161,6 @@ export default function AlbumDetails() {
             ratingsMap[songId] = response.rating;
           }
         } catch (err) {
-          // Silently ignore errors (e.g., 404 for no rating)
           console.log(`No rating for song ${songId}`);
         }
       })
@@ -177,7 +169,6 @@ export default function AlbumDetails() {
     setUserRatings(ratingsMap);
   }
 
-  // Handle setting a rating
   async function handleSetRating(songId, rating) {
     if (!isAuthenticated) {
       alert('Please log in to rate songs');
@@ -192,7 +183,6 @@ export default function AlbumDetails() {
     }
   }
 
-  // Handle deleting a rating
   async function handleDeleteRating(songId, event) {
     event.stopPropagation();
 
@@ -283,15 +273,12 @@ export default function AlbumDetails() {
 
   return (
     <div style={styles.page}>
-      {/* Hero Section */}
       <div style={styles.hero}>
         <div style={styles.heroContent}>
-          {/* Album Cover Placeholder */}
           <div style={styles.albumCover}>
             <div style={styles.albumCoverInitials}>{initials}</div>
           </div>
 
-          {/* Album Info */}
           <div style={styles.albumInfo}>
             <Link to={backLink} style={styles.backLink}>
               ← Back to {artistIdFromState ? 'Artist' : 'Artists'}
@@ -315,7 +302,6 @@ export default function AlbumDetails() {
               )}
             </div>
 
-            {/* Admin Actions */}
             {isAdmin && (
               <div style={styles.heroActions}>
                 <Link to={`/admin/albums/${id}/edit`} style={styles.heroActionBtn}>
@@ -333,7 +319,6 @@ export default function AlbumDetails() {
         </div>
       </div>
 
-      {/* Songs Section */}
       <div style={styles.songsSection}>
         <h2 style={styles.sectionTitle}>Songs</h2>
 
@@ -375,12 +360,10 @@ export default function AlbumDetails() {
                     animationFillMode: 'both'
                   }}
                 >
-                  {/* Track Number Badge */}
                   <div style={styles.trackBadge}>
                     {String(trackNo).padStart(2, '0')}
                   </div>
 
-                  {/* Play Button */}
                   <button
                     style={canPlay ? styles.playButton : styles.playButtonDisabled}
                     disabled={!canPlay}
@@ -390,12 +373,10 @@ export default function AlbumDetails() {
                     {isCurrent ? "⏯" : "▶"}
                   </button>
 
-                  {/* Song Title */}
                   <div style={styles.songTitle}>
                     {s.title || s.name || `Track ${index + 1}`}
                   </div>
 
-                  {/* Star Rating */}
                   {isAuthenticated && (
                     <div style={styles.ratingContainer}>
                       {[1, 2, 3, 4, 5].map((star) => {
@@ -432,14 +413,12 @@ export default function AlbumDetails() {
                     </div>
                   )}
 
-                  {/* Duration Badge */}
                   {s.duration && (
                     <div style={styles.durationBadge}>
                       {formatDuration(s.duration)}
                     </div>
                   )}
 
-                  {/* Admin Actions */}
                   {isAdmin && (
                     <div style={styles.cardActionsVisible}>
                       <Link to={`/admin/songs/${songId}/edit`} style={styles.editBtnSmall}>

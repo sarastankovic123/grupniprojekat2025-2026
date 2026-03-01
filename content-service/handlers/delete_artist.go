@@ -12,14 +12,12 @@ import (
 func DeleteArtist(c *gin.Context) {
 	id := c.Param("id")
 
-	// Convert to ObjectID to check for dependent albums
 	objID, err := primitive.ObjectIDFromHex(id)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid artist ID"})
 		return
 	}
 
-	// Check for dependent albums
 	albumCount, err := repository.CountAlbumsByArtistID(objID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to check dependencies"})
@@ -31,7 +29,6 @@ func DeleteArtist(c *gin.Context) {
 		return
 	}
 
-	// Proceed with deletion
 	if err := repository.DeleteArtist(id); err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": err.Error()})
 		return

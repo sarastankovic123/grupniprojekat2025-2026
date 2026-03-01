@@ -148,7 +148,6 @@ func (s *emailService) SendEmailConfirmation(to, link string, expiryMinutes int)
 }
 
 func (s *emailService) send(msg *EmailMessage, emailType string) error {
-	// Development mode: override recipient or just log
 	if config.EmailDevMode {
 		if config.EmailDevRecipient != "" {
 			msg.To = []string{config.EmailDevRecipient}
@@ -163,10 +162,8 @@ func (s *emailService) send(msg *EmailMessage, emailType string) error {
 		}
 	}
 
-	// Send email
 	err := s.provider.Send(msg)
 
-	// Log result
 	if err != nil {
 		s.logger.Application.Error().
 			Err(err).

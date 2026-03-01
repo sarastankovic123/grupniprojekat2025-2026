@@ -50,7 +50,7 @@ export default function ForgotPassword() {
       });
       setEmail("");
     } catch (err) {
-      setStatus({ type: "error", message: err.message || "Greška pri slanju reset linka." });
+      setStatus({ type: "error", message: err.message || "GreÅ¡ka pri slanju reset linka." });
     } finally {
       setLoading(false);
     }
@@ -89,7 +89,7 @@ export default function ForgotPassword() {
               Reset Lozinke
             </Typography>
             <Typography variant="body2" sx={{ color: "rgba(255, 255, 255, 0.9)", mt: 1 }}>
-              Poslaćemo ti link za postavljanje nove lozinke
+              PoslaÄ‡emo ti link za postavljanje nove lozinke
             </Typography>
           </Box>
 
@@ -139,7 +139,7 @@ export default function ForgotPassword() {
                     fontSize: "1rem",
                   }}
                 >
-                  {loading ? "Šaljem..." : "Pošalji Reset Link"}
+                  {loading ? "Å aljem..." : "PoÅ¡alji Reset Link"}
                 </LoadingButton>
 
                 <Divider sx={{ my: 2 }}>

@@ -23,10 +23,8 @@ import (
 var logger *logging.Logger
 
 func main() {
-	// Load configuration
 	config.LoadConfig()
 
-	// Initialize logger FIRST
 	var err error
 	isDev := os.Getenv("ENV") == "development"
 	logger, err = logging.NewLogger(logging.LogConfig{
@@ -43,13 +41,11 @@ func main() {
 	}
 	logger.Application.Info().Msg("Notification service starting...")
 
-	// Set logger for handlers package
 	handlers.SetLogger(logger)
 
 	db.ConnectCassandra()
 	defer db.Close()
 
-	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := validation.RegisterCustomValidators(v); err != nil {
 			log.Fatalf("Failed to register custom validators: %v", err)
@@ -59,10 +55,8 @@ func main() {
 
 	r := gin.Default()
 
-	// Add request ID middleware FIRST
 	r.Use(logging.RequestIDMiddleware())
 
-	// Global rate limiting (100 requests per minute)
 	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
 	r.Use(apiLimiter.RateLimitByUser())
 
@@ -74,12 +68,10 @@ func main() {
 
 	api := r.Group("/api/notifications")
 	{
-		// Authenticated endpoints (require JWT)
 		api.GET("", middleware.AuthMiddleware(), handlers.GetNotifications)
 		api.PUT("/:id/read", middleware.AuthMiddleware(), handlers.MarkAsRead)
 		api.PUT("/:id/unread", middleware.AuthMiddleware(), handlers.MarkAsUnread)
 
-		// Internal endpoint (requires service API key)
 		api.POST("", middleware.ServiceAuthMiddleware(), handlers.CreateNotification)
 	}
 

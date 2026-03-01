@@ -19,7 +19,6 @@ func NewSMTPProvider() *SMTPProvider {
 		config.SMTPPassword,
 	)
 
-	// Use STARTTLS instead of SSL
 	if config.SMTPUseTLS {
 		d.SSL = false
 	}
@@ -44,7 +43,6 @@ func (p *SMTPProvider) Send(msg *EmailMessage) error {
 		m.SetHeader("Reply-To", msg.ReplyTo)
 	}
 
-	// Retry logic with exponential backoff
 	var lastErr error
 	for attempt := 0; attempt < config.EmailRetryAttempts; attempt++ {
 		err := p.dialer.DialAndSend(m)
@@ -53,7 +51,6 @@ func (p *SMTPProvider) Send(msg *EmailMessage) error {
 		}
 		lastErr = err
 
-		// Wait before retry with exponential backoff
 		if attempt < config.EmailRetryAttempts-1 {
 			backoff := time.Duration(1<<uint(attempt)) * time.Second
 			time.Sleep(backoff)

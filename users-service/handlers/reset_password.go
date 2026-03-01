@@ -57,7 +57,6 @@ func ResetPassword(c *gin.Context) {
 		return
 	}
 
-	// Mark token used (best effort).
 	_ = repository.MarkPasswordResetTokenUsed(tokenHash)
 
 	passwordHash, err := utils.HashPassword(req.NewPassword)

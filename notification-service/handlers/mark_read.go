@@ -11,10 +11,8 @@ import (
 )
 
 func MarkAsRead(c *gin.Context) {
-	// Trim and validate ID parameter
 	id := strings.TrimSpace(c.Param("id"))
 
-	// Validate ObjectID format
 	if err := validation.ValidateObjectIDFormat(id, "notification ID"); err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
 		return
@@ -27,7 +25,6 @@ func MarkAsRead(c *gin.Context) {
 	}
 	userIDStr := userID.(string)
 
-	// Verify ownership
 	notification, err := repository.GetNotificationByID(id)
 	if err != nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Notification not found"})

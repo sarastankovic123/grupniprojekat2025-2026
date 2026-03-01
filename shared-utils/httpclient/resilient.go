@@ -22,12 +22,10 @@ type RetryPolicy struct {
 type ResilientClientOptions struct {
 	HTTPClient *http.Client
 
-	// DefaultRequestTimeout is applied only if ctx has no deadline.
 	DefaultRequestTimeout time.Duration
 
 	Retry RetryPolicy
 
-	// BreakerName is used for metrics/logging. If empty, circuit breaker is disabled.
 	BreakerName string
 }
 
@@ -53,7 +51,6 @@ func NewResilientClient(opts ResilientClientOptions) *ResilientClient {
 			Interval:    30 * time.Second,
 			Timeout:     15 * time.Second,
 			ReadyToTrip: func(counts gobreaker.Counts) bool {
-				// Trip after a short burst of consecutive failures to avoid piling on a down upstream.
 				return counts.ConsecutiveFailures >= 3
 			},
 		})
@@ -168,7 +165,6 @@ func (c *ResilientClient) doOnce(req *http.Request) (*http.Response, error) {
 		if errors.Is(err, gobreaker.ErrOpenState) || errors.Is(err, gobreaker.ErrTooManyRequests) {
 			return nil, err
 		}
-		// Return the original response if we have it.
 		if r, ok := val.(result); ok && r.resp != nil {
 			return r.resp, r.err
 		}
@@ -216,7 +212,6 @@ func isRetryableStatus(code int) bool {
 }
 
 func isBreakerFailureStatus(code int) bool {
-	// Count 5xx as failures for breaker purposes.
 	return code >= 500 && code <= 599
 }
 
@@ -224,7 +219,6 @@ func isRetryableError(err error) bool {
 	if err == nil {
 		return false
 	}
-	// Treat context cancellation/timeouts as terminal.
 	return !errors.Is(err, context.Canceled) && !errors.Is(err, context.DeadlineExceeded)
 }
 
@@ -236,7 +230,6 @@ func backoffDelay(attempt int, base, max time.Duration) time.Duration {
 	if delay > max {
 		delay = max
 	}
-	// Small jitter to avoid thundering herd.
 	jitter := time.Duration(rand.IntN(100)) * time.Millisecond
 	return delay + jitter
 }

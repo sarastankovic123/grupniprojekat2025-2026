@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Autocomplete, TextField, Chip } from '@mui/material';
 import { apiFetch } from '../api/apiFetch';
 
-export default function GenreChipInput({ value = [], onChange, label = 'Žanrovi', placeholder = 'Izaberite ili unesite žanr...' }) {
+export default function GenreChipInput({ value = [], onChange, label = 'Å½anrovi', placeholder = 'Izaberite ili unesite Å¾anr...' }) {
   const [options, setOptions] = useState([]);
 
   useEffect(() => {
@@ -23,7 +23,6 @@ export default function GenreChipInput({ value = [], onChange, label = 'Žanrovi
       options={options.filter(o => !value.includes(o))}
       value={value}
       onChange={(_, newValue) => {
-        // Trim and deduplicate
         const cleaned = [...new Set(newValue.map(v => v.trim()).filter(Boolean))];
         onChange(cleaned);
       }}

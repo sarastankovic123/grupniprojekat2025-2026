@@ -33,7 +33,6 @@ func UpdateArtist(c *gin.Context) {
 		return
 	}
 
-	// Trim genres
 	for i := range req.Genres {
 		req.Genres[i] = strings.TrimSpace(req.Genres[i])
 	}

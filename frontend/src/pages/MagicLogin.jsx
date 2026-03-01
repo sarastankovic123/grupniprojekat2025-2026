@@ -30,12 +30,12 @@ export default function MagicLogin() {
 
         await consumeMagicLink(token);
         sessionStorage.setItem(consumedKey, "1");
-        setStatus({ type: "success", message: "Uspešna prijava. Preusmeravam..." });
+        setStatus({ type: "success", message: "UspeÅ¡na prijava. Preusmeravam..." });
         navigate("/", { replace: true });
       } catch (err) {
         setStatus({
           type: "error",
-          message: err.message || "Magic link je nevažeći ili je istekao.",
+          message: err.message || "Magic link je nevaÅ¾eÄ‡i ili je istekao.",
         });
       }
     })();
@@ -62,7 +62,7 @@ export default function MagicLogin() {
         {status.type === "error" && (
           <div style={styles.linkContainer}>
             <Link to="/recover" style={styles.link}>
-              Pošalji novi magic link
+              PoÅ¡alji novi magic link
             </Link>
           </div>
         )}

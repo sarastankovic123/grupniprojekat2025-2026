@@ -61,7 +61,7 @@ export default function ChangePassword() {
       setConfirm("");
       setTimeout(() => navigate("/profile", { replace: true }), 600);
     } catch (err) {
-      setStatus({ type: "error", message: err.message || "Greška pri promeni lozinke." });
+      setStatus({ type: "error", message: err.message || "GreÅ¡ka pri promeni lozinke." });
     } finally {
       setLoading(false);
     }

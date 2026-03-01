@@ -1,7 +1,6 @@
 import { apiFetch } from "./apiFetch";
 
 export const contentApi = {
-  // Artists
   listArtists() {
     return apiFetch("/api/content/artists", { method: "GET" });
   },
@@ -24,7 +23,6 @@ export const contentApi = {
     return apiFetch(`/api/content/artists/${id}`, { method: "DELETE" });
   },
 
-  // Albums
   getAlbum(id) {
     return apiFetch(`/api/content/albums/${id}`, { method: "GET" });
   },
@@ -44,7 +42,6 @@ export const contentApi = {
     return apiFetch(`/api/content/albums/${id}`, { method: "DELETE" });
   },
 
-  // Songs
   getSong(id) {
     return apiFetch(`/api/content/songs/${id}`, { method: "GET" });
   },
@@ -73,7 +70,6 @@ export const contentApi = {
     });
   },
 
-  // Ratings
   getUserRating(songId) {
     return apiFetch(`/api/content/songs/${songId}/rating`, { method: "GET" });
   },
@@ -90,7 +86,6 @@ export const contentApi = {
     return apiFetch(`/api/content/songs/${songId}/rating/average`, { method: "GET" });
   },
 
-  // Artist Subscriptions
   subscribeToArtist(artistId) {
     return apiFetch(`/api/content/artists/${artistId}/subscribe`, {
       method: "POST",
@@ -112,7 +107,6 @@ export const contentApi = {
     });
   },
 
-  // Genre Subscriptions
   subscribeToGenre(genre) {
     return apiFetch(`/api/content/genres/${encodeURIComponent(genre)}/subscribe`, {
       method: "POST",
@@ -134,7 +128,6 @@ export const contentApi = {
     });
   },
 
-  // Recommendations
   getRecommendations() {
     return apiFetch("/api/recommendations", { method: "GET" });
   },

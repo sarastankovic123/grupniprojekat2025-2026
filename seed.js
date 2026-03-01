@@ -9,7 +9,7 @@ const ARTISTS = [
 ];
 
 async function main() {
-  console.log("🚀 Simple seeding started...");
+  console.log("ðŸš€ Simple seeding started...");
 
   const client = new MongoClient(MONGO_URI);
   await client.connect();
@@ -20,7 +20,7 @@ async function main() {
   for (const artist of ARTISTS) {
     const exists = await artistsCol.findOne({ name: artist.name });
     if (exists) {
-      console.log(`ℹ️ Artist already exists: ${artist.name}`);
+      console.log(`â„¹ï¸ Artist already exists: ${artist.name}`);
       continue;
     }
 
@@ -31,14 +31,14 @@ async function main() {
       updatedAt: new Date(),
     });
 
-    console.log(`✅ Inserted artist: ${artist.name}`);
+    console.log(`âœ… Inserted artist: ${artist.name}`);
   }
 
-  console.log("🎉 Seeding done!");
+  console.log("ðŸŽ‰ Seeding done!");
   await client.close();
 }
 
 main().catch((err) => {
-  console.error("❌ Seed failed:", err);
+  console.error("âŒ Seed failed:", err);
   process.exit(1);
 });

@@ -8,9 +8,7 @@ import (
 	"unicode"
 )
 
-// Validation constants for all services
 const (
-	// Users service
 	UsernameMinLength  = 3
 	UsernameMaxLength  = 50
 	EmailMinLength     = 5
@@ -22,7 +20,6 @@ const (
 	PasswordMinLength  = 8
 	PasswordMaxLength  = 128
 
-	// Content service
 	ArtistNameMinLength = 1
 	ArtistNameMaxLength = 200
 	BiographyMaxLength  = 5000
@@ -34,23 +31,19 @@ const (
 	GenreMaxLength      = 50
 	GenresMaxCount      = 10
 
-	// Numeric constraints
 	SongDurationMin = 1    // 1 second
 	SongDurationMax = 7200 // 2 hours in seconds
 
-	// Notification service
 	NotificationMessageMinLength = 1
 	NotificationMessageMaxLength = 1000
 )
 
-// Regex patterns for validation
 var (
 	UsernamePattern = regexp.MustCompile(`^[a-zA-Z0-9_]+$`)
 	DatePattern     = regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`)
 	ObjectIDPattern = regexp.MustCompile(`^[a-fA-F0-9]{24}$`)
 )
 
-// ValidateStringLength checks if string length is within bounds
 func ValidateStringLength(s string, min, max int, fieldName string) error {
 	length := len(s)
 	if length < min {
@@ -62,7 +55,6 @@ func ValidateStringLength(s string, min, max int, fieldName string) error {
 	return nil
 }
 
-// ValidateAlphanumericUnderscore ensures only safe characters (letters, numbers, underscore)
 func ValidateAlphanumericUnderscore(s string, fieldName string) error {
 	if !UsernamePattern.MatchString(s) {
 		return fmt.Errorf("%s can only contain letters, numbers, and underscores", fieldName)
@@ -70,7 +62,6 @@ func ValidateAlphanumericUnderscore(s string, fieldName string) error {
 	return nil
 }
 
-// ValidateNoControlCharacters checks for control characters
 func ValidateNoControlCharacters(s string, fieldName string) error {
 	for _, r := range s {
 		if unicode.IsControl(r) && r != '\n' && r != '\r' && r != '\t' {
@@ -80,7 +71,6 @@ func ValidateNoControlCharacters(s string, fieldName string) error {
 	return nil
 }
 
-// TrimAndValidateNonEmpty trims whitespace and checks for empty string
 func TrimAndValidateNonEmpty(s string, fieldName string) (string, error) {
 	trimmed := strings.TrimSpace(s)
 	if trimmed == "" {
@@ -89,7 +79,6 @@ func TrimAndValidateNonEmpty(s string, fieldName string) (string, error) {
 	return trimmed, nil
 }
 
-// ValidateIntRange checks if integer is within specified bounds
 func ValidateIntRange(n int, min, max int, fieldName string) error {
 	if n < min || n > max {
 		return fmt.Errorf("%s must be between %d and %d", fieldName, min, max)
@@ -97,7 +86,6 @@ func ValidateIntRange(n int, min, max int, fieldName string) error {
 	return nil
 }
 
-// ValidateArraySize checks if array length is within bounds
 func ValidateArraySize(arr []string, min, max int, fieldName string) error {
 	size := len(arr)
 	if size < min || size > max {
@@ -106,7 +94,6 @@ func ValidateArraySize(arr []string, min, max int, fieldName string) error {
 	return nil
 }
 
-// ValidateArrayItems validates each item in array
 func ValidateArrayItems(arr []string, minLen, maxLen int, fieldName string) error {
 	for i, item := range arr {
 		trimmed := strings.TrimSpace(item)
@@ -120,7 +107,6 @@ func ValidateArrayItems(arr []string, minLen, maxLen int, fieldName string) erro
 	return nil
 }
 
-// ValidateDateFormat checks YYYY-MM-DD format and validates date ranges
 func ValidateDateFormat(date string, fieldName string) error {
 	if date == "" {
 		return nil // Allow empty dates if optional
@@ -130,7 +116,6 @@ func ValidateDateFormat(date string, fieldName string) error {
 		return fmt.Errorf("%s must be in YYYY-MM-DD format", fieldName)
 	}
 
-	// Additional validation: check valid date ranges
 	var year, month, day int
 	_, err := fmt.Sscanf(date, "%d-%d-%d", &year, &month, &day)
 	if err != nil {
@@ -150,7 +135,6 @@ func ValidateDateFormat(date string, fieldName string) error {
 	return nil
 }
 
-// ValidateObjectIDFormat pre-validates ObjectID format before conversion
 func ValidateObjectIDFormat(id string, fieldName string) error {
 	if !ObjectIDPattern.MatchString(id) {
 		return fmt.Errorf("%s must be a valid 24-character hexadecimal string", fieldName)
@@ -158,12 +142,10 @@ func ValidateObjectIDFormat(id string, fieldName string) error {
 	return nil
 }
 
-// SanitizeForHTML escapes HTML special characters to prevent XSS
 func SanitizeForHTML(s string) string {
 	return html.EscapeString(s)
 }
 
-// StripControlCharacters removes control characters from string
 func StripControlCharacters(s string) string {
 	return strings.Map(func(r rune) rune {
 		if unicode.IsControl(r) && r != '\n' && r != '\r' && r != '\t' {

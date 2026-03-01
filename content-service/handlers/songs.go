@@ -29,7 +29,6 @@ type UpdateSongRequest struct {
 }
 
 func GetSongs(c *gin.Context) {
-	// Parse search query parameter
 	searchQuery := strings.TrimSpace(c.Query("search"))
 
 	var songs []models.Song
@@ -199,7 +198,6 @@ func UpdateSong(c *gin.Context) {
 		return
 	}
 
-	// Optional but good: album must exist even for update
 	exists, err := repository.AlbumExistsByID(albumObjID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to validate album"})

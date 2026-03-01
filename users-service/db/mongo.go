@@ -63,7 +63,6 @@ func ensureIndexes() {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
-	// Users: enforce uniqueness at DB level (avoids race conditions).
 	_, err := UsersCollection.Indexes().CreateMany(ctx, []mongo.IndexModel{
 		{
 			Keys:    bson.D{{Key: "username", Value: 1}},
@@ -78,7 +77,6 @@ func ensureIndexes() {
 		log.Printf("Warning: failed to create users indexes: %v\n", err)
 	}
 
-	// Token collections: ensure single-use/lookup performance.
 	_, _ = EmailTokensCollection.Indexes().CreateOne(ctx, mongo.IndexModel{
 		Keys:    bson.D{{Key: "token", Value: 1}},
 		Options: options.Index().SetUnique(true).SetName("email_tokens_token_unique"),

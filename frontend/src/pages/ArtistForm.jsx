@@ -30,7 +30,7 @@ export default function ArtistForm({ mode = "create" }) {
         setBio(a?.biography ?? a?.bio ?? "");
         setGenres(Array.isArray(a?.genres) ? a.genres : []);
       } catch (err) {
-        setStatus({ type: "error", message: err.message || "Greška pri učitavanju umetnika." });
+        setStatus({ type: "error", message: err.message || "GreÅ¡ka pri uÄitavanju umetnika." });
       } finally {
         setLoading(false);
       }
@@ -66,7 +66,7 @@ export default function ArtistForm({ mode = "create" }) {
         navigate(newId ? `/artists/${newId}` : "/", { replace: true });
       }
     } catch (err) {
-      setStatus({ type: "error", message: err.message || "Greška pri čuvanju." });
+      setStatus({ type: "error", message: err.message || "GreÅ¡ka pri Äuvanju." });
     } finally {
       setLoading(false);
     }
@@ -100,7 +100,7 @@ export default function ArtistForm({ mode = "create" }) {
           <GenreChipInput value={genres} onChange={setGenres} />
 
           <button disabled={loading} type="submit" style={styles.btn}>
-            {loading ? "Čuvam..." : "Sačuvaj"}
+            {loading ? "ÄŒuvam..." : "SaÄuvaj"}
           </button>
 
           {status.message && (

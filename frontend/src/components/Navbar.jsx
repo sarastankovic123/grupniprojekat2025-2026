@@ -33,7 +33,6 @@ export default function Navbar() {
       <AppBar position="sticky" color="default" elevation={1}>
         <Container maxWidth="xl">
           <Toolbar sx={{ px: { xs: 0 } }}>
-            {/* Mobile Menu Icon */}
             <IconButton
               color="inherit"
               edge="start"
@@ -43,7 +42,6 @@ export default function Navbar() {
               <MenuIcon />
             </IconButton>
 
-            {/* Logo */}
             <Typography
               variant="h6"
               component={RouterLink}
@@ -58,7 +56,6 @@ export default function Navbar() {
               🎵 Music Platform
             </Typography>
 
-            {/* Desktop Navigation */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, ml: 4, alignItems: 'center', flexGrow: 1 }}>
               <Button component={RouterLink} to="/" color="primary">
                 Home
@@ -76,7 +73,6 @@ export default function Navbar() {
               )}
             </Box>
 
-            {/* Right side: notifications + auth */}
             <Box sx={{ display: { xs: 'none', md: 'flex' }, gap: 1, alignItems: 'center' }}>
               {isAuthenticated ? (
                 <>
@@ -103,7 +99,6 @@ export default function Navbar() {
         </Container>
       </AppBar>
 
-      {/* Mobile Drawer */}
       <Drawer
         anchor="left"
         open={mobileOpen}
@@ -177,3 +172,4 @@ export default function Navbar() {
     </>
   );
 }
+

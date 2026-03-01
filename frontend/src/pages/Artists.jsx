@@ -14,12 +14,10 @@ export default function Artists() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
 
-  // Search and filter state
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedGenres, setSelectedGenres] = useState([]);
   const [availableGenres, setAvailableGenres] = useState([]);
 
-  // Fetch available genres on mount
   useEffect(() => {
     let alive = true;
 
@@ -39,7 +37,6 @@ export default function Artists() {
     };
   }, []);
 
-  // Fetch artists with search and filter
   useEffect(() => {
     let alive = true;
 
@@ -47,7 +44,6 @@ export default function Artists() {
       setErr("");
       setLoading(true);
       try {
-        // Build query parameters
         const params = new URLSearchParams();
         if (searchQuery) params.append("search", searchQuery);
         if (selectedGenres.length) params.append("genres", selectedGenres.join(","));
@@ -84,7 +80,6 @@ export default function Artists() {
     <div style={styles.page}>
       <Navbar />
 
-      {/* Hero Header Section */}
       <section style={styles.heroHeader}>
         <div style={styles.heroContent}>
           <h1 style={styles.heroTitle}>Explore Artists</h1>
@@ -94,7 +89,6 @@ export default function Artists() {
         </div>
       </section>
 
-      {/* Search and Filter Bar */}
       <div style={styles.filterBar}>
         <SearchBar
           value={searchQuery}
@@ -113,7 +107,6 @@ export default function Artists() {
         )}
       </div>
 
-      {/* Content Section */}
       <div style={styles.contentSection}>
         {loading && <div style={styles.loadingMessage}>Loading...</div>}
         {err && <div style={styles.error}>{err}</div>}
@@ -240,7 +233,6 @@ const styles = {
     marginBottom: theme.spacing.lg,
   },
 
-  // Hero Header Styles
   heroHeader: {
     background: theme.gradients.heroOlive,
     padding: `${theme.spacing['3xl']} ${theme.spacing.xl}`,
@@ -264,14 +256,12 @@ const styles = {
     lineHeight: 1.6,
   },
 
-  // Content Section
   contentSection: {
     padding: `${theme.spacing['3xl']} ${theme.spacing.xl}`,
     maxWidth: '1400px',
     margin: '0 auto',
   },
 
-  // Modern Card Styles
   cardImage: {
     width: '100%',
     height: '100%',

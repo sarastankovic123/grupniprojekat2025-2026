@@ -5,7 +5,6 @@ import { fetchNotifications, markAsRead, markAsUnread } from "../api/notificatio
 import { apiFetch } from "../api/apiFetch";
 import { contentApi } from "../api/content";
 
-// Material UI Components
 import {
   Container,
   Box,
@@ -39,7 +38,6 @@ import {
 } from "@mui/material";
 import { LoadingButton } from "@mui/lab";
 
-// Material UI Icons
 import {
   Email as EmailIcon,
   Person as PersonIcon,
@@ -60,11 +58,9 @@ import {
   Save as SaveIcon,
 } from "@mui/icons-material";
 
-// Skeleton Components
 import ProfileSkeleton from "../components/ProfileSkeleton";
 import NotificationsSkeleton from "../components/NotificationsSkeleton";
 
-// Helper functions
 function getNotifId(n) {
   return n?.id || n?._id || n?.notificationId;
 }
@@ -91,7 +87,6 @@ function formatDateTime(timestamp) {
   });
 }
 
-// Tab Panel Component
 function TabPanel({ children, value, index }) {
   return (
     <Box role="tabpanel" hidden={value !== index}>
@@ -103,7 +98,6 @@ function TabPanel({ children, value, index }) {
 export default function Profile() {
   const { user, logout, setAuthToken } = useAuth();
 
-  // Profile state
   const [profile, setProfile] = useState(null);
   const [profileForm, setProfileForm] = useState({
     username: "",
@@ -114,22 +108,18 @@ export default function Profile() {
   const [profileSaving, setProfileSaving] = useState(false);
   const [profileStatus, setProfileStatus] = useState({ type: "", message: "" });
 
-  // Notifications state
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(true);
   const [error, setError] = useState("");
   const [updatingIds, setUpdatingIds] = useState(new Set());
 
-  // Subscriptions state
   const [artistSubscriptions, setArtistSubscriptions] = useState([]);
   const [genreSubscriptions, setGenreSubscriptions] = useState([]);
   const [subscriptionsLoading, setSubscriptionsLoading] = useState(true);
   const [unsubscribingIds, setUnsubscribingIds] = useState(new Set());
 
-  // Tab state
   const [activeTab, setActiveTab] = useState(0);
 
-  // Load profile data
   useEffect(() => {
     let alive = true;
 
@@ -166,7 +156,6 @@ export default function Profile() {
     };
   }, []);
 
-  // Load notifications
   useEffect(() => {
     let alive = true;
 
@@ -192,7 +181,6 @@ export default function Profile() {
     };
   }, []);
 
-  // Refresh notifications
   async function refresh() {
     setError("");
     setNotificationsLoading(true);
@@ -206,7 +194,6 @@ export default function Profile() {
     }
   }
 
-  // Toggle notification read status
   async function toggleReadStatus(notif) {
     const notifId = getNotifId(notif);
     if (!notifId) {
@@ -252,7 +239,6 @@ export default function Profile() {
     }
   }
 
-  // Save profile
   async function saveProfile(e) {
     e.preventDefault();
     setProfileStatus({ type: "", message: "" });
@@ -285,7 +271,6 @@ export default function Profile() {
     }
   }
 
-  // Load subscriptions when Subscriptions tab is active
   useEffect(() => {
     if (activeTab !== 2) return; // Only load when Subscriptions tab is active
 
@@ -316,7 +301,6 @@ export default function Profile() {
     };
   }, [activeTab]);
 
-  // Unsubscribe from artist
   async function handleUnsubscribeArtist(artistId) {
     setUnsubscribingIds((prev) => new Set(prev).add(artistId));
     try {
@@ -333,7 +317,6 @@ export default function Profile() {
     }
   }
 
-  // Unsubscribe from genre
   async function handleUnsubscribeGenre(genre) {
     setUnsubscribingIds((prev) => new Set(prev).add(genre));
     try {
@@ -350,18 +333,15 @@ export default function Profile() {
     }
   }
 
-  // Calculate unread count
   const unreadCount = useMemo(
     () => notifications.filter((n) => !getIsRead(n)).length,
     [notifications]
   );
 
-  // Handle tab change
   const handleTabChange = (event, newValue) => {
     setActiveTab(newValue);
   };
 
-  // Show skeleton while loading initial profile
   if (profileLoading) {
     return (
       <Box>
@@ -383,7 +363,6 @@ export default function Profile() {
 
   return (
     <Box>
-      {/* Top Navigation Bar */}
       <AppBar position="static" color="default" elevation={1}>
         <Container maxWidth="lg">
           <Toolbar sx={{ px: { xs: 0 } }}>
@@ -410,7 +389,6 @@ export default function Profile() {
               </Button>
             </ButtonGroup>
 
-            {/* Mobile buttons */}
             <Box sx={{ display: { xs: "flex", sm: "none" }, gap: 1 }}>
               <IconButton component={RouterLink} to="/profile/password" size="small">
                 <LockIcon />
@@ -423,10 +401,8 @@ export default function Profile() {
         </Container>
       </AppBar>
 
-      {/* Main Content */}
       <Container maxWidth="lg" sx={{ mt: 4, mb: 4 }}>
         <Grid container spacing={3}>
-          {/* Left Column - Profile Info Card */}
           <Grid item xs={12} md={4}>
             <Card
               elevation={3}
@@ -438,7 +414,6 @@ export default function Profile() {
               }}
             >
               <CardContent>
-                {/* Avatar Section */}
                 <Box sx={{ display: 'flex', flexDirection: 'column', alignItems: 'center', mb: 3 }}>
                   <Badge
                     overlap="circular"
@@ -482,7 +457,6 @@ export default function Profile() {
 
                 <Divider sx={{ my: 2 }} />
 
-                {/* User Info List */}
                 <List disablePadding>
                   <ListItem disablePadding sx={{ py: 1 }}>
                     <ListItemIcon sx={{ minWidth: 40 }}>
@@ -519,7 +493,6 @@ export default function Profile() {
                   </ListItem>
                 </List>
 
-                {/* Stats Section */}
                 <Box sx={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 2, mt: 3 }}>
                   <Paper
                     elevation={0}
@@ -556,7 +529,6 @@ export default function Profile() {
             </Card>
           </Grid>
 
-          {/* Right Column - Tabbed Content */}
           <Grid item xs={12} md={8}>
             <Card elevation={3}>
               <Tabs value={activeTab} onChange={handleTabChange} sx={{ borderBottom: 1, borderColor: 'divider', px: 2 }}>
@@ -574,7 +546,6 @@ export default function Profile() {
                 <Tab icon={<SettingsIcon />} iconPosition="start" label="Settings" />
               </Tabs>
 
-              {/* Tab 1: Edit Profile */}
               <TabPanel value={activeTab} index={0}>
                 <Box component="form" onSubmit={saveProfile}>
                   <Grid container spacing={3}>
@@ -627,7 +598,6 @@ export default function Profile() {
                 </Box>
               </TabPanel>
 
-              {/* Tab 2: Notifications */}
               <TabPanel value={activeTab} index={1}>
                 <Box sx={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', mb: 2 }}>
                   <Typography variant="h6">
@@ -710,7 +680,6 @@ export default function Profile() {
                 )}
               </TabPanel>
 
-              {/* Tab 3: Subscriptions */}
               <TabPanel value={activeTab} index={2}>
                 <Typography variant="h5" sx={{ mb: 3, fontWeight: 600 }}>
                   My Subscriptions
@@ -722,7 +691,6 @@ export default function Profile() {
                   </Box>
                 ) : (
                   <>
-                    {/* Artist Subscriptions */}
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                       Artist Subscriptions ({artistSubscriptions.length})
                     </Typography>
@@ -790,7 +758,6 @@ export default function Profile() {
                       </List>
                     )}
 
-                    {/* Genre Subscriptions */}
                     <Typography variant="h6" sx={{ mb: 2, fontWeight: 600 }}>
                       Genre Subscriptions ({genreSubscriptions.length})
                     </Typography>
@@ -820,7 +787,6 @@ export default function Profile() {
                 )}
               </TabPanel>
 
-              {/* Tab 4: Settings */}
               <TabPanel value={activeTab} index={3}>
                 <Box sx={{ textAlign: 'center', py: 8, color: 'text.secondary' }}>
                   <SettingsIcon sx={{ fontSize: 64, opacity: 0.3, mb: 2 }} />
@@ -837,7 +803,6 @@ export default function Profile() {
         </Grid>
       </Container>
 
-      {/* Snackbar for Profile Status Messages */}
       <Snackbar
         open={!!profileStatus.message}
         autoHideDuration={4000}

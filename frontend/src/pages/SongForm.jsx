@@ -32,7 +32,6 @@ export default function SongForm({ mode = "create" }) {
         const song = await contentApi.getSong(songId);
 
         setTitle(song?.title ?? "");
-        // Duration comes as string from backend, parse it
         const dur = song?.duration ? toInt(song.duration) : "";
         setDurationSec(dur !== "" && Number.isFinite(dur) ? String(dur) : "");
         setSongAlbumId(song?.albumId ?? "");

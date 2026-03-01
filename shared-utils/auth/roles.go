@@ -7,10 +7,6 @@ const (
 	RoleUser  = "USER"
 )
 
-// NormalizeRole maps legacy/internal role strings to the roles used by the spec/UI.
-// Supported:
-// - "ADMIN", "A", "administrator", "admin" => "ADMIN"
-// - "USER", "U", "RK"                      => "USER"
 func NormalizeRole(role string) string {
 	r := strings.TrimSpace(strings.ToUpper(role))
 	switch r {
@@ -19,7 +15,6 @@ func NormalizeRole(role string) string {
 	case "USER", "U", "RK", "REGULAR", "REGULAR_USER":
 		return RoleUser
 	default:
-		// Unknown/custom role - keep as-is (uppercased) so callers can still compare deterministically.
 		return r
 	}
 }

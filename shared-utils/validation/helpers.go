@@ -7,7 +7,6 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-// FormatValidationError converts validator errors to user-friendly messages
 func FormatValidationError(err error) string {
 	if validationErrs, ok := err.(validator.ValidationErrors); ok {
 		var messages []string
@@ -19,7 +18,6 @@ func FormatValidationError(err error) string {
 	return "Invalid request data"
 }
 
-// formatFieldError formats a single validation error into a user-friendly message
 func formatFieldError(e validator.FieldError) string {
 	field := e.Field()
 

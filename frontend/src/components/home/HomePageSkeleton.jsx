@@ -11,7 +11,6 @@ import {
 export default function HomePageSkeleton() {
   return (
     <Box>
-      {/* Navigation Skeleton */}
       <AppBar position="sticky" color="default" elevation={1}>
         <Container maxWidth="xl">
           <Toolbar>
@@ -26,7 +25,6 @@ export default function HomePageSkeleton() {
         </Container>
       </AppBar>
 
-      {/* Hero Skeleton */}
       <Box
         sx={{
           minHeight: '80vh',
@@ -48,7 +46,6 @@ export default function HomePageSkeleton() {
         </Container>
       </Box>
 
-      {/* Featured Artists Skeleton */}
       <Container maxWidth="xl" sx={{ py: 6 }}>
         <Skeleton variant="text" width={250} height={48} sx={{ mx: 'auto', mb: 4 }} />
         <Grid container spacing={3}>
@@ -60,7 +57,6 @@ export default function HomePageSkeleton() {
         </Grid>
       </Container>
 
-      {/* Genre Skeleton */}
       <Container maxWidth="xl" sx={{ py: 6 }}>
         <Skeleton variant="text" width={250} height={48} sx={{ mx: 'auto', mb: 4 }} />
         <Grid container spacing={2}>
@@ -72,7 +68,6 @@ export default function HomePageSkeleton() {
         </Grid>
       </Container>
 
-      {/* Stats Skeleton */}
       <Container maxWidth="lg" sx={{ py: 6 }}>
         <Grid container spacing={3}>
           {[1, 2, 3].map((i) => (

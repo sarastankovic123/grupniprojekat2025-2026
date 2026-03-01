@@ -43,12 +43,10 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var tokenString string
 
-		// Try to get token from cookie first
 		token, err := c.Cookie("access_token")
 		if err == nil && token != "" {
 			tokenString = token
 		} else {
-			// Fall back to Authorization header for backward compatibility
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
 				ctx := logging.NewSecurityEventContext(c)
@@ -108,7 +106,6 @@ func RequireRole(requiredRole string) gin.HandlerFunc {
 		}
 
 		if !auth.RoleMatches(requiredRole, roleStr) {
-			// Set user context for proper logging
 			if userID, exists := c.Get("userID"); exists {
 				c.Set("user_id", userID)
 			}

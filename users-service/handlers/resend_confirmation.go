@@ -60,9 +60,7 @@ func ResendConfirmation(c *gin.Context) {
 	frontendURL := strings.TrimRight(config.FrontendURL, "/")
 	confirmURL := fmt.Sprintf("%s/confirm?token=%s", frontendURL, tokenValue)
 
-	// Send email confirmation
 	if err := utils.SendEmailConfirmationEmail(user.Email, confirmURL); err != nil {
-		// Log error but still create notification
 		Logger.Application.Error().
 			Err(err).
 			Str("email", user.Email).

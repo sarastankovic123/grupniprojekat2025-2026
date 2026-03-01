@@ -12,7 +12,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// GetUserRating retrieves a user's rating for a specific song
 func GetUserRating(userID, songID primitive.ObjectID) (*models.UserRating, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -31,7 +30,6 @@ func GetUserRating(userID, songID primitive.ObjectID) (*models.UserRating, error
 	return &rating, nil
 }
 
-// UpsertRating creates or updates a user's rating for a song
 func UpsertRating(userID, songID primitive.ObjectID, ratingValue int) (*models.UserRating, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -63,7 +61,6 @@ func UpsertRating(userID, songID primitive.ObjectID, ratingValue int) (*models.U
 	return &rating, nil
 }
 
-// DeleteRating removes a user's rating for a song
 func DeleteRating(userID, songID primitive.ObjectID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -81,7 +78,6 @@ func DeleteRating(userID, songID primitive.ObjectID) error {
 	return nil
 }
 
-// GetAverageRating calculates the average rating and count for a song
 func GetAverageRating(songID primitive.ObjectID) (float64, int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -96,7 +92,6 @@ func GetAverageRating(songID primitive.ObjectID) (float64, int, error) {
 		return 0, 0, nil
 	}
 
-	// Calculate average using aggregation
 	pipeline := []bson.M{
 		{"$match": filter},
 		{

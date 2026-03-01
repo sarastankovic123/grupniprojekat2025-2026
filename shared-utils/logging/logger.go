@@ -10,14 +10,12 @@ import (
 	"gopkg.in/natefinch/lumberjack.v2"
 )
 
-// Logger wraps zerolog loggers for security and application events
 type Logger struct {
 	Security    zerolog.Logger
 	Application zerolog.Logger
 	serviceName string
 }
 
-// LogConfig holds configuration for logger initialization
 type LogConfig struct {
 	ServiceName   string // e.g., "users-service", "content-service"
 	LogDir        string // Directory to store log files (default: "./logs")
@@ -28,9 +26,7 @@ type LogConfig struct {
 	ConsoleOutput bool   // Also output to console (useful for development)
 }
 
-// NewLogger initializes a new Logger instance with separate security and application loggers
 func NewLogger(config LogConfig) (*Logger, error) {
-	// Set defaults
 	if config.LogDir == "" {
 		config.LogDir = "./logs"
 	}
@@ -44,12 +40,10 @@ func NewLogger(config LogConfig) (*Logger, error) {
 		config.MaxAge = 90
 	}
 
-	// Create log directory if it doesn't exist
 	if err := os.MkdirAll(config.LogDir, 0750); err != nil {
 		return nil, err
 	}
 
-	// Configure security logger (for authentication, authorization, admin actions)
 	securityLogFile := filepath.Join(config.LogDir, "security.log")
 	securityWriter := &lumberjack.Logger{
 		Filename:   securityLogFile,
@@ -59,7 +53,6 @@ func NewLogger(config LogConfig) (*Logger, error) {
 		Compress:   config.Compress,
 	}
 
-	// Configure application logger (for general app events, errors, startup)
 	appLogFile := filepath.Join(config.LogDir, "application.log")
 	appWriter := &lumberjack.Logger{
 		Filename:   appLogFile,
@@ -69,7 +62,6 @@ func NewLogger(config LogConfig) (*Logger, error) {
 		Compress:   config.Compress,
 	}
 
-	// Setup writers (file only or file + console)
 	var securityOut, appOut io.Writer
 	if config.ConsoleOutput {
 		securityOut = zerolog.MultiLevelWriter(securityWriter, zerolog.ConsoleWriter{Out: os.Stdout, TimeFormat: time.RFC3339})
@@ -79,7 +71,6 @@ func NewLogger(config LogConfig) (*Logger, error) {
 		appOut = appWriter
 	}
 
-	// Create loggers with service name context
 	securityLogger := zerolog.New(securityOut).With().
 		Timestamp().
 		Str("service", config.ServiceName).
@@ -97,7 +88,6 @@ func NewLogger(config LogConfig) (*Logger, error) {
 	}, nil
 }
 
-// WithContext adds request context fields to a logger
 func (l *Logger) WithContext(requestID, userID, email, ip, endpoint, method string) zerolog.Logger {
 	return l.Security.With().
 		Str("request_id", requestID).
@@ -109,8 +99,6 @@ func (l *Logger) WithContext(requestID, userID, email, ip, endpoint, method stri
 		Logger()
 }
 
-// Close gracefully closes log file writers (call on service shutdown)
 func (l *Logger) Close() error {
-	// Lumberjack doesn't need explicit close, but we keep this for future extension
 	return nil
 }

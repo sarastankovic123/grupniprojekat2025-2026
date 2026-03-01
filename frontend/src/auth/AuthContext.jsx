@@ -40,7 +40,6 @@ export function AuthProvider({ children }) {
   useEffect(() => {
     if (accessToken) {
       localStorage.setItem(STORAGE_TOKEN_KEY, accessToken);
-      // Set cookie so browser-initiated requests (e.g. <audio src>) include auth
       document.cookie = `access_token=${encodeURIComponent(accessToken)}; path=/; SameSite=Strict; Secure`;
       setUser(decodeToken(accessToken));
     } else {
@@ -117,7 +116,6 @@ export function AuthProvider({ children }) {
     });
   }
 
-  // ✅ ISPRAVLJENO: POST + token u body
   async function consumeMagicLink(token) {
     const data = await apiFetch("/api/auth/magic-link/consume", {
       method: "POST",
@@ -127,7 +125,6 @@ export function AuthProvider({ children }) {
     const jwt = data?.[TOKEN_RESPONSE_FIELD] || data?.access_token;
     if (!jwt) throw new Error("Missing accessToken in magic-link response");
 
-    // Ensure persistence even if React remounts (e.g. StrictMode in dev)
     localStorage.setItem(STORAGE_TOKEN_KEY, jwt);
     setAccessToken(jwt);
     return data;

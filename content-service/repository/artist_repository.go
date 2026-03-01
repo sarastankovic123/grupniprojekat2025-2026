@@ -118,19 +118,16 @@ func CountAlbumsByArtistID(artistID primitive.ObjectID) (int64, error) {
 	return count, nil
 }
 
-// SearchAndFilterArtists searches artists by name and filters by genres
 func SearchAndFilterArtists(searchQuery string, genres []string) ([]models.Artist, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
 
 	filter := bson.M{}
 
-	// Add name search if provided
 	if searchQuery != "" {
 		filter["name"] = bson.M{"$regex": searchQuery, "$options": "i"}
 	}
 
-	// Add genre filter if provided
 	if len(genres) > 0 {
 		filter["genres"] = bson.M{"$in": genres}
 	}
@@ -149,7 +146,6 @@ func SearchAndFilterArtists(searchQuery string, genres []string) ([]models.Artis
 	return artists, nil
 }
 
-// GetAllGenres retrieves unique genres from both artists AND albums collections
 func GetAllGenres() ([]string, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer cancel()
@@ -161,7 +157,6 @@ func GetAllGenres() ([]string, error) {
 		{"$group": bson.M{"_id": "$genres"}},
 	}
 
-	// Get genres from artists
 	cursor, err := db.ArtistsCollection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
@@ -178,7 +173,6 @@ func GetAllGenres() ([]string, error) {
 		genreSet[r.ID] = true
 	}
 
-	// Get genres from albums
 	cursor2, err := db.AlbumsCollection.Aggregate(ctx, pipeline)
 	if err != nil {
 		return nil, err
@@ -195,12 +189,10 @@ func GetAllGenres() ([]string, error) {
 		genreSet[r.ID] = true
 	}
 
-	// Convert set to sorted slice
 	genres := make([]string, 0, len(genreSet))
 	for g := range genreSet {
 		genres = append(genres, g)
 	}
-	// Sort alphabetically
 	sort.Strings(genres)
 
 	return genres, nil

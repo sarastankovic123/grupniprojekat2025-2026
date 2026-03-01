@@ -19,7 +19,6 @@ type RateLimiter struct {
 }
 
 func NewRateLimiter(requests int, window time.Duration) *RateLimiter {
-	// Calculate rate per second
 	reqPerSecond := float64(requests) / window.Seconds()
 
 	rl := &RateLimiter{
@@ -29,7 +28,6 @@ func NewRateLimiter(requests int, window time.Duration) *RateLimiter {
 		window:   window,
 	}
 
-	// Start cleanup goroutine
 	go rl.cleanupStale()
 
 	return rl
@@ -52,13 +50,11 @@ func (rl *RateLimiter) cleanupStale() {
 	ticker := time.NewTicker(1 * time.Hour)
 	for range ticker.C {
 		rl.mu.Lock()
-		// Reset all limiters periodically to prevent memory leaks
 		rl.limiters = make(map[string]*rate.Limiter)
 		rl.mu.Unlock()
 	}
 }
 
-// RateLimitByIP limits requests based on client IP address
 func (rl *RateLimiter) RateLimitByIP() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		ip := c.ClientIP()
@@ -77,10 +73,8 @@ func (rl *RateLimiter) RateLimitByIP() gin.HandlerFunc {
 	}
 }
 
-// RateLimitByUser limits requests based on authenticated user ID, falls back to IP
 func (rl *RateLimiter) RateLimitByUser() gin.HandlerFunc {
 	return func(c *gin.Context) {
-		// Try to get user ID from context (set by auth middleware)
 		key := c.ClientIP() // Default to IP
 		if userID, exists := c.Get("userID"); exists {
 			if userIDStr, ok := userID.(string); ok {

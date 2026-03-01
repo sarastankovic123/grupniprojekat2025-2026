@@ -43,14 +43,12 @@ func GenerateJWT(user *models.User) (string, error) {
 }
 
 func GenerateRefreshToken() (string, error) {
-	// Generate a random 64-byte token
 	tokenBytes := make([]byte, 64)
 	_, err := rand.Read(tokenBytes)
 	if err != nil {
 		return "", err
 	}
 
-	// Encode to base64 for storage
 	token := base64.URLEncoding.EncodeToString(tokenBytes)
 	return token, nil
 }

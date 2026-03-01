@@ -13,10 +13,7 @@ import (
 	"go.mongodb.org/mongo-driver/mongo/options"
 )
 
-// ============ ARTIST SUBSCRIPTIONS ============
 
-// SubscribeToArtist subscribes a user to an artist (idempotent operation)
-// If the subscription already exists, it returns the existing subscription
 func SubscribeToArtist(userID, artistID primitive.ObjectID) (*models.ArtistSubscription, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -39,7 +36,6 @@ func SubscribeToArtist(userID, artistID primitive.ObjectID) (*models.ArtistSubsc
 	return &sub, nil
 }
 
-// UnsubscribeFromArtist removes a user's subscription to an artist
 func UnsubscribeFromArtist(userID, artistID primitive.ObjectID) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -49,8 +45,6 @@ func UnsubscribeFromArtist(userID, artistID primitive.ObjectID) error {
 	return err
 }
 
-// GetUserArtistSubscriptionsWithDetails returns a user's artist subscriptions
-// enriched with artist details (name, genres) via MongoDB aggregation
 func GetUserArtistSubscriptionsWithDetails(userID primitive.ObjectID) ([]models.ArtistSubscriptionDetail, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -86,7 +80,6 @@ func GetUserArtistSubscriptionsWithDetails(userID primitive.ObjectID) ([]models.
 		return nil, err
 	}
 
-	// Return empty array instead of nil for consistent frontend handling
 	if results == nil {
 		results = []models.ArtistSubscriptionDetail{}
 	}
@@ -94,7 +87,6 @@ func GetUserArtistSubscriptionsWithDetails(userID primitive.ObjectID) ([]models.
 	return results, nil
 }
 
-// IsSubscribedToArtist checks if a user is subscribed to a specific artist
 func IsSubscribedToArtist(userID, artistID primitive.ObjectID) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -107,8 +99,6 @@ func IsSubscribedToArtist(userID, artistID primitive.ObjectID) (bool, error) {
 	return count > 0, nil
 }
 
-// GetArtistSubscribers returns all user IDs subscribed to a specific artist
-// Used for sending notifications when new content is created
 func GetArtistSubscribers(artistID primitive.ObjectID) ([]primitive.ObjectID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -132,10 +122,7 @@ func GetArtistSubscribers(artistID primitive.ObjectID) ([]primitive.ObjectID, er
 	return userIDs, nil
 }
 
-// ============ GENRE SUBSCRIPTIONS ============
 
-// SubscribeToGenre subscribes a user to a genre (idempotent operation)
-// If the subscription already exists, it returns the existing subscription
 func SubscribeToGenre(userID primitive.ObjectID, genre string) (*models.GenreSubscription, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -158,7 +145,6 @@ func SubscribeToGenre(userID primitive.ObjectID, genre string) (*models.GenreSub
 	return &sub, nil
 }
 
-// UnsubscribeFromGenre removes a user's subscription to a genre
 func UnsubscribeFromGenre(userID primitive.ObjectID, genre string) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -168,8 +154,6 @@ func UnsubscribeFromGenre(userID primitive.ObjectID, genre string) error {
 	return err
 }
 
-// GetUserGenreSubscriptions returns all of a user's genre subscriptions
-// sorted by creation date (newest first)
 func GetUserGenreSubscriptions(userID primitive.ObjectID) ([]models.GenreSubscription, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -187,7 +171,6 @@ func GetUserGenreSubscriptions(userID primitive.ObjectID) ([]models.GenreSubscri
 		return nil, err
 	}
 
-	// Return empty array instead of nil for consistent frontend handling
 	if subs == nil {
 		subs = []models.GenreSubscription{}
 	}
@@ -195,7 +178,6 @@ func GetUserGenreSubscriptions(userID primitive.ObjectID) ([]models.GenreSubscri
 	return subs, nil
 }
 
-// IsSubscribedToGenre checks if a user is subscribed to a specific genre
 func IsSubscribedToGenre(userID primitive.ObjectID, genre string) (bool, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()
@@ -208,8 +190,6 @@ func IsSubscribedToGenre(userID primitive.ObjectID, genre string) (bool, error) 
 	return count > 0, nil
 }
 
-// GetGenreSubscribers returns all user IDs subscribed to a specific genre
-// Used for sending notifications when new content matching the genre is created
 func GetGenreSubscribers(genre string) ([]primitive.ObjectID, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 	defer cancel()

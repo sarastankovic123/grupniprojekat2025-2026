@@ -110,20 +110,16 @@ func Register(c *gin.Context) {
 		return
 	}
 
-	// 👇 CONFIRMATION LINK
 	frontendURL := strings.TrimRight(config.FrontendURL, "/")
 	confirmURL := fmt.Sprintf("%s/confirm?token=%s", frontendURL, tokenValue)
 
-	// Send email confirmation
 	if err := utils.SendEmailConfirmationEmail(user.Email, confirmURL); err != nil {
-		// Log but don't fail registration if email fails
 		Logger.Application.Error().
 			Err(err).
 			Str("email", user.Email).
 			Msg("Failed to send confirmation email")
 	}
 
-	// Log successful registration
 	ctx := logging.NewSecurityEventContext(c)
 	Logger.LogUserRegistration(ctx, user.ID.Hex(), user.Email, true, "")
 

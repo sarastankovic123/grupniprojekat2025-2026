@@ -10,8 +10,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// InternalUserExists checks whether a user exists.
-// This endpoint is intended for service-to-service calls only.
 func InternalUserExists(c *gin.Context) {
 	userIDStr := strings.TrimSpace(c.Param("id"))
 	userID, err := primitive.ObjectIDFromHex(userIDStr)

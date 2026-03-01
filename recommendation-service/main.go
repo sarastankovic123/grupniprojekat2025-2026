@@ -20,10 +20,8 @@ import (
 var logger *logging.Logger
 
 func main() {
-	// Load configuration
 	config.LoadConfig()
 
-	// Initialize logger
 	var err error
 	isDev := os.Getenv("ENV") == "development"
 	logger, err = logging.NewLogger(logging.LogConfig{
@@ -40,24 +38,19 @@ func main() {
 	}
 	logger.Application.Info().Msg("Recommendation service starting...")
 
-	// Set logger for handlers and middleware packages
 	handlers.SetLogger(logger)
 	middleware.SetLogger(logger)
 
-	// Connect to databases
 	db.ConnectMongo()
 	db.ConnectNeo4j()
 	defer db.CloseNeo4j()
 
-	// Sync MongoDB data to Neo4j
 	sync.SyncAll()
 
 	r := gin.Default()
 
-	// Add request ID middleware
 	r.Use(logging.RequestIDMiddleware())
 
-	// Global rate limiting
 	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
 	r.Use(apiLimiter.RateLimitByUser())
 

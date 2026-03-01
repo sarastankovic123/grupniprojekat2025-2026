@@ -43,12 +43,10 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var tokenString string
 
-		// Try to get token from cookie first
 		token, err := c.Cookie("access_token")
 		if err == nil && token != "" {
 			tokenString = token
 		} else {
-			// Fall back to Authorization header
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
 				ctx := logging.NewSecurityEventContext(c)

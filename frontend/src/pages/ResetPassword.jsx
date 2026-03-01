@@ -37,7 +37,7 @@ export default function ResetPassword() {
       setStatus({
         type: "error",
         message:
-          "Nedostaje token u linku. Otvori kompletan link iz emaila ili nalepi token ručno.",
+          "Nedostaje token u linku. Otvori kompletan link iz emaila ili nalepi token ruÄno.",
       });
       return;
     }
@@ -67,7 +67,7 @@ export default function ResetPassword() {
     } catch (err) {
       setStatus({
         type: "error",
-        message: err.message || "Link je nevažeći ili je istekao.",
+        message: err.message || "Link je nevaÅ¾eÄ‡i ili je istekao.",
       });
     } finally {
       setLoading(false);

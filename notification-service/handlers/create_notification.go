@@ -23,14 +23,11 @@ func CreateNotification(c *gin.Context) {
 		return
 	}
 
-	// Trim inputs
 	req.UserID = strings.TrimSpace(req.UserID)
 	req.Message = strings.TrimSpace(req.Message)
 
-	// CRITICAL SECURITY FIX: Sanitize message to prevent XSS
 	req.Message = validation.SanitizeForHTML(req.Message)
 
-	// Strip control characters from message
 	req.Message = validation.StripControlCharacters(req.Message)
 
 	if req.UserID == "" || req.Message == "" {

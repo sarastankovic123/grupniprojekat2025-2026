@@ -25,7 +25,6 @@ type ForgotPasswordRequest struct {
 func ForgotPassword(c *gin.Context) {
 	var req ForgotPasswordRequest
 	if err := c.ShouldBindJSON(&req); err != nil {
-		// Do not reveal whether the email exists; keep response generic.
 		c.JSON(http.StatusOK, gin.H{"message": "If the email exists, a reset link has been sent."})
 		return
 	}

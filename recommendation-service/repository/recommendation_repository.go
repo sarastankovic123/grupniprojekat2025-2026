@@ -10,8 +10,6 @@ import (
 	"github.com/neo4j/neo4j-go-driver/v5/neo4j"
 )
 
-// GetSubscribedGenreSongs returns songs from genres the user subscribes to,
-// excluding songs the user rated < 4 (keeps songs rated >= 4 or unrated).
 func GetSubscribedGenreSongs(ctx context.Context, userID string, limit int) ([]models.RecommendedSong, error) {
 	session := db.Neo4jDriver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(ctx)
@@ -55,8 +53,6 @@ func GetSubscribedGenreSongs(ctx context.Context, userID string, limit int) ([]m
 	return songs, nil
 }
 
-// GetDiscoverNewSongs returns songs from genres the user is NOT subscribed to,
-// with at most 5 total ratings from all users.
 func GetDiscoverNewSongs(ctx context.Context, userID string, limit int) ([]models.RecommendedSong, error) {
 	session := db.Neo4jDriver.NewSession(ctx, neo4j.SessionConfig{AccessMode: neo4j.AccessModeRead})
 	defer session.Close(ctx)

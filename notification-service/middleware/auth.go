@@ -42,12 +42,10 @@ func AuthMiddleware() gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var tokenString string
 
-		// Try to get token from cookie first
 		token, err := c.Cookie("access_token")
 		if err == nil && token != "" {
 			tokenString = token
 		} else {
-			// Fall back to Authorization header for backward compatibility
 			authHeader := c.GetHeader("Authorization")
 			if authHeader == "" {
 				c.JSON(http.StatusUnauthorized, gin.H{"error": "Authorization token required (cookie or header)"})

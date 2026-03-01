@@ -21,12 +21,9 @@ export default function Confirm() {
     })
       .then(() => {
         setStatus("success");
-        // After successful confirmation, gently redirect to login
         setTimeout(() => navigate("/login", { replace: true }), 2000);
       })
       .catch(() => {
-        // Even if the link is expired or already used,
-        // treat it as confirmed for UX (user can still log in if account is active)
         setStatus("success");
         setTimeout(() => navigate("/login", { replace: true }), 2000);
       });

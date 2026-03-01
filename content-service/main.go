@@ -23,10 +23,8 @@ import (
 var logger *logging.Logger
 
 func main() {
-	// Load configuration
 	config.LoadConfig()
 
-	// Initialize logger FIRST
 	var err error
 	isDev := os.Getenv("ENV") == "development"
 	logger, err = logging.NewLogger(logging.LogConfig{
@@ -43,13 +41,11 @@ func main() {
 	}
 	logger.Application.Info().Msg("Content service starting...")
 
-	// Set logger for handlers and middleware packages
 	handlers.SetLogger(logger)
 	middleware.SetLogger(logger)
 
 	db.ConnectMongo()
 
-	// Register custom validators
 	if v, ok := binding.Validator.Engine().(*validator.Validate); ok {
 		if err := validation.RegisterCustomValidators(v); err != nil {
 			log.Fatalf("Failed to register custom validators: %v", err)
@@ -59,10 +55,8 @@ func main() {
 
 	r := gin.Default()
 
-	// Add request ID middleware FIRST
 	r.Use(logging.RequestIDMiddleware())
 
-	// Global rate limiting (100 requests per minute)
 	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
 	r.Use(apiLimiter.RateLimitByUser())
 
@@ -130,26 +124,22 @@ func main() {
 				handlers.DeleteSong,
 			)
 
-			// Rating endpoints
 			songs.GET("/:id/rating", middleware.AuthMiddleware(), handlers.GetUserRating)
 			songs.POST("/:id/rating", middleware.AuthMiddleware(), handlers.SetRating)
 			songs.DELETE("/:id/rating", middleware.AuthMiddleware(), handlers.DeleteRating)
 			songs.GET("/:id/rating/average", handlers.GetAverageRating) // Public endpoint
 		}
 
-		// Subscription management endpoints
 		subscriptions := api.Group("/subscriptions", middleware.AuthMiddleware())
 		{
 			subscriptions.GET("/artists", handlers.GetUserArtistSubscriptions)
 			subscriptions.GET("/genres", handlers.GetUserGenreSubscriptions)
 		}
 
-		// Artist subscription endpoints
 		artists.POST("/:id/subscribe", middleware.AuthMiddleware(), handlers.SubscribeToArtist)
 		artists.DELETE("/:id/subscribe", middleware.AuthMiddleware(), handlers.UnsubscribeFromArtist)
 		artists.GET("/:id/subscription", middleware.AuthMiddleware(), handlers.GetArtistSubscriptionStatus)
 
-		// Genre subscription endpoints
 		genres := api.Group("/genres")
 		{
 			genres.POST("/:genre/subscribe", middleware.AuthMiddleware(), handlers.SubscribeToGenre)

@@ -19,7 +19,6 @@ type EmailProvider interface {
 	Send(msg *EmailMessage) error
 }
 
-// Template data structures
 type OTPTemplateData struct {
 	OTP           string
 	ExpiryMinutes int

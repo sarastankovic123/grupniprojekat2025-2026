@@ -8,7 +8,6 @@ import { getGenreGradient, getGenreIcon } from '../utils/genreHelpers';
 import HomePageSkeleton from '../components/home/HomePageSkeleton';
 import Navbar from '../components/Navbar';
 
-// Material UI Components
 import {
   Container,
   Box,
@@ -36,7 +35,6 @@ import QueueMusicIcon from '@mui/icons-material/QueueMusic';
 import ChevronLeftIcon from '@mui/icons-material/ChevronLeft';
 import ChevronRightIcon from '@mui/icons-material/ChevronRight';
 
-// ── Utility Hooks ──────────────────────────────────────────────
 
 function useScrollReveal(threshold = 0.15) {
   const [visibleSet, setVisibleSet] = useState(new Set());
@@ -88,7 +86,6 @@ function useCountUp(target, duration = 1500, shouldStart = false) {
     function tick(now) {
       const elapsed = now - startTime;
       const progress = Math.min(elapsed / duration, 1);
-      // ease-out cubic
       const eased = 1 - Math.pow(1 - progress, 3);
       setValue(Math.round(eased * target));
       if (progress < 1) {
@@ -102,7 +99,6 @@ function useCountUp(target, duration = 1500, shouldStart = false) {
   return value;
 }
 
-// ── Floating Circles for Hero ──────────────────────────────────
 
 const HERO_CIRCLES = [
   { size: 300, top: '-10%', left: '-5%', delay: '0s', duration: '7s', opacity: 0.05 },
@@ -110,7 +106,6 @@ const HERO_CIRCLES = [
   { size: 100, bottom: '10%', left: '20%', delay: '3s', duration: '8s', opacity: 0.05 },
 ];
 
-// ── Equalizer Bar config ──────────────────────────────────────
 
 const EQ_LEFT_BARS = [
   { height: 60, delay: '0s', duration: '1.2s' },
@@ -134,7 +129,6 @@ const EQ_RIGHT_BARS = [
   { height: 45, delay: '0.25s', duration: '1.5s' },
 ];
 
-// ── Component ──────────────────────────────────────────────────
 
 export default function Home() {
   const { isAuthenticated, user } = useAuth();
@@ -151,10 +145,8 @@ export default function Home() {
   const [recsLoading, setRecsLoading] = useState(false);
   const [activeRecTab, setActiveRecTab] = useState('forYou');
 
-  // Scroll reveal
   const { observe, isVisible } = useScrollReveal(0.12);
 
-  // Refs for scroll-triggered sections
   const artistCardRefs = useRef([]);
   const genreCardRefs = useRef([]);
   const statsSectionRef = useRef(null);
@@ -165,12 +157,10 @@ export default function Home() {
 
   const [statsVisible, setStatsVisible] = useState(false);
 
-  // Count-up animations for stats
   const artistCount = useCountUp(stats.artists, 1500, statsVisible);
   const albumCount = useCountUp(stats.albums, 1800, statsVisible);
   const songCount = useCountUp(stats.songs, 2000, statsVisible);
 
-  // Register refs for observation once data is loaded
   useEffect(() => {
     if (loading) return;
     artistCardRefs.current.forEach((el) => el && observe(el));
@@ -179,7 +169,6 @@ export default function Home() {
     if (genreHeadingRef.current) observe(genreHeadingRef.current);
     if (ctaRef.current) observe(ctaRef.current);
 
-    // Stats section observer
     if (statsSectionRef.current) {
       const obs = new IntersectionObserver(
         ([entry]) => {
@@ -217,7 +206,6 @@ export default function Home() {
         })
         .catch(err => console.warn('Failed to load artist subscriptions:', err));
 
-      // Fetch recommendations
       setRecsLoading(true);
       contentApi.getRecommendations()
         .then(data => {
@@ -370,7 +358,6 @@ export default function Home() {
     <Box>
       <Navbar />
 
-      {/* ── Hero Section ─────────────────────────────────── */}
       <Box
         sx={{
           minHeight: '70vh',
@@ -387,7 +374,6 @@ export default function Home() {
           ml: 'calc(-50vw + 50%)',
         }}
       >
-        {/* Floating decorative circles */}
         {HERO_CIRCLES.map((c, i) => (
           <Box
             key={i}
@@ -407,7 +393,6 @@ export default function Home() {
           />
         ))}
 
-        {/* Radial spotlight overlay */}
         <Box
           sx={{
             position: 'absolute',
@@ -417,7 +402,6 @@ export default function Home() {
           }}
         />
 
-        {/* ── Left Equalizer Bars ── */}
         <Box
           sx={{
             position: 'absolute',
@@ -446,7 +430,6 @@ export default function Home() {
           ))}
         </Box>
 
-        {/* ── Right Equalizer Bars ── */}
         <Box
           sx={{
             position: 'absolute',
@@ -475,7 +458,6 @@ export default function Home() {
           ))}
         </Box>
 
-        {/* ── Scrolling Sound Wave (bottom) ── */}
         <Box
           sx={{
             position: 'absolute',
@@ -516,7 +498,6 @@ export default function Home() {
           </svg>
         </Box>
 
-        {/* ── Second wave layer (top, reversed) ── */}
         <Box
           sx={{
             position: 'absolute',
@@ -545,12 +526,9 @@ export default function Home() {
           </svg>
         </Box>
 
-        {/* ── Hero Content ── */}
         {isAuthenticated ? (
-          /* ── Authenticated Hero: Personalized Recommendations ── */
           <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
             <Box sx={{ textAlign: 'center' }}>
-              {/* Greeting */}
               <Box
                 sx={{
                   display: 'flex',
@@ -574,7 +552,6 @@ export default function Home() {
                 </Typography>
               </Box>
 
-              {/* Tab pills */}
               <Box
                 sx={{
                   display: 'flex',
@@ -649,10 +626,8 @@ export default function Home() {
                 </Button>
               </Box>
 
-              {/* Carousel area */}
               <Box>
                 {recsLoading ? (
-                  /* Skeleton loading */
                   <Box sx={{ display: 'flex', gap: 2, justifyContent: 'center', overflow: 'hidden' }}>
                     {[0, 1, 2, 3, 4].map((i) => (
                       <Box
@@ -669,9 +644,7 @@ export default function Home() {
                     ))}
                   </Box>
                 ) : (activeRecTab === 'forYou' ? subscribedRecs : discoverRecs).length > 0 ? (
-                  /* Card carousel */
                   <Box sx={{ position: 'relative', mx: { xs: 0, md: 4 } }}>
-                    {/* Left arrow */}
                     <IconButton
                       onClick={() => {
                         if (carouselRef.current) {
@@ -694,7 +667,6 @@ export default function Home() {
                       <ChevronLeftIcon />
                     </IconButton>
 
-                    {/* Scroll container — keyed by tab to re-trigger animations */}
                     <Box
                       key={activeRecTab}
                       ref={carouselRef}
@@ -785,7 +757,6 @@ export default function Home() {
                       ))}
                     </Box>
 
-                    {/* Right arrow */}
                     <IconButton
                       onClick={() => {
                         if (carouselRef.current) {
@@ -809,7 +780,6 @@ export default function Home() {
                     </IconButton>
                   </Box>
                 ) : (
-                  /* Empty state */
                   <Box
                     sx={{
                       py: 4,
@@ -849,7 +819,6 @@ export default function Home() {
             </Box>
           </Container>
         ) : (
-          /* ── Guest Hero: Original "Discover Your Sound" ── */
           <Container maxWidth="lg" sx={{ position: 'relative', zIndex: 1 }}>
             <Box sx={{ textAlign: 'center' }}>
               <Typography
@@ -948,10 +917,8 @@ export default function Home() {
         )}
       </Box>
 
-      {/* ── Featured Artists Section ──────────────────────── */}
       {featuredArtists.length > 0 && (
         <Container maxWidth="lg" sx={{ py: 8 }}>
-          {/* Section heading with decorative underline */}
           <Box
             ref={artistHeadingRef}
             sx={{
@@ -1059,7 +1026,6 @@ export default function Home() {
                           🎵
                         </Box>
                       )}
-                      {/* Gradient Overlay */}
                       <Box
                         className="artist-card-overlay"
                         sx={{
@@ -1103,7 +1069,6 @@ export default function Home() {
                         )}
                       </Box>
                     </CardActionArea>
-                    {/* Artist Subscribe Button */}
                     <Tooltip title={!isAuthenticated ? 'Login to subscribe' : isArtistSubscribed ? 'Unsubscribe' : 'Subscribe to notifications'}>
                       <span style={{ position: 'absolute', top: 8, right: 8, zIndex: 2 }}>
                         <IconButton
@@ -1148,19 +1113,16 @@ export default function Home() {
         </Container>
       )}
 
-      {/* ── Browse by Genre Section ──────────────────────── */}
       {topGenres.length > 0 && (
         <Box
           sx={{
             py: 8,
             background: 'linear-gradient(180deg, #F5F2ED 0%, #EDE8DF 50%, #F5F2ED 100%)',
-            // Full-bleed
             width: '100vw',
             ml: 'calc(-50vw + 50%)',
           }}
         >
           <Container maxWidth="lg">
-            {/* Section heading with decorative underline */}
             <Box
               ref={genreHeadingRef}
               sx={{
@@ -1228,7 +1190,6 @@ export default function Home() {
                           transform: 'translateY(-8px) scale(1.05)',
                           boxShadow: '0 16px 40px rgba(0,0,0,0.25)',
                         },
-                        // Shine sweep on hover
                         '&::before': {
                           content: '""',
                           position: 'absolute',
@@ -1293,7 +1254,6 @@ export default function Home() {
                           {genre.count} {genre.count === 1 ? 'artist' : 'artists'}
                         </Typography>
                       </CardActionArea>
-                      {/* Subscribe Button */}
                       <Tooltip title={!isAuthenticated ? 'Login to subscribe' : isSubscribed ? 'Unsubscribe' : 'Subscribe to notifications'}>
                         <span style={{ position: 'absolute', top: 6, right: 6, zIndex: 3 }}>
                           <IconButton
@@ -1339,7 +1299,6 @@ export default function Home() {
         </Box>
       )}
 
-      {/* ── Stats Section ────────────────────────────────── */}
       <Container maxWidth="lg" sx={{ py: 8 }}>
         <Grid
           container
@@ -1365,7 +1324,6 @@ export default function Home() {
                     },
                   }}
                 >
-                  {/* Icon container */}
                   <Box
                     sx={{
                       width: 56,
@@ -1410,7 +1368,6 @@ export default function Home() {
           ))}
         </Grid>
 
-        {/* ── CTA Box for Non-Authenticated Users ────────── */}
         {!isAuthenticated && (
           <Card
             ref={ctaRef}
@@ -1428,7 +1385,6 @@ export default function Home() {
               transition: 'opacity 0.7s ease-out, transform 0.7s ease-out',
             }}
           >
-            {/* Decorative corner circle */}
             <Box
               sx={{
                 position: 'absolute',

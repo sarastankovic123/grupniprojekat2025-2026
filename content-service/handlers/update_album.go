@@ -36,12 +36,10 @@ func UpdateAlbum(c *gin.Context) {
 		return
 	}
 
-	// Trim genres
 	for i := range req.Genres {
 		req.Genres[i] = strings.TrimSpace(req.Genres[i])
 	}
 
-	// Validate artistId exists
 	artistObjID, err := primitive.ObjectIDFromHex(req.ArtistID)
 	if err != nil {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "Invalid artistId"})

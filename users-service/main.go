@@ -27,7 +27,6 @@ func main() {
 
 	config.LoadConfig()
 
-	// Initialize logger FIRST
 	var err error
 	isDev := os.Getenv("ENV") == "development"
 	logger, err = logging.NewLogger(logging.LogConfig{
@@ -44,13 +43,11 @@ func main() {
 	}
 	logger.Application.Info().Msg("Users service starting...")
 
-	// Initialize email service
 	if err := email.InitEmailService(logger); err != nil {
 		log.Fatal("Failed to initialize email service:", err)
 	}
 	logger.Application.Info().Msg("Email service initialized")
 
-	// Set logger for handlers package
 	handlers.SetLogger(logger)
 
 	db.ConnectMongo()
@@ -65,7 +62,6 @@ func main() {
 
 	r := gin.Default()
 
-	// Add request ID middleware FIRST
 	r.Use(logging.RequestIDMiddleware())
 
 	r.GET("/health", func(c *gin.Context) {
@@ -79,7 +75,6 @@ func main() {
 	apiLimiter := middleware.NewRateLimiter(config.RateLimitAPIReqs, config.RateLimitAPIWindow)
 	r.Use(apiLimiter.RateLimitByIP())
 
-	// Auth routes
 	r.POST("/api/auth/register", authLimiter.RateLimitByIP(), handlers.Register)
 	r.GET("/api/auth/confirm", handlers.ConfirmEmail)
 	r.POST("/api/auth/confirm", handlers.ConfirmEmail)
@@ -96,7 +91,6 @@ func main() {
 	r.GET("/api/auth/me", middleware.AuthMiddleware(), handlers.GetMe)
 	r.PATCH("/api/auth/me", middleware.AuthMiddleware(), handlers.UpdateMe)
 
-	// Internal service-to-service routes
 	internal := r.Group("/api/internal", middleware.ServiceAuthMiddleware())
 	{
 		internal.GET("/users/:id/exists", handlers.InternalUserExists)

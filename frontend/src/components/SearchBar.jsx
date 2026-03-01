@@ -4,7 +4,6 @@ import { theme } from '../theme';
 export default function SearchBar({ value, onChange, placeholder, debounceMs = 300 }) {
   const [localValue, setLocalValue] = useState(value || '');
 
-  // Debounce the search input
   useEffect(() => {
     const timer = setTimeout(() => {
       onChange(localValue);
@@ -13,7 +12,6 @@ export default function SearchBar({ value, onChange, placeholder, debounceMs = 3
     return () => clearTimeout(timer);
   }, [localValue, debounceMs, onChange]);
 
-  // Sync with external value changes
   useEffect(() => {
     setLocalValue(value || '');
   }, [value]);

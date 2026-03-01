@@ -13,7 +13,6 @@ import (
 	"go.mongodb.org/mongo-driver/mongo"
 )
 
-// GetUserRating returns the current user's rating for a song
 func GetUserRating(c *gin.Context) {
 	songIDStr := c.Param("id")
 	songID, err := primitive.ObjectIDFromHex(songIDStr)
@@ -22,7 +21,6 @@ func GetUserRating(c *gin.Context) {
 		return
 	}
 
-	// Get user ID from JWT claims
 	userIDVal, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -41,7 +39,6 @@ func GetUserRating(c *gin.Context) {
 		return
 	}
 
-	// Get rating from database
 	rating, err := repository.GetUserRating(userID, songID)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to fetch rating"})
@@ -56,7 +53,6 @@ func GetUserRating(c *gin.Context) {
 	c.JSON(http.StatusOK, rating)
 }
 
-// SetRating creates or updates a user's rating for a song
 func SetRating(c *gin.Context) {
 	songIDStr := c.Param("id")
 	songID, err := primitive.ObjectIDFromHex(songIDStr)
@@ -65,7 +61,6 @@ func SetRating(c *gin.Context) {
 		return
 	}
 
-	// Get user ID from JWT claims
 	userIDVal, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -84,7 +79,6 @@ func SetRating(c *gin.Context) {
 		return
 	}
 
-	// Synchronous service-to-service check: user must exist in users-service.
 	ctx, cancel := context.WithTimeout(c.Request.Context(), 2*time.Second)
 	defer cancel()
 	if err := ensureUserExists(ctx, userIDStr); err != nil {
@@ -100,7 +94,6 @@ func SetRating(c *gin.Context) {
 		return
 	}
 
-	// Parse request body
 	var req struct {
 		Rating int `json:"rating" binding:"required,min=1,max=5"`
 	}
@@ -110,14 +103,12 @@ func SetRating(c *gin.Context) {
 		return
 	}
 
-	// Validate that song exists before rating.
 	song, err := repository.GetSongByID(songID.Hex())
 	if err != nil || song == nil {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Song not found"})
 		return
 	}
 
-	// Upsert rating
 	rating, err := repository.UpsertRating(userID, songID, req.Rating)
 	if err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "Failed to save rating"})
@@ -133,7 +124,6 @@ func SetRating(c *gin.Context) {
 	c.JSON(http.StatusOK, rating)
 }
 
-// DeleteRating removes a user's rating for a song
 func DeleteRating(c *gin.Context) {
 	songIDStr := c.Param("id")
 	songID, err := primitive.ObjectIDFromHex(songIDStr)
@@ -142,7 +132,6 @@ func DeleteRating(c *gin.Context) {
 		return
 	}
 
-	// Get user ID from JWT claims
 	userIDVal, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -161,7 +150,6 @@ func DeleteRating(c *gin.Context) {
 		return
 	}
 
-	// Delete rating
 	err = repository.DeleteRating(userID, songID)
 	if err == mongo.ErrNoDocuments {
 		c.JSON(http.StatusNotFound, gin.H{"error": "Rating not found"})
@@ -180,7 +168,6 @@ func DeleteRating(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"message": "Rating deleted successfully"})
 }
 
-// GetAverageRating returns the average rating and count for a song (public endpoint)
 func GetAverageRating(c *gin.Context) {
 	songIDStr := c.Param("id")
 	songID, err := primitive.ObjectIDFromHex(songIDStr)
@@ -195,7 +182,6 @@ func GetAverageRating(c *gin.Context) {
 		return
 	}
 
-	// Round average to 1 decimal place
 	avgRounded := float64(int(avg*10+0.5)) / 10
 
 	c.JSON(http.StatusOK, gin.H{
@@ -205,9 +191,7 @@ func GetAverageRating(c *gin.Context) {
 	})
 }
 
-// GetBulkRatings returns the current user's ratings for multiple songs
 func GetBulkRatings(c *gin.Context) {
-	// Get user ID from JWT claims
 	userIDVal, exists := c.Get("userID")
 	if !exists {
 		c.JSON(http.StatusUnauthorized, gin.H{"error": "User not authenticated"})
@@ -226,14 +210,12 @@ func GetBulkRatings(c *gin.Context) {
 		return
 	}
 
-	// Parse song IDs from query parameter (comma-separated)
 	songIDsParam := c.Query("songIds")
 	if songIDsParam == "" {
 		c.JSON(http.StatusBadRequest, gin.H{"error": "songIds query parameter required"})
 		return
 	}
 
-	// Split and parse song IDs
 	songIDStrs := splitCommas(songIDsParam)
 	songIDs := make([]primitive.ObjectID, 0, len(songIDStrs))
 
@@ -250,7 +232,6 @@ func GetBulkRatings(c *gin.Context) {
 		return
 	}
 
-	// Fetch ratings for all songs
 	ratingsMap := make(map[string]int)
 	for _, songID := range songIDs {
 		rating, err := repository.GetUserRating(userID, songID)
@@ -262,7 +243,6 @@ func GetBulkRatings(c *gin.Context) {
 	c.JSON(http.StatusOK, gin.H{"ratings": ratingsMap})
 }
 
-// Helper function to split comma-separated string
 func splitCommas(s string) []string {
 	var result []string
 	start := 0
@@ -280,7 +260,6 @@ func splitCommas(s string) []string {
 	return result
 }
 
-// Helper to parse int with default
 func parseInt(s string, defaultVal int) int {
 	if val, err := strconv.Atoi(s); err == nil {
 		return val

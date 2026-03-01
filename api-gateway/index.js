@@ -7,9 +7,6 @@ const fs = require('fs');
 
 const app = express();
 
-// =========================
-// Configuration (from env)
-// =========================
 const PORT = process.env.PORT || 3000;
 
 const USERS_SERVICE_URL =
@@ -42,14 +39,10 @@ try {
     httpsAgent = new https.Agent({ ca, keepAlive: true });
     console.log(`API Gateway: loaded TLS CA from ${TLS_CA_FILE}`);
 } catch (e) {
-    // Fallback: still allow HTTPS (encrypted), but without cert verification (dev-only).
     httpsAgent = new https.Agent({ rejectUnauthorized: false, keepAlive: true });
     console.warn(`API Gateway: failed to read TLS CA at ${TLS_CA_FILE}, using rejectUnauthorized=false`);
 }
 
-// =========================
-// Resilience helpers
-// =========================
 class CircuitBreaker {
     constructor({ failureThreshold, openMs }) {
         this.failureThreshold = failureThreshold;
@@ -107,11 +100,6 @@ function isRetryableAxiosError(err) {
     );
 }
 
-// =========================
-// Middleware
-// =========================
-// Parse JSON bodies, but skip multipart requests so the raw stream
-// stays intact for proxying file uploads.
 app.use((req, res, next) => {
     const ct = String(req.headers['content-type'] || '');
     if (ct.startsWith('multipart/form-data')) return next();
@@ -159,9 +147,6 @@ function authMiddleware(req, res, next) {
     });
 }
 
-// =========================
-// Base routes
-// =========================
 app.get('/', (req, res) => {
     res.json({ status: 'API Gateway is running' });
 });
@@ -170,11 +155,7 @@ app.get('/health', (req, res) => {
     res.json({ status: 'gateway up' });
 });
 
-// =========================
-// Proxy helper
-// =========================
 async function proxy(req, res, targetUrl) {
-    // Explicit response timeout for the caller.
     res.setTimeout(USER_RESPONSE_TIMEOUT_MS);
 
     try {
@@ -194,7 +175,6 @@ async function proxy(req, res, targetUrl) {
             req.method === 'GET' &&
             /^\/api\/content\/songs\/[^/]+\/audio$/.test(req.originalUrl);
 
-        // For multipart uploads, forward raw request stream (express.json won't parse it).
         const contentType = String(req.headers['content-type'] || '');
         const isMultipart = contentType.startsWith('multipart/form-data');
 
@@ -237,7 +217,6 @@ async function proxy(req, res, targetUrl) {
                 return;
             }
 
-            // For multipart uploads, pipe the raw request stream directly to upstream.
             if (isMultipart) {
                 const response = await axios({
                     ...baseAxiosConfig,
@@ -251,7 +230,6 @@ async function proxy(req, res, targetUrl) {
                 return res.status(response.status).json(response.data);
             }
 
-            // Retry only for idempotent reads to avoid duplicating writes.
             const canRetry = req.method === 'GET' || req.method === 'HEAD';
             let response = null;
             let lastErr = null;
@@ -296,38 +274,27 @@ async function proxy(req, res, targetUrl) {
     }
 }
 
-// =========================
-// Routes
-// =========================
 
-// Users / Auth
 app.use('/api/auth', (req, res) =>
     proxy(req, res, USERS_SERVICE_URL)
 );
 
-// Public content
 app.use('/api/content/artists', (req, res) =>
     proxy(req, res, CONTENT_SERVICE_URL)
 );
 
-// Protected content
 app.use('/api/content', authMiddleware, (req, res) =>
     proxy(req, res, CONTENT_SERVICE_URL)
 );
 
-// Notifications
 app.use('/api/notifications', authMiddleware, (req, res) =>
     proxy(req, res, NOTIFICATIONS_SERVICE_URL)
 );
 
-// Recommendations
 app.use('/api/recommendations', authMiddleware, (req, res) =>
     proxy(req, res, RECOMMENDATION_SERVICE_URL)
 );
 
-// =========================
-// Start server
-// =========================
 app.listen(PORT, () => {
     console.log(`API Gateway running on port ${PORT}`);
 });

@@ -26,21 +26,18 @@ var (
 	MongoURI            string
 	Port                string
 
-	// Email Configuration
 	EmailProvider     string
 	EmailFrom         string
 	EmailFromName     string
 	EmailDevMode      bool
 	EmailDevRecipient string
 
-	// SMTP Configuration
 	SMTPHost     string
 	SMTPPort     int
 	SMTPUsername string
 	SMTPPassword string
 	SMTPUseTLS   bool
 
-	// Email Settings
 	EmailTemplatesDir        string
 	EmailRetryAttempts       int
 	EmailTimeout             time.Duration
@@ -125,21 +122,18 @@ func LoadConfig() {
 
 	Port = getEnv("PORT", "8001")
 
-	// Load Email Configuration
 	EmailProvider = getEnv("EMAIL_PROVIDER", "smtp")
 	EmailFrom = getEnv("EMAIL_FROM", "")
 	EmailFromName = getEnv("EMAIL_FROM_NAME", "Music Platform")
 	EmailDevMode = getEnv("EMAIL_DEV_MODE", "false") == "true"
 	EmailDevRecipient = getEnv("EMAIL_DEV_RECIPIENT", "")
 
-	// Load SMTP Configuration
 	SMTPHost = getEnv("SMTP_HOST", "smtp.gmail.com")
 	SMTPPort = getEnvAsInt("SMTP_PORT", 587)
 	SMTPUsername = getEnv("SMTP_USERNAME", "")
 	SMTPPassword = getEnv("SMTP_PASSWORD", "")
 	SMTPUseTLS = getEnv("SMTP_USE_TLS", "true") == "true"
 
-	// Load Email Settings
 	EmailTemplatesDir = getEnv("EMAIL_TEMPLATES_DIR", "./templates/emails")
 	EmailRetryAttempts = getEnvAsInt("EMAIL_RETRY_ATTEMPTS", 3)
 	timeoutStr := getEnv("EMAIL_TIMEOUT", "30s")
@@ -151,7 +145,6 @@ func LoadConfig() {
 	NotificationsServiceURL = getEnv("NOTIFICATIONS_SERVICE_URL", "https://localhost:8003")
 	RecommendationServiceURL = getEnv("RECOMMENDATION_SERVICE_URL", "https://recommendation-service:8004")
 
-	// Validate email configuration
 	if EmailProvider == "smtp" && !EmailDevMode {
 		if SMTPPassword == "" {
 			log.Fatal("SMTP_PASSWORD is required when EMAIL_PROVIDER=smtp and EMAIL_DEV_MODE=false")

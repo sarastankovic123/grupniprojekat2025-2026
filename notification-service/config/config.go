@@ -24,12 +24,10 @@ var (
 )
 
 func LoadConfig() {
-	// Load .env file if it exists
 	if err := godotenv.Load(); err != nil {
 		log.Println("No .env file found, using environment variables")
 	}
 
-	// JWT Configuration
 	JWTSecret = []byte(getEnv("JWT_SECRET", ""))
 	if len(JWTSecret) == 0 {
 		log.Fatal("JWT_SECRET environment variable is required")
@@ -38,13 +36,11 @@ func LoadConfig() {
 		log.Fatal("JWT_SECRET must be at least 32 characters long")
 	}
 
-	// Service Authentication
 	ServiceAPIKey = getEnv("SERVICE_API_KEY", "")
 	if ServiceAPIKey == "" {
 		log.Fatal("SERVICE_API_KEY environment variable is required")
 	}
 
-	// Rate Limiting
 	RateLimitAPIReqs = getEnvAsInt("RATE_LIMIT_API_REQUESTS", 100)
 	apiWindowStr := getEnv("RATE_LIMIT_API_WINDOW", "1m")
 	var err error
@@ -53,7 +49,6 @@ func LoadConfig() {
 		log.Fatal("Invalid RATE_LIMIT_API_WINDOW format:", err)
 	}
 
-	// Cassandra (notifications DB)
 	hosts := strings.TrimSpace(getEnv("CASSANDRA_HOSTS", "localhost"))
 	if hosts == "" {
 		hosts = "localhost"
@@ -67,7 +62,6 @@ func LoadConfig() {
 	CassandraUsername = strings.TrimSpace(getEnv("CASSANDRA_USERNAME", ""))
 	CassandraPassword = strings.TrimSpace(getEnv("CASSANDRA_PASSWORD", ""))
 
-	// Server
 	Port = getEnv("PORT", "8003")
 
 	log.Println("Configuration loaded successfully")
